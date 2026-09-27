@@ -2,11 +2,95 @@
 
 :root {
   color-scheme: light;
-  font-family: Arial, Helvetica, sans-serif;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --surface: #ffffff;
+  --surface-muted: #f1f5f9;
+  --muted: #64748b;
+  --muted-strong: #475569;
+  --border: #e2e8f0;
+  --primary: #0f766e;
+  --primary-hover: #115e59;
+  --primary-foreground: #ffffff;
+  --primary-soft: #ccfbf1;
+  --focus: #0d9488;
+  --info: #0369a1;
+  --info-strong: #075985;
+  --info-soft: #e0f2fe;
+  --success: #15803d;
+  --success-strong: #166534;
+  --success-soft: #dcfce7;
+  --warning: #a16207;
+  --warning-strong: #854d0e;
+  --warning-soft: #fef9c3;
+  --danger: #b91c1c;
+  --danger-hover: #991b1b;
+  --danger-strong: #991b1b;
+  --danger-foreground: #ffffff;
+  --danger-soft: #fee2e2;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-muted: var(--muted);
+  --color-muted-strong: var(--muted-strong);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-focus: var(--focus);
+  --color-info: var(--info);
+  --color-info-strong: var(--info-strong);
+  --color-info-soft: var(--info-soft);
+  --color-success: var(--success);
+  --color-success-strong: var(--success-strong);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-strong: var(--warning-strong);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-strong: var(--danger-strong);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-soft: var(--danger-soft);
+  --font-sans: Arial, Helvetica, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--background);
 }
 
 body {
   margin: 0;
-  background: #ffffff;
-  color: #171717;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: var(--primary-soft);
+  color: var(--foreground);
 }
