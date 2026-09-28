@@ -258,6 +258,7 @@ Do not add these unless requirements are explicitly updated:
 - [x] Prashant Sprint 1 Stage 1 complete: auth/tenancy Prisma schema, migration and local MySQL verification
 - [x] Prashant Sprint 1 Stage 2 complete: password hashing, signed HttpOnly sessions, register/login/logout/me APIs, validation, malformed-JSON handling, duplicate-registration conflict handling and Phase-1 auth rate limiting
 - [x] Stage 2 validated locally: lint, typecheck, Prisma validate, production build, auth happy path and negative/security API checks
+- [x] Prashant Sprint 1 Stage 3 atomic merchant registration complete: one transaction creates User + PENDING Shop + OWNER membership; locally verified as exactly one row in each table
 
 ## How ChatGPT/Codex should use this file
 At the beginning of a new development conversation, first read `AGENTS.md`, this file, and the relevant docs from `staging`. Confirm the developer's assigned branch and current task before proposing implementation. Do not rely on old chat history when repository documentation contains a newer decision.
