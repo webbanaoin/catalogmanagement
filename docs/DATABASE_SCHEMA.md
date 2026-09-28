@@ -3,13 +3,13 @@
 This is the target logical model. Prisma migrations are the canonical implementation mechanism once the application is initialized.
 
 ## users
-id, name, email, mobile, password_hash, status, created_at, updated_at.
+id, name, email, mobile, password_hash, status, created_at, updated_at.\n\nSprint 1 status values: `ACTIVE`, `DISABLED`. Email is globally unique and normalized by the application before persistence.
 
 ## shops
-id, business_category_id, name, slug, tagline, description, logo_storage_key, cover_storage_key, phone, whatsapp, email, address, city, state, pincode, google_maps_url, instagram_url, facebook_url, status, created_at, updated_at.
+id, business_category_id, name, slug, tagline, description, logo_storage_key, cover_storage_key, phone, whatsapp, email, address, city, state, pincode, google_maps_url, instagram_url, facebook_url, status, created_at, updated_at.\n\nSprint 1 lifecycle values: `PENDING`, `APPROVED`, `ACTIVE`, `SUSPENDED`, `REJECTED`. `business_category_id` remains a scalar until the Sprint 2 `business_categories` model owns that relation.
 
 ## shop_users
-id, user_id, shop_id, role, created_at. Unique membership constraints should prevent accidental duplicates.
+id, user_id, shop_id, role, created_at. Unique membership constraints should prevent accidental duplicates.\n\nInitial roles: `OWNER`, `MANAGER`, `STAFF`. `(user_id, shop_id)` is unique; tenant authorization must always resolve this membership server-side.
 
 ## business_categories
 id, name, slug, icon, status, display_order.
