@@ -6,8 +6,8 @@ This file is the shared execution plan for Prashant and Parixit. It complements 
 ## Branch model
 - Production: `main`
 - Integration/testing: `staging`
-- Prashant current branch: `feature/prashant-project-foundation`
-- Parixit current branch: `feature/parixit-ui-foundation`
+- Prashant current branch: `feature/prashant-auth-tenancy`
+- Parixit current branch: `feature/parixit-shop-onboarding`
 
 Feature branches always start from latest `staging`. Normal flow:
 feature branch -> PR -> staging -> integration testing -> PR -> main.
@@ -249,10 +249,12 @@ Do not add these unless requirements are explicitly updated:
 - [x] Project source-of-truth documentation added to `staging`
 - [x] `feature/prashant-project-foundation` created from `staging`
 - [x] `feature/parixit-ui-foundation` created from `staging`
-- [ ] Sprint 0 implementation started
-- [ ] Prashant Sprint 0 PR to staging
-- [ ] Parixit Sprint 0 PR to staging
-- [ ] Sprint 0 integrated and validated
+- [x] Sprint 0 implementation completed
+- [x] Prashant Sprint 0 PR merged to staging
+- [x] Parixit Sprint 0 PR merged to staging
+- [x] Sprint 0 integrated and validated locally (install, lint, typecheck, Prisma validate/generate, production build, home/dashboard/storefront/health runtime checks)
+- [x] Sprint 1 branches created from latest validated `staging`
+- [ ] Sprint 1 implementation started
 
 ## How ChatGPT/Codex should use this file
 At the beginning of a new development conversation, first read `AGENTS.md`, this file, and the relevant docs from `staging`. Confirm the developer's assigned branch and current task before proposing implementation. Do not rely on old chat history when repository documentation contains a newer decision.
