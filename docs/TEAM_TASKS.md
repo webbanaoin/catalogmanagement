@@ -254,7 +254,10 @@ Do not add these unless requirements are explicitly updated:
 - [x] Parixit Sprint 0 PR merged to staging
 - [x] Sprint 0 integrated and validated locally (install, lint, typecheck, Prisma validate/generate, production build, home/dashboard/storefront/health runtime checks)
 - [x] Sprint 1 branches created from latest validated `staging`
-- [ ] Sprint 1 implementation started
+- [x] Sprint 1 implementation started
+- [x] Prashant Sprint 1 Stage 1 complete: auth/tenancy Prisma schema, migration and local MySQL verification
+- [x] Prashant Sprint 1 Stage 2 complete: password hashing, signed HttpOnly sessions, register/login/logout/me APIs, validation, malformed-JSON handling, duplicate-registration conflict handling and Phase-1 auth rate limiting
+- [x] Stage 2 validated locally: lint, typecheck, Prisma validate, production build, auth happy path and negative/security API checks
 
 ## How ChatGPT/Codex should use this file
 At the beginning of a new development conversation, first read `AGENTS.md`, this file, and the relevant docs from `staging`. Confirm the developer's assigned branch and current task before proposing implementation. Do not rely on old chat history when repository documentation contains a newer decision.
