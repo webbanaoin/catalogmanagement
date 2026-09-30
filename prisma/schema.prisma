@@ -13,6 +13,11 @@ enum UserStatus {
   DISABLED
 }
 
+enum PlatformRole {
+  USER
+  ADMIN
+}
+
 enum ShopStatus {
   PENDING
   APPROVED
@@ -34,11 +39,13 @@ model User {
   mobile       String?      @db.VarChar(30)
   passwordHash String       @map("password_hash") @db.VarChar(255)
   status       UserStatus   @default(ACTIVE)
+  platformRole PlatformRole @default(USER) @map("platform_role")
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")
   shopUsers    ShopUser[]
 
   @@index([status])
+  @@index([platformRole])
   @@map("users")
 }
 
