@@ -262,6 +262,10 @@ Do not add these unless requirements are explicitly updated:
 - [x] Prashant Sprint 1 Stage 3 tenant authorization complete: centralized server-side shop membership guard; own-shop access verified 200/OWNER and cross-shop access verified 403/FORBIDDEN
 - [x] Approval-aware merchant login verified: PENDING shop blocked with 403 and no session; APPROVED shop receives authenticated session
 - [x] Admin approval backend/API verified: platform ADMIN role and server-side admin guard; normal shop OWNER denied with 403; ADMIN pending-shop list returned 200; PENDING shop approved through API; approved merchant login unlocked; invalid APPROVED -> REJECTED transition blocked with 409
+- [x] Forgot-password foundation complete: hashed single-use reset tokens, 30-minute expiry, generic account-enumeration-safe request response, reset endpoint and auth rate limiting
+- [x] Forgot-password locally verified: reset request 200; password reset 200; new password login 200; previous password rejected 401; reused reset token rejected 400
+- [x] Prashant Sprint 1 backend validation complete: Prisma migrations up to date and production build successful; tenant/admin/auth regression checks completed during Sprint 1
+- [x] Prashant Sprint 1 backend implementation complete; ready for PR to staging and joint integration testing with Parixit UI
 
 ## How ChatGPT/Codex should use this file
 At the beginning of a new development conversation, first read `AGENTS.md`, this file, and the relevant docs from `staging`. Confirm the developer's assigned branch and current task before proposing implementation. Do not rely on old chat history when repository documentation contains a newer decision.
