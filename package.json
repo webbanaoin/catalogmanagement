@@ -15,7 +15,8 @@
     "prisma:validate": "prisma validate",
     "db:migrate:dev": "prisma migrate dev",
     "db:migrate:status": "prisma migrate status",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "admin:grant": "node scripts/grant-platform-admin.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.922.0",
