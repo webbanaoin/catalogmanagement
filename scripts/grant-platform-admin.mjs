@@ -14,7 +14,7 @@ if (!email) {
       select: { id: true, email: true, platformRole: true },
     });
     console.log(`Granted platform admin role to ${user.email}`);
-  } catch (error) {
+  } catch {
     console.error("Unable to grant platform admin role. Confirm the user exists and DATABASE_URL is correct.");
     process.exitCode = 1;
   } finally {
