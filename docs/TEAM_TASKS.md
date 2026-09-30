@@ -261,6 +261,7 @@ Do not add these unless requirements are explicitly updated:
 - [x] Prashant Sprint 1 Stage 3 atomic merchant registration complete: one transaction creates User + PENDING Shop + OWNER membership; locally verified as exactly one row in each table
 - [x] Prashant Sprint 1 Stage 3 tenant authorization complete: centralized server-side shop membership guard; own-shop access verified 200/OWNER and cross-shop access verified 403/FORBIDDEN
 - [x] Approval-aware merchant login verified: PENDING shop blocked with 403 and no session; APPROVED shop receives authenticated session
+- [x] Admin approval backend/API verified: platform ADMIN role and server-side admin guard; normal shop OWNER denied with 403; ADMIN pending-shop list returned 200; PENDING shop approved through API; approved merchant login unlocked; invalid APPROVED -> REJECTED transition blocked with 409
 
 ## How ChatGPT/Codex should use this file
 At the beginning of a new development conversation, first read `AGENTS.md`, this file, and the relevant docs from `staging`. Confirm the developer's assigned branch and current task before proposing implementation. Do not rely on old chat history when repository documentation contains a newer decision.
