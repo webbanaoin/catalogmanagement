@@ -4,26 +4,44 @@ import { useState, type FormEvent } from "react";
 
 import { Alert, Button, Field, Input } from "@/components/ui";
 import { AuthApiError, requestPasswordReset } from "@/lib/auth-api";
+import { isValidEmail } from "@/lib/validation";
+
+type FieldErrors = Record<string, string>;
 
 export function ForgotPasswordForm() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [formError, setFormError] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const email = String(formData.get("email") ?? "").trim();
+    const clientErrors: FieldErrors = {};
 
-    setSubmitting(true);
+    if (!email) {
+      clientErrors.email = "Email is required.";
+    } else if (!isValidEmail(email)) {
+      clientErrors.email = "Enter a valid email address.";
+    }
+
     setMessage("");
     setFormError("");
+
+    if (Object.keys(clientErrors).length > 0) {
+      setFieldErrors(clientErrors);
+      const control = form.elements.namedItem("email");
+      if (control instanceof HTMLElement) control.focus();
+      return;
+    }
+
+    setSubmitting(true);
     setFieldErrors({});
 
     try {
-      const response = await requestPasswordReset({
-        email: String(formData.get("email") ?? "").trim(),
-      });
+      const response = await requestPasswordReset({ email });
       setMessage(
         response.data.message ??
           "If an eligible account exists, password reset instructions will be sent.",
@@ -41,7 +59,7 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
+    <form className="space-y-5" onSubmit={handleSubmit} noValidate>
       {message ? <Alert variant="success">{message}</Alert> : null}
       {formError ? <Alert variant="error">{formError}</Alert> : null}
 
@@ -59,6 +77,7 @@ export function ForgotPasswordForm() {
           autoComplete="email"
           required
           aria-invalid={Boolean(fieldErrors.email)}
+          aria-describedby={fieldErrors.email ? "email-error" : "email-hint"}
         />
       </Field>
 
