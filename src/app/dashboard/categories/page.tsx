@@ -41,7 +41,7 @@ export default function CategoriesPage() {
       />
 
       <Alert variant="warning" title="Category API is not frozen yet">
-        Prashant's current Sprint 2 branch does not expose shop-category CRUD contracts beyond the existing staging baseline. This page therefore avoids fake categories, fake persistence, and invented request shapes.
+        Prashant&apos;s current Sprint 2 branch does not expose shop-category CRUD contracts beyond the existing staging baseline. This page therefore avoids fake categories, fake persistence, and invented request shapes.
       </Alert>
 
       <EmptyState
