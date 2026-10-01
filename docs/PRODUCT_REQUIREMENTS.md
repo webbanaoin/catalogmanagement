@@ -4,6 +4,14 @@
 Merchant: "Your shop's Digital Showroom."
 Customer: scan once and view the shop's latest collection anytime.
 
+## Phase 1 market
+Phase 1 is India-only. Merchant/customer contact and address UX should therefore use India-specific validation where applicable:
+- mobile and WhatsApp numbers use valid 10-digit Indian mobile numbers, with optional +91 presentation;
+- shop phone may be a valid Indian mobile or landline number;
+- postal PIN uses the 6-digit Indian PIN format.
+
+International phone/address support is outside the current Phase 1 scope unless requirements are explicitly changed.
+
 ## Merchant flow
 Register -> pending admin review -> approved -> login -> complete shop profile -> create categories -> add/import products -> publish/share permanent QR -> view analytics.
 
