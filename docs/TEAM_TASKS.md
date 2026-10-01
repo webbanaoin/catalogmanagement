@@ -247,14 +247,18 @@ Do not add these unless requirements are explicitly updated:
 - [x] `main` production baseline exists
 - [x] `staging` integration branch created
 - [x] Project source-of-truth documentation added to `staging`
-- [x] `feature/prashant-project-foundation` created from `staging`
-- [x] `feature/parixit-ui-foundation` created from `staging`
-- [x] Sprint 0 implementation completed
-- [x] Prashant Sprint 0 PR merged to staging
-- [x] Parixit Sprint 0 PR merged to staging
-- [x] Sprint 0 integrated and validated locally (install, lint, typecheck, Prisma validate/generate, production build, home/dashboard/storefront/health runtime checks)
-- [x] Sprint 1 branches created from latest validated `staging`
-- [ ] Sprint 1 implementation started
+- [x] Sprint 0 implementation completed and integrated
+- [x] Sprint 0 validated locally (install, lint, typecheck, Prisma validate/generate, production build and runtime checks)
+- [x] Sprint 1 branches created from validated `staging`
+- [x] Prashant Sprint 1 auth/tenancy backend implementation complete and locally validated
+- [x] Prashant Sprint 1 atomic registration, approval-aware login and tenant-isolation checks complete
+- [x] Platform ADMIN approval backend/API locally verified
+- [x] Forgot/reset-password foundation locally verified
+- [x] Parixit Sprint 1 UI merged to `staging`: registration, login, forgot-password, pending-approval and onboarding presentation flow
+- [x] Sprint 1 backend and UI combined on `integration/sprint1-auth-ui`
+- [ ] Combined Sprint 1 integration validation: install, Prisma migrate/generate/validate, lint, typecheck and production build
+- [ ] Combined Sprint 1 browser Golden Flow validation
+- [ ] Merge validated Sprint 1 integration into `staging`
 
 ## How ChatGPT/Codex should use this file
 At the beginning of a new development conversation, first read `AGENTS.md`, this file, and the relevant docs from `staging`. Confirm the developer's assigned branch and current task before proposing implementation. Do not rely on old chat history when repository documentation contains a newer decision.
