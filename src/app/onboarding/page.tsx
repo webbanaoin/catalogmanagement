@@ -13,7 +13,7 @@ export default function OnboardingPage() {
           />
 
           <Alert variant="warning" title="Integration boundary">
-            Authentication and shop-profile persistence remain server responsibilities. The auth forms target Prashant's current API shapes through an isolated client adapter, while this wizard keeps profile data in the browser only for the current UI sprint.
+            Authentication and shop-profile persistence remain server responsibilities. The auth forms target Prashant&apos;s current API shapes through an isolated client adapter, while this wizard keeps profile data in the browser only for the current UI sprint.
           </Alert>
 
           <OnboardingWizard />
