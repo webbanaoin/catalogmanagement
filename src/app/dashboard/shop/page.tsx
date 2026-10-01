@@ -25,7 +25,7 @@ export default function ShopProfilePage() {
       </Alert>
 
       <Alert title="Authorization boundary">
-        This dashboard route is not proof of shop access. When profile APIs arrive, every read and mutation must verify the authenticated user's shop membership on the server.
+        This dashboard route is not proof of shop access. When profile APIs arrive, every read and mutation must verify the authenticated user&apos;s shop membership on the server.
       </Alert>
 
       <ShopProfileForm />
