@@ -57,6 +57,7 @@ export function OnboardingWizard() {
               {steps.map((step, index) => {
                 const active = index === stepIndex;
                 const complete = index < stepIndex;
+
                 return (
                   <li key={step}>
                     <button
@@ -107,23 +108,33 @@ export function OnboardingWizard() {
           </CardHeader>
 
           <CardContent className="space-y-6">
-            {currentStep === "Shop information" ? <ShopInformationStep /> : null}
-            {currentStep === "Contact details" ? <ContactStep /> : null}
-            {currentStep === "Location" ? <LocationStep /> : null}
-            {currentStep === "Opening hours" ? <OpeningHoursStep /> : null}
-            {currentStep === "Category" ? (
+            <div hidden={currentStep !== "Shop information"}>
+              <ShopInformationStep />
+            </div>
+            <div hidden={currentStep !== "Contact details"}>
+              <ContactStep />
+            </div>
+            <div hidden={currentStep !== "Location"}>
+              <LocationStep />
+            </div>
+            <div hidden={currentStep !== "Opening hours"}>
+              <OpeningHoursStep />
+            </div>
+            <div hidden={currentStep !== "Category"}>
               <DeferredStep
                 title="Category setup waits for the catalogue contract"
                 description="Business categories are data-driven and must not be hard-coded into reusable UI logic."
               />
-            ) : null}
-            {currentStep === "First product" ? (
+            </div>
+            <div hidden={currentStep !== "First product"}>
               <DeferredStep
                 title="First product waits for product and media contracts"
                 description="Product creation and image upload belong to later catalogue/S3 work, so this step intentionally creates no shadow product model."
               />
-            ) : null}
-            {currentStep === "Completion" ? <CompletionStep /> : null}
+            </div>
+            <div hidden={currentStep !== "Completion"}>
+              <CompletionStep />
+            </div>
 
             <div className="flex flex-col-reverse gap-3 border-t border-border pt-5 sm:flex-row sm:justify-between">
               <Button
@@ -230,7 +241,11 @@ function OpeningHoursStep() {
 }
 
 function DeferredStep({ title, description }: { title: string; description: string }) {
-  return <Alert variant="warning" title={title}>{description}</Alert>;
+  return (
+    <Alert variant="warning" title={title}>
+      {description}
+    </Alert>
+  );
 }
 
 function CompletionStep() {
