@@ -87,3 +87,11 @@ Product media lifecycle additions:
 - Setting an image primary clears the primary flag from the product's other images.
 - DELETE `/api/shops/{shopId}/products/{productId}/images/{imageId}` removes the S3 object(s) before metadata deletion.
 - If the deleted image was primary and another image remains, the next image by display order/creation time becomes primary.
+
+
+### Sprint 3 merchant product workflow additions
+
+- GET `/api/shops/{shopId}/products` supports `q`, `categoryId`, `availability`, `visibility=visible|hidden`, `featured=true`, `newArrival=true`, `offer=true`, and `deleted=true`, plus page/pageSize.
+- PATCH `/api/shops/{shopId}/products/{productId}` is used for edit and hide/show through `isVisible`.
+- DELETE and restore retain the Sprint 2 soft-delete behavior; restored products remain hidden until explicitly published.
+- POST `/api/shops/{shopId}/products/{productId}/duplicate` accepts optional `name` and `sku`. The copy starts hidden and does not copy image objects, preventing accidental publication or duplicated S3 ownership.
