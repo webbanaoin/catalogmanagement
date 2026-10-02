@@ -38,6 +38,7 @@ export interface PublicCategory {
 export interface PublicProductSummary {
   slug: string;
   name: string;
+  sku: string | null;
   description: string | null;
   price: number | null;
   discountPrice: number | null;
@@ -81,6 +82,7 @@ export interface StorefrontQuery {
 const productSummarySelect = {
   slug: true,
   name: true,
+  sku: true,
   description: true,
   price: true,
   discountPrice: true,
@@ -172,6 +174,7 @@ async function mapProduct(row: ProductSummaryRow): Promise<PublicProductSummary>
   return {
     slug: row.slug,
     name: row.name,
+    sku: row.sku,
     description: row.description,
     price: row.price == null ? null : Number(row.price),
     discountPrice: row.discountPrice == null ? null : Number(row.discountPrice),
@@ -225,7 +228,8 @@ async function getActiveShopRecord(shopSlug: string) {
 }
 
 function publicProductWhere(shopId: string, query: StorefrontQuery): Prisma.ProductWhereInput {
-  const q = query.q?.trim();
+  const q = query.q?.trim().slice(0, 120);
+  const categorySlug = query.categorySlug?.trim().slice(0, 160);
 
   const where: Prisma.ProductWhereInput = {
     shopId,
@@ -242,9 +246,9 @@ function publicProductWhere(shopId: string, query: StorefrontQuery): Prisma.Prod
     ...(query.availability ? { availabilityStatus: query.availability } : {}),
   };
 
-  if (query.categorySlug) {
+  if (categorySlug) {
     where.category = {
-      slug: query.categorySlug,
+      slug: categorySlug,
       status: "ACTIVE",
     };
   } else {
