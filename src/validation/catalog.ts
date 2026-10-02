@@ -71,3 +71,9 @@ export const productImageUpdateSchema = z.object({
 }).refine((value) => value.displayOrder !== undefined || value.isPrimary !== undefined, {
   message: "At least one image field must be provided",
 });
+
+
+export const productDuplicateSchema = z.object({
+  name: z.string().trim().min(1).max(180).optional(),
+  sku: optionalTrimmed(100),
+});
