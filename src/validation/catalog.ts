@@ -63,3 +63,11 @@ export const productImageSchema = z.object({
   displayOrder: z.number().int().min(0).default(0), isPrimary: z.boolean().default(false),
   fileSize: z.number().int().positive().optional().nullable(), mimeType: optionalTrimmed(100),
 });
+
+
+export const productImageUpdateSchema = z.object({
+  displayOrder: z.number().int().min(0).max(100000).optional(),
+  isPrimary: z.boolean().optional(),
+}).refine((value) => value.displayOrder !== undefined || value.isPrimary !== undefined, {
+  message: "At least one image field must be provided",
+});
