@@ -6,6 +6,8 @@ import { readJsonBody } from "@/server/http/json-body";
 import { errorResponse } from "@/server/http/error-response";
 import { AppError } from "@/server/http/app-error";
 import { productImageSchema } from "@/validation/catalog";
+import { withProductImageUrls } from "@/server/media/media-response";
+import { S3StorageService } from "@/services/storage/s3-storage";
 
 export async function POST(
   r: Request,
@@ -51,7 +53,8 @@ export async function POST(
       });
     });
 
-    return NextResponse.json({ data }, { status: 201 });
+    const responseData = await withProductImageUrls(data, new S3StorageService());
+    return NextResponse.json({ data: responseData }, { status: 201 });
   } catch (e) {
     return errorResponse(e);
   }
