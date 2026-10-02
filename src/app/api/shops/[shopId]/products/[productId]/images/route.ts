@@ -41,7 +41,10 @@ export async function POST(
     }
 
     const data = await prisma.$transaction(async (tx) => {
-      if (input.isPrimary) {
+      const existingCount = await tx.productImage.count({ where: { productId } });
+      const shouldBePrimary = input.isPrimary || existingCount === 0;
+
+      if (shouldBePrimary) {
         await tx.productImage.updateMany({
           where: { productId },
           data: { isPrimary: false },
@@ -49,7 +52,7 @@ export async function POST(
       }
 
       return tx.productImage.create({
-        data: { ...input, productId },
+        data: { ...input, isPrimary: shouldBePrimary, productId },
       });
     });
 
