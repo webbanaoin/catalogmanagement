@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { StorefrontShell } from "@/components/storefront/storefront-shell";
 import { StorefrontView } from "@/components/storefront/storefront-view";
 import {
+  getPublicCategory,
   getPublicShop,
   getPublicStorefront,
   type StorefrontQuery,
@@ -21,55 +22,50 @@ function availability(input: string | undefined): StorefrontQuery["availability"
     : undefined;
 }
 
-function pageNumber(input: string | undefined): number {
-  const parsed = Number(input);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
-}
-
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ shopSlug: string }>;
+  params: Promise<{ shopSlug: string; categorySlug: string }>;
 }): Promise<Metadata> {
-  const { shopSlug } = await params;
-  const shop = await getPublicShop(shopSlug);
+  const { shopSlug, categorySlug } = await params;
+  const [shop, category] = await Promise.all([
+    getPublicShop(shopSlug),
+    getPublicCategory(shopSlug, categorySlug),
+  ]);
 
-  if (!shop) {
-    return { title: "Shop not found" };
-  }
+  if (!shop || !category) return { title: "Category not found" };
 
   return {
-    title: `${shop.name} | Digital Showroom`,
-    description:
-      shop.description?.slice(0, 160) ??
-      shop.tagline ??
-      `Browse the latest catalogue from ${shop.name}.`,
+    title: `${category.name} | ${shop.name}`,
+    description: `Browse ${category.name} from ${shop.name}.`,
   };
 }
 
-export default async function StorefrontPage({
+export default async function CategoryPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ shopSlug: string }>;
+  params: Promise<{ shopSlug: string; categorySlug: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [{ shopSlug }, rawSearchParams] = await Promise.all([params, searchParams]);
+  const [{ shopSlug, categorySlug }, rawSearchParams] = await Promise.all([params, searchParams]);
   const q = value(rawSearchParams.q)?.trim() || undefined;
-  const categorySlug = value(rawSearchParams.category)?.trim() || undefined;
   const availabilityFilter = availability(value(rawSearchParams.availability));
-  const page = pageNumber(value(rawSearchParams.page));
-  const includeHighlights = !q && !categorySlug && !availabilityFilter && page === 1;
+  const pageValue = Number(value(rawSearchParams.page));
+  const page = Number.isInteger(pageValue) && pageValue > 0 ? pageValue : 1;
 
-  const data = await getPublicStorefront(shopSlug, {
-    q,
-    categorySlug,
-    availability: availabilityFilter,
-    page,
-    includeHighlights,
-  });
+  const [category, data] = await Promise.all([
+    getPublicCategory(shopSlug, categorySlug),
+    getPublicStorefront(shopSlug, {
+      q,
+      categorySlug,
+      availability: availabilityFilter,
+      page,
+      includeHighlights: false,
+    }),
+  ]);
 
-  if (!data) notFound();
+  if (!category || !data) notFound();
 
   return (
     <StorefrontShell homeHref={`/s/${shopSlug}`} label={data.shop.name}>
@@ -78,7 +74,9 @@ export default async function StorefrontPage({
         q={q}
         categorySlug={categorySlug}
         availability={availabilityFilter}
-        basePath={`/s/${shopSlug}`}
+        basePath={`/s/${shopSlug}/c/${categorySlug}`}
+        collectionTitle={category.name}
+        collectionDescription={`${data.pagination.total} product${data.pagination.total === 1 ? "" : "s"} in this category`}
       />
     </StorefrontShell>
   );
