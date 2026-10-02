@@ -48,3 +48,21 @@ Backend authorizes upload intent and generates presigned S3 operations. Validate
 
 ## Versioning
 Phase 1 can use stable /api routes without URL versioning. Breaking changes require coordination and documentation; avoid silently changing a contract already consumed by another feature branch.
+
+
+## Sprint 2 frozen merchant contracts
+
+All shop-owned endpoints require an authenticated shop membership. Mutations require OWNER or MANAGER and an APPROVED or ACTIVE shop.
+
+- GET/PATCH `/api/shops/{shopId}/profile`
+- GET/PUT `/api/shops/{shopId}/hours`
+- GET `/api/business-categories`
+- GET/POST `/api/shops/{shopId}/categories`
+- GET/PATCH/DELETE `/api/shops/{shopId}/categories/{categoryId}`
+- GET/POST `/api/shops/{shopId}/products`
+- GET/PATCH/DELETE `/api/shops/{shopId}/products/{productId}`
+- POST `/api/shops/{shopId}/products/{productId}/restore`
+- POST `/api/shops/{shopId}/products/{productId}/images`
+- DELETE `/api/shops/{shopId}/products/{productId}/images/{imageId}`
+
+Product DELETE is soft-delete. Category DELETE is blocked while active products or child categories reference it. Image endpoints in Sprint 2 persist metadata only; S3 upload authorization remains Sprint 3. Product image storage keys must be scoped to `shops/{shopId}/products/{productId}/`.

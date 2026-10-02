@@ -7,16 +7,17 @@ import { cn } from "@/lib/cn";
 interface DashboardNavigationItem {
   label: string;
   href?: string;
+  badge?: string;
 }
 
 const navigationItems: DashboardNavigationItem[] = [
   { label: "Dashboard", href: "/dashboard" },
-  { label: "Products" },
-  { label: "Categories" },
-  { label: "QR" },
-  { label: "Shop Profile" },
-  { label: "Analytics" },
-  { label: "Subscription" },
+  { label: "Products", badge: "Later sprint" },
+  { label: "Categories", href: "/dashboard/categories", badge: "Connected" },
+  { label: "QR", badge: "Later sprint" },
+  { label: "Shop Profile", href: "/dashboard/shop", badge: "Connected" },
+  { label: "Analytics", badge: "Later sprint" },
+  { label: "Subscription", badge: "Later sprint" },
 ];
 
 function DashboardNavigation({ compact = false }: { compact?: boolean }) {
@@ -26,18 +27,19 @@ function DashboardNavigation({ compact = false }: { compact?: boolean }) {
         const itemClasses = cn(
           "flex min-h-10 items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium",
           item.href
-            ? "bg-primary-soft text-primary hover:bg-primary-soft/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            ? "text-foreground hover:bg-primary-soft hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             : "text-muted",
         );
 
         return item.href ? (
           <Link key={item.label} href={item.href} className={itemClasses}>
             <span>{item.label}</span>
+            {item.badge ? <Badge variant="info">{item.badge}</Badge> : null}
           </Link>
         ) : (
           <span key={item.label} className={itemClasses}>
             <span>{item.label}</span>
-            <Badge>Later sprint</Badge>
+            <Badge>{item.badge ?? "Later sprint"}</Badge>
           </span>
         );
       })}
@@ -75,7 +77,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             <DashboardNavigation />
           </div>
           <div className="border-t border-border p-4 text-xs leading-5 text-muted">
-            Sprint 0 provides navigation and layout only. Merchant data and authorization arrive in later sprints.
+            Sprint 2 connects shop profile and category management to tenant-safe merchant APIs.
           </div>
         </aside>
 
