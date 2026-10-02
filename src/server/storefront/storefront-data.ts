@@ -277,7 +277,7 @@ export async function getPublicStorefront(
   const page = Math.max(1, query.page ?? 1);
   const where = publicProductWhere(shopRecord.id, query);
 
-  const [categories, products, total, featured, newArrivals, offers] = await prisma.$transaction([
+  const [categories, products, total, featured, newArrivals, offers] = await Promise.all([
     prisma.shopCategory.findMany({
       where: { shopId: shopRecord.id, status: "ACTIVE" },
       orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
