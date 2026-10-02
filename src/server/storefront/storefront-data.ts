@@ -277,7 +277,7 @@ export async function getPublicStorefront(
   const page = Math.max(1, query.page ?? 1);
   const where = publicProductWhere(shopRecord.id, query);
 
-  const [categories, products, total, featured, newArrivals, offers] = await Promise.all([
+  const [categories, products, total] = await Promise.all([
     prisma.shopCategory.findMany({
       where: { shopId: shopRecord.id, status: "ACTIVE" },
       orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
@@ -291,42 +291,43 @@ export async function getPublicStorefront(
       select: productSummarySelect,
     }),
     prisma.product.count({ where }),
-    ...(query.includeHighlights
-      ? [
-          prisma.product.findMany({
-            where: {
-              ...publicProductWhere(shopRecord.id, {}),
-              isFeatured: true,
-            },
-            orderBy: { createdAt: "desc" },
-            take: 8,
-            select: productSummarySelect,
-          }),
-          prisma.product.findMany({
-            where: {
-              ...publicProductWhere(shopRecord.id, {}),
-              isNewArrival: true,
-            },
-            orderBy: { createdAt: "desc" },
-            take: 8,
-            select: productSummarySelect,
-          }),
-          prisma.product.findMany({
-            where: {
-              ...publicProductWhere(shopRecord.id, {}),
-              isOffer: true,
-            },
-            orderBy: { createdAt: "desc" },
-            take: 8,
-            select: productSummarySelect,
-          }),
-        ]
-      : [
-          Promise.resolve([] as ProductSummaryRow[]),
-          Promise.resolve([] as ProductSummaryRow[]),
-          Promise.resolve([] as ProductSummaryRow[]),
-        ]),
   ]);
+
+  let featured: ProductSummaryRow[] = [];
+  let newArrivals: ProductSummaryRow[] = [];
+  let offers: ProductSummaryRow[] = [];
+
+  if (query.includeHighlights) {
+    [featured, newArrivals, offers] = await Promise.all([
+      prisma.product.findMany({
+        where: {
+          ...publicProductWhere(shopRecord.id, {}),
+          isFeatured: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        select: productSummarySelect,
+      }),
+      prisma.product.findMany({
+        where: {
+          ...publicProductWhere(shopRecord.id, {}),
+          isNewArrival: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        select: productSummarySelect,
+      }),
+      prisma.product.findMany({
+        where: {
+          ...publicProductWhere(shopRecord.id, {}),
+          isOffer: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        select: productSummarySelect,
+      }),
+    ]);
+  }
 
   const [shop, mappedCategories, mappedProducts, mappedFeatured, mappedNewArrivals, mappedOffers] =
     await Promise.all([
