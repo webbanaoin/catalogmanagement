@@ -47,7 +47,7 @@ export default function CategoriesPage() {
   const [items, setItems] = useState<ShopCategory[]>([]);
   const [draft, setDraft] = useState<CategoryDraft>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<{ variant: "success" | "danger"; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ variant: "success" | "error"; message: string } | null>(null);
   const [fieldError, setFieldError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -75,7 +75,7 @@ export default function CategoriesPage() {
       } catch (error) {
         if (active) {
           setFeedback({
-            variant: "danger",
+            variant: "error",
             message: error instanceof CatalogApiError ? error.message : "Unable to load categories.",
           });
         }
@@ -115,7 +115,7 @@ export default function CategoriesPage() {
       return;
     }
     if (!shopId) {
-      setFeedback({ variant: "danger", message: "No approved shop is available for this account." });
+      setFeedback({ variant: "error", message: "No approved shop is available for this account." });
       return;
     }
 
@@ -144,9 +144,9 @@ export default function CategoriesPage() {
     } catch (error) {
       if (error instanceof CatalogApiError) {
         setFieldError(error.fields.name ?? "");
-        setFeedback({ variant: "danger", message: error.message });
+        setFeedback({ variant: "error", message: error.message });
       } else {
-        setFeedback({ variant: "danger", message: "Unable to save category." });
+        setFeedback({ variant: "error", message: "Unable to save category." });
       }
     } finally {
       setSaving(false);
@@ -166,7 +166,7 @@ export default function CategoriesPage() {
       await refreshCategories(shopId);
     } catch (error) {
       setFeedback({
-        variant: "danger",
+        variant: "error",
         message: error instanceof CatalogApiError ? error.message : "Unable to delete category.",
       });
     } finally {
@@ -263,7 +263,7 @@ export default function CategoriesPage() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium text-foreground">{category.name}</p>
-                    <Badge variant={category.status === "ACTIVE" ? "success" : "default"}>{category.status}</Badge>
+                    <Badge variant={category.status === "ACTIVE" ? "success" : "neutral"}>{category.status}</Badge>
                   </div>
                   <p className="mt-1 text-sm text-muted">
                     {category.parentId ? `Parent: ${categoryNames.get(category.parentId) ?? "Unknown"} · ` : ""}
