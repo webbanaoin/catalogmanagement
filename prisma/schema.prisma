@@ -8,13 +8,46 @@ datasource db {
   shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
-enum UserStatus { ACTIVE DISABLED }
-enum PlatformRole { USER ADMIN }
-enum ShopStatus { PENDING APPROVED ACTIVE SUSPENDED REJECTED }
-enum ShopUserRole { OWNER MANAGER STAFF }
-enum CatalogStatus { ACTIVE INACTIVE }
-enum PriceType { FIXED STARTING_FROM ASK_PRICE }
-enum AvailabilityStatus { IN_STOCK OUT_OF_STOCK ON_REQUEST }
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum PlatformRole {
+  USER
+  ADMIN
+}
+
+enum ShopStatus {
+  PENDING
+  APPROVED
+  ACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+enum ShopUserRole {
+  OWNER
+  MANAGER
+  STAFF
+}
+
+enum CatalogStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PriceType {
+  FIXED
+  STARTING_FROM
+  ASK_PRICE
+}
+
+enum AvailabilityStatus {
+  IN_STOCK
+  OUT_OF_STOCK
+  ON_REQUEST
+}
 
 model User {
   id String @id @default(cuid())
