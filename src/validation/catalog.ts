@@ -4,7 +4,7 @@ import { isValidIndianMobile, isValidIndianPhone, isValidIndianPincode } from "@
 const optionalTrimmed = (max: number) => z.string().trim().max(max).optional().nullable();
 const optionalValidated = (max:number, validator:(v:string)=>boolean, message:string) =>
   z.string().trim().max(max).refine(v => !v || validator(v), message).optional().nullable();
-const httpUrl = z.string().trim().url().refine((v) => v.startsWith("http://") || v.startsWith("https://"), "URL must use http or https").optional().nullable();
+const httpUrl = z.union([z.literal(""), z.string().trim().url().refine((v) => v.startsWith("http://") || v.startsWith("https://"), "URL must use http or https")]).optional().nullable();
 const money = z.coerce.number().min(0).max(9999999999.99).optional().nullable();
 
 export const shopProfileSchema = z.object({
