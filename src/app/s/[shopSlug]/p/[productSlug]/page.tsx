@@ -105,6 +105,7 @@ export default async function ProductPage({
               </h1>
               <p className="mt-2 text-sm text-muted">
                 {availabilityLabel(product.availabilityStatus)}
+                {product.sku ? ` · SKU ${product.sku}` : ""}
               </p>
             </div>
 
