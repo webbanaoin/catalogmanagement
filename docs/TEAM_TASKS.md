@@ -6,8 +6,8 @@ This file is the shared execution plan for Prashant and Parixit. It complements 
 ## Branch model
 - Production: `main`
 - Integration/testing: `staging`
-- Prashant current branch: `feature/prashant-auth-tenancy`
-- Parixit current branch: `feature/parixit-shop-onboarding`
+- Prashant current branch: `feature/prashant-sprint2-catalog-core`
+- Parixit current branch: `feature/parixit-shop-management`
 
 Feature branches always start from latest `staging`. Normal flow:
 feature branch -> PR -> staging -> integration testing -> PR -> main.
@@ -90,7 +90,7 @@ Own:
 ## Sprint 2 — Catalogue Core
 
 ### Prashant
-Planned branch: `feature/prashant-catalog-core`
+Branch: `feature/prashant-sprint2-catalog-core`
 
 Own:
 - Business categories.
@@ -104,7 +104,7 @@ Own:
 - Soft-delete behavior and indexes.
 
 ### Parixit
-Planned branch: `feature/parixit-shop-management`
+Branch: `feature/parixit-shop-management`
 
 Own:
 - Shop profile management UI.
@@ -256,9 +256,9 @@ Do not add these unless requirements are explicitly updated:
 - [x] Forgot/reset-password foundation locally verified
 - [x] Parixit Sprint 1 UI merged to `staging`: registration, login, forgot-password, pending-approval and onboarding presentation flow
 - [x] Sprint 1 backend and UI combined on `integration/sprint1-auth-ui`
-- [ ] Combined Sprint 1 integration validation: install, Prisma migrate/generate/validate, lint, typecheck and production build
-- [ ] Combined Sprint 1 browser Golden Flow validation
-- [ ] Merge validated Sprint 1 integration into `staging`
+- [x] Combined Sprint 1 integration validation: install, Prisma migrate/generate/validate, lint, typecheck and production build
+- [x] Combined Sprint 1 browser Golden Flow validation
+- [x] Merge validated Sprint 1 integration into `staging`\n- [x] Sprint 2 Prashant catalogue-core implementation prepared on feature branch\n- [x] Sprint 2 Parixit shop-management UI prepared on feature branch\n- [ ] Sprint 2 local migration, lint, typecheck, build and API/security validation\n- [ ] Sprint 2 branch integration and browser validation\n- [ ] Merge validated Sprint 2 integration into `staging`
 
 ## How ChatGPT/Codex should use this file
 At the beginning of a new development conversation, first read `AGENTS.md`, this file, and the relevant docs from `staging`. Confirm the developer's assigned branch and current task before proposing implementation. Do not rely on old chat history when repository documentation contains a newer decision.
