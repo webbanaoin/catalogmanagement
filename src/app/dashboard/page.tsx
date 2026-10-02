@@ -1,17 +1,34 @@
-import { Alert, Card, CardContent, CardDescription, CardHeader, CardTitle, EmptyState, PageHeader } from "@/components/ui";
+import Link from "next/link";
 
-const foundationAreas = [
+import {
+  Alert,
+  Badge,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  PageHeader,
+  buttonClassName,
+} from "@/components/ui";
+
+const workspaces = [
   {
-    title: "Catalogue workspace",
-    description: "The shell is ready for products, categories and quick catalogue actions once their contracts exist.",
+    title: "Shop profile",
+    description: "Review the Sprint 2 profile fields and India-only validation without pretending that persistence exists.",
+    href: "/dashboard/shop",
+    status: "Sprint 2",
   },
   {
-    title: "Customer actions",
-    description: "Analytics cards can be added later for WhatsApp, call and directions events without changing the page shell.",
+    title: "Categories",
+    description: "Use the contract-safe category workspace while tenant-safe CRUD endpoints are finalized.",
+    href: "/dashboard/categories",
+    status: "Sprint 2",
   },
   {
-    title: "Storefront controls",
-    description: "QR, shop profile and subscription areas have reserved navigation positions for their owning sprints.",
+    title: "Products",
+    description: "Full merchant product management remains outside Parixit's current Sprint 2 UI ownership.",
+    status: "Later sprint",
   },
 ];
 
@@ -19,38 +36,46 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Sprint 0"
-        title="Merchant dashboard foundation"
-        description="A mobile-first shell for future catalogue management. No authentication, tenant data or business APIs are simulated here."
+        eyebrow="Sprint 2"
+        title="Merchant dashboard"
+        description="Shop-management UI now builds on the Sprint 1 authentication and tenant foundation without inventing catalogue API contracts."
       />
 
-      <Alert title="Foundation boundary">
-        Authentication, merchant data and backend contracts intentionally remain outside this Sprint 0 UI work.
+      <Alert title="Contract-first merchant UI">
+        Shop-profile persistence and category CRUD will connect only to tenant-safe server APIs. Until those contracts exist, the UI exposes validation and integration boundaries rather than fake merchant data.
       </Alert>
 
-      <section aria-labelledby="foundation-areas-heading">
-        <h2 id="foundation-areas-heading" className="sr-only">
-          Dashboard foundation areas
+      <section aria-labelledby="merchant-workspaces-heading">
+        <h2 id="merchant-workspaces-heading" className="sr-only">
+          Merchant workspaces
         </h2>
         <div className="grid gap-4 md:grid-cols-3">
-          {foundationAreas.map((area) => (
-            <Card key={area.title}>
+          {workspaces.map((workspace) => (
+            <Card key={workspace.title} className="flex flex-col">
               <CardHeader>
-                <CardTitle>{area.title}</CardTitle>
-                <CardDescription>{area.description}</CardDescription>
+                <div className="flex items-start justify-between gap-3">
+                  <CardTitle>{workspace.title}</CardTitle>
+                  <Badge variant={workspace.status === "Sprint 2" ? "info" : "neutral"}>
+                    {workspace.status}
+                  </Badge>
+                </div>
+                <CardDescription>{workspace.description}</CardDescription>
               </CardHeader>
-              <CardContent>
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Ready for later sprint</p>
+              <CardContent className="mt-auto">
+                {workspace.href ? (
+                  <Link href={workspace.href} className={buttonClassName("secondary", "sm")}>
+                    Open workspace
+                  </Link>
+                ) : (
+                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
+                    Reserved for later sprint
+                  </p>
+                )}
               </CardContent>
             </Card>
           ))}
         </div>
       </section>
-
-      <EmptyState
-        title="No merchant data is loaded"
-        description="This state is intentional in Sprint 0. Future feature screens can reuse the same empty, loading, error and success patterns."
-      />
     </div>
   );
 }
