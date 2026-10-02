@@ -245,6 +245,14 @@ export function StorefrontView({
     <>
       <ShopHero shop={data.shop} />
 
+      {data.shop.description ? (
+        <StorefrontSection title="About this shop">
+          <p className="max-w-3xl whitespace-pre-line text-sm leading-6 text-muted">
+            {data.shop.description}
+          </p>
+        </StorefrontSection>
+      ) : null}
+
       <StorefrontSection title="Browse this shop">
         <div className="space-y-4">
           <StorefrontFilters
