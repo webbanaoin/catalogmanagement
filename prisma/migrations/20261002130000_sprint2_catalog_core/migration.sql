@@ -69,3 +69,12 @@ ALTER TABLE `products` ADD CONSTRAINT `products_category_id_fkey` FOREIGN KEY (`
 ALTER TABLE `product_images` ADD CONSTRAINT `product_images_product_id_fkey` FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE `product_attributes` ADD CONSTRAINT `product_attributes_product_id_fkey` FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE `shop_hours` ADD CONSTRAINT `shop_hours_shop_id_fkey` FOREIGN KEY (`shop_id`) REFERENCES `shops`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+-- Initial platform business categories. These are database records, not application constants.
+INSERT INTO `business_categories` (`id`, `name`, `slug`, `icon`, `status`, `display_order`) VALUES
+('bc_jewellery', 'Jewellery', 'jewellery', NULL, 'ACTIVE', 10),
+('bc_toys_gifts', 'Toys & Gifts', 'toys-gifts', NULL, 'ACTIVE', 20),
+('bc_furniture_home_decor', 'Furniture & Home Decor', 'furniture-home-decor', NULL, 'ACTIVE', 30),
+('bc_clothing_boutique_saree', 'Clothing / Boutique / Saree', 'clothing-boutique-saree', NULL, 'ACTIVE', 40),
+('bc_footwear', 'Footwear', 'footwear', NULL, 'ACTIVE', 50);
