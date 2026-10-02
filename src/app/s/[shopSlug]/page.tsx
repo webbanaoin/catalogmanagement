@@ -23,7 +23,7 @@ function availability(input: string | undefined): StorefrontQuery["availability"
 
 function pageNumber(input: string | undefined): number {
   const parsed = Number(input);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+  return Number.isInteger(parsed) && parsed > 0 ? Math.min(parsed, 10000) : 1;
 }
 
 export async function generateMetadata({
@@ -55,8 +55,8 @@ export default async function StorefrontPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [{ shopSlug }, rawSearchParams] = await Promise.all([params, searchParams]);
-  const q = value(rawSearchParams.q)?.trim() || undefined;
-  const categorySlug = value(rawSearchParams.category)?.trim() || undefined;
+  const q = value(rawSearchParams.q)?.trim().slice(0, 120) || undefined;
+  const categorySlug = value(rawSearchParams.category)?.trim().slice(0, 160) || undefined;
   const availabilityFilter = availability(value(rawSearchParams.availability));
   const page = pageNumber(value(rawSearchParams.page));
   const includeHighlights = !q && !categorySlug && !availabilityFilter && page === 1;
