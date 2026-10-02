@@ -1,0 +1,14 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/server/database/prisma";
+import { requireShopAccess } from "@/server/auth/tenant-access";
+import { requireCategoryInShop } from "@/server/catalog/guards";
+import { toSlug } from "@/server/catalog/slug";
+import { readJsonBody } from "@/server/http/json-body";
+import { errorResponse } from "@/server/http/error-response";
+import { productCreateSchema } from "@/validation/catalog";
+async function uniqueSlug(shopId:string,name:string){const base=toSlug(name);let slug=base,n=2;while(await prisma.product.findUnique({where:{shopId_slug:{shopId,slug}},select:{id:true}})){slug=`${base}-${n++}`}return slug}
+export async function GET(r:Request,c:{params:Promise<{shopId:string}>}){try{const {shopId}=await c.params;await requireShopAccess(shopId);const u=new URL(r.url);const page=Math.max(1,Number(u.searchParams.get("page")||1));const pageSize=Math.min(100,Math.max(1,Number(u.searchParams.get("pageSize")||24)));const q=(u.searchParams.get("q")||"").trim();const categoryId=u.searchParams.get("categoryId");const availability=u.searchParams.get("availability");
+ const where={shopId,deletedAt:null,...(categoryId?{categoryId}:{}),...(availability==="IN_STOCK"||availability==="OUT_OF_STOCK"||availability==="ON_REQUEST"?{availabilityStatus:availability}:{}),...(q?{OR:[{name:{contains:q}},{sku:{contains:q}}]}:{})};
+ const [items,total]=await prisma.$transaction([prisma.product.findMany({where,include:{category:true,images:{where:{isPrimary:true},take:1}},orderBy:{createdAt:"desc"},skip:(page-1)*pageSize,take:pageSize}),prisma.product.count({where})]);return NextResponse.json({items,pagination:{page,pageSize,total,totalPages:Math.ceil(total/pageSize)}})}catch(e){return errorResponse(e)}}
+export async function POST(r:Request,c:{params:Promise<{shopId:string}>}){try{const {shopId}=await c.params;await requireShopAccess(shopId,{roles:["OWNER","MANAGER"],shopStatuses:["APPROVED","ACTIVE"]});const input=productCreateSchema.parse(await readJsonBody(r));if(input.categoryId)await requireCategoryInShop(shopId,input.categoryId);const {attributes,...product}=input;
+ const data=await prisma.product.create({data:{...product,shopId,slug:await uniqueSlug(shopId,input.name),sku:input.sku||null,attributes:{create:attributes}},include:{attributes:true,images:true}});return NextResponse.json({data},{status:201})}catch(e){return errorResponse(e)}}
