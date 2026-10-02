@@ -89,7 +89,24 @@ export async function DELETE(
       await storage.deleteObject(image.thumbnailKey);
     }
 
-    await prisma.productImage.delete({ where: { id: imageId } });
+    await prisma.$transaction(async (tx) => {
+      await tx.productImage.delete({ where: { id: imageId } });
+
+      if (image.isPrimary) {
+        const replacement = await tx.productImage.findFirst({
+          where: { productId },
+          orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+          select: { id: true },
+        });
+
+        if (replacement) {
+          await tx.productImage.update({
+            where: { id: replacement.id },
+            data: { isPrimary: true },
+          });
+        }
+      }
+    });
 
     return NextResponse.json({ data: { deleted: true } });
   } catch (error) {
