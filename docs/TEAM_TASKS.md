@@ -6,8 +6,8 @@ This file is the shared execution plan for Prashant and Parixit. It complements 
 ## Branch model
 - Production: `main`
 - Integration/testing: `staging`
-- Prashant current branch: `feature/prashant-sprint3-product-media`
-- Parixit current branch: `feature/parixit-sprint3-product-ui`
+- Prashant current branch: `feature/prashant-sprint2-catalog-core`
+- Parixit current branch: `feature/parixit-shop-management`
 
 Feature branches always start from latest `staging`. Normal flow:
 feature branch -> PR -> staging -> integration testing -> PR -> main.
@@ -64,7 +64,7 @@ Before merging to staging:
 ## Sprint 1 — Authentication, Tenancy and Onboarding
 
 ### Prashant
-Branch: `feature/prashant-auth-tenancy`
+Planned branch: `feature/prashant-auth-tenancy`
 
 Own:
 - User authentication foundation.
@@ -77,7 +77,7 @@ Own:
 - Tests proving one shop cannot access another shop's protected data.
 
 ### Parixit
-Branch: `feature/parixit-shop-onboarding`
+Planned branch: `feature/parixit-shop-onboarding`
 
 Own:
 - Registration UI.
@@ -115,7 +115,7 @@ Own:
 ## Sprint 3 — Product Management, S3 and Storefront
 
 ### Prashant
-Branch: `feature/prashant-sprint3-product-media`
+Planned branch: `feature/prashant-product-dashboard`
 
 Own:
 - Merchant product management workflow.
@@ -127,7 +127,7 @@ Own:
 - Product search/filter in merchant context.
 
 ### Parixit
-Branch: `feature/parixit-sprint3-product-ui`
+Planned branch: `feature/parixit-storefront`
 
 Own:
 - Public `/s/{shopSlug}` storefront.
@@ -248,16 +248,17 @@ Do not add these unless requirements are explicitly updated:
 - [x] `staging` integration branch created
 - [x] Project source-of-truth documentation added to `staging`
 - [x] Sprint 0 implementation completed and integrated
-- [x] Sprint 0 validated locally
-- [x] Sprint 1 implementation, integration and validation completed
-- [x] Sprint 1 merged into `staging`
-- [x] Sprint 2 catalogue core and merchant shop management merged into `staging` through PR #11
-- [x] Sprint 3 feature branches created from Sprint 2 `staging`
-- [x] Prashant Sprint 3 product-media implementation started
-- [x] Parixit Sprint 3 public-storefront implementation started
-- [ ] Sprint 3 local lint, typecheck, build and browser validation
-- [ ] Sprint 3 branch integration and Golden Flow validation
-- [ ] Merge validated Sprint 3 work into `staging`
+- [x] Sprint 0 validated locally (install, lint, typecheck, Prisma validate/generate, production build and runtime checks)
+- [x] Sprint 1 branches created from validated `staging`
+- [x] Prashant Sprint 1 auth/tenancy backend implementation complete and locally validated
+- [x] Prashant Sprint 1 atomic registration, approval-aware login and tenant-isolation checks complete
+- [x] Platform ADMIN approval backend/API locally verified
+- [x] Forgot/reset-password foundation locally verified
+- [x] Parixit Sprint 1 UI merged to `staging`: registration, login, forgot-password, pending-approval and onboarding presentation flow
+- [x] Sprint 1 backend and UI combined on `integration/sprint1-auth-ui`
+- [x] Combined Sprint 1 integration validation: install, Prisma migrate/generate/validate, lint, typecheck and production build
+- [x] Combined Sprint 1 browser Golden Flow validation
+- [x] Merge validated Sprint 1 integration into `staging`\n- [x] Sprint 2 Prashant catalogue-core implementation prepared on feature branch\n- [x] Sprint 2 Parixit shop-management UI prepared on feature branch\n- [ ] Sprint 2 local migration, lint, typecheck, build and API/security validation\n- [ ] Sprint 2 branch integration and browser validation\n- [ ] Merge validated Sprint 2 integration into `staging`
 
 ## How ChatGPT/Codex should use this file
 At the beginning of a new development conversation, first read `AGENTS.md`, this file, and the relevant docs from `staging`. Confirm the developer's assigned branch and current task before proposing implementation. Do not rely on old chat history when repository documentation contains a newer decision.
