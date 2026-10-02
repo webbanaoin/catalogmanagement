@@ -49,10 +49,10 @@ export default async function CategoryPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [{ shopSlug, categorySlug }, rawSearchParams] = await Promise.all([params, searchParams]);
-  const q = value(rawSearchParams.q)?.trim() || undefined;
+  const q = value(rawSearchParams.q)?.trim().slice(0, 120) || undefined;
   const availabilityFilter = availability(value(rawSearchParams.availability));
   const pageValue = Number(value(rawSearchParams.page));
-  const page = Number.isInteger(pageValue) && pageValue > 0 ? pageValue : 1;
+  const page = Number.isInteger(pageValue) && pageValue > 0 ? Math.min(pageValue, 10000) : 1;
 
   const [category, data] = await Promise.all([
     getPublicCategory(shopSlug, categorySlug),
