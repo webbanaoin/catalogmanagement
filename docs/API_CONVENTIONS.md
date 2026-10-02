@@ -78,3 +78,12 @@ Product media uploads use a two-step flow so AWS credentials never reach the bro
 4. After upload succeeds, POST the existing `/images` metadata endpoint with the returned storage key.
 
 The server generates storage keys. Clients must not choose arbitrary S3 destinations.
+
+Product media lifecycle additions:
+- Product list responses resolve the primary image to `url` and optional `thumbnailUrl`.
+- Product detail responses resolve all product images to `url` and optional `thumbnailUrl`.
+- The first registered image is automatically primary when the product has no images.
+- PATCH `/api/shops/{shopId}/products/{productId}/images/{imageId}` updates `displayOrder` and/or `isPrimary`.
+- Setting an image primary clears the primary flag from the product's other images.
+- DELETE `/api/shops/{shopId}/products/{productId}/images/{imageId}` removes the S3 object(s) before metadata deletion.
+- If the deleted image was primary and another image remains, the next image by display order/creation time becomes primary.
