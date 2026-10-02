@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/server/database/prisma";
 import { requireShopAccess } from "@/server/auth/tenant-access";
 import { requireCategoryInShop } from "@/server/catalog/guards";
@@ -11,7 +12,7 @@ async function uniqueSlug(shopId:string,name:string){const base=toSlug(name);let
 
 export async function GET(r:Request,c:{params:Promise<{shopId:string}>}){
  try{const {shopId}=await c.params;await requireShopAccess(shopId);const u=new URL(r.url);const page=Math.max(1,Number(u.searchParams.get("page")||1));const pageSize=Math.min(100,Math.max(1,Number(u.searchParams.get("pageSize")||50)));const status=u.searchParams.get("status");
- const where={shopId,...(status==="ACTIVE"||status==="INACTIVE"?{status}: {})};const [items,total]=await prisma.$transaction([prisma.shopCategory.findMany({where,orderBy:[{displayOrder:"asc"},{name:"asc"}],skip:(page-1)*pageSize,take:pageSize}),prisma.shopCategory.count({where})]);
+ const where: Prisma.ShopCategoryWhereInput={shopId,...(status==="ACTIVE"||status==="INACTIVE"?{status}: {})};const [items,total]=await prisma.$transaction([prisma.shopCategory.findMany({where,orderBy:[{displayOrder:"asc"},{name:"asc"}],skip:(page-1)*pageSize,take:pageSize}),prisma.shopCategory.count({where})]);
  return NextResponse.json({items,pagination:{page,pageSize,total,totalPages:Math.ceil(total/pageSize)}})}catch(e){return errorResponse(e)}
 }
 export async function POST(r:Request,c:{params:Promise<{shopId:string}>}){
