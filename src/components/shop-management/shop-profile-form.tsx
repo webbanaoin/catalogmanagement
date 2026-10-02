@@ -39,11 +39,6 @@ function rawValue(formData: FormData, name: string): string {
   return String(formData.get(name) ?? "");
 }
 
-function describedBy(id: string, error: string | undefined, hasHint = false): string | undefined {
-  if (error) return `${id}-error`;
-  return hasHint ? `${id}-hint` : undefined;
-}
-
 function optionalTextError(formData: FormData, field: string, label: string, maxLength?: number) {
   const raw = rawValue(formData, field);
   const trimmed = raw.trim();
@@ -116,7 +111,7 @@ export function ShopProfileForm() {
   const [profile, setProfile] = useState<ShopProfile | null>(null);
   const [businessCategories, setBusinessCategories] = useState<BusinessCategory[]>([]);
   const [shopId, setShopId] = useState("");
-  const [feedback, setFeedback] = useState<{ variant: "success" | "danger"; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ variant: "success" | "error"; message: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -137,7 +132,7 @@ export function ShopProfileForm() {
       } catch (error) {
         if (!active) return;
         setFeedback({
-          variant: "danger",
+          variant: "error",
           message: error instanceof CatalogApiError ? error.message : "Unable to load the shop profile.",
         });
       } finally {
@@ -165,7 +160,7 @@ export function ShopProfileForm() {
     }
 
     if (!shopId) {
-      setFeedback({ variant: "danger", message: "No approved shop is available for this account." });
+      setFeedback({ variant: "error", message: "No approved shop is available for this account." });
       return;
     }
 
@@ -194,9 +189,9 @@ export function ShopProfileForm() {
     } catch (error) {
       if (error instanceof CatalogApiError) {
         setFieldErrors(error.fields);
-        setFeedback({ variant: "danger", message: error.message });
+        setFeedback({ variant: "error", message: error.message });
       } else {
-        setFeedback({ variant: "danger", message: "Unable to save the shop profile." });
+        setFeedback({ variant: "error", message: "Unable to save the shop profile." });
       }
     } finally {
       setSaving(false);
@@ -208,11 +203,11 @@ export function ShopProfileForm() {
   }
 
   if (!profile) {
-    return <Alert variant="danger">{feedback?.message ?? "Shop profile is unavailable."}</Alert>;
+    return <Alert variant="error">{feedback?.message ?? "Shop profile is unavailable."}</Alert>;
   }
 
   return (
-    <form key={profile.updatedAt ?? profile.id} className="space-y-6" onSubmit={handleSubmit} noValidate>
+    <form className="space-y-6" onSubmit={handleSubmit} noValidate>
       {feedback ? <Alert variant={feedback.variant}>{feedback.message}</Alert> : null}
 
       <Card>
