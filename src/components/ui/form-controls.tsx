@@ -62,11 +62,13 @@ export function Field({
       </label>
       {children}
       {error ? (
-        <p className="text-sm text-danger" role="alert">
+        <p id={`${htmlFor}-error`} className="text-sm text-danger" role="alert">
           {error}
         </p>
       ) : hint ? (
-        <p className="text-sm text-muted">{hint}</p>
+        <p id={`${htmlFor}-hint`} className="text-sm text-muted">
+          {hint}
+        </p>
       ) : null}
     </div>
   );
