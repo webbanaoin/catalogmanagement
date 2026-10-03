@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
+
 export async function generateMetadata({
   params,
 }: {
@@ -25,6 +27,7 @@ export default async function StorefrontLayout({
   return (
     <>
       <link rel="manifest" href={`/s/${shopSlug}/manifest.webmanifest`} />
+      <ServiceWorkerRegistration scope={`/s/${shopSlug}`} />
       {children}
     </>
   );
