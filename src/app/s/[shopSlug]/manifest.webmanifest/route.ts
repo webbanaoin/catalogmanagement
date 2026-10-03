@@ -22,7 +22,7 @@ export async function GET(
       shop.description?.slice(0, 160) ??
       `Browse ${shop.name}'s Digital Showroom.`,
     start_url: `/s/${shop.slug}?src=pwa`,
-    scope: `/s/${shop.slug}/`,
+    scope: `/s/${shop.slug}`,
     display: "standalone",
     background_color: "#f8fafc",
     theme_color: "#0f766e",
