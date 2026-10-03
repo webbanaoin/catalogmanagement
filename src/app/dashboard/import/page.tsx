@@ -150,12 +150,18 @@ export default function ProductImportPage() {
       await refreshJobs(shop.id);
 
       const { readyRows, duplicateRows, invalidRows } = response.data.summary;
+      const readyWithinPlan = response.data.summary.readyWithinPlan ?? readyRows;
+      const planOverflow = Math.max(0, readyRows - readyWithinPlan);
       if (readyRows > 0) {
         setFeedback({
           variant: "info",
           message:
-            `Preview ready: ${readyRows} product${readyRows === 1 ? "" : "s"} can be imported. ` +
-            `${duplicateRows} duplicate${duplicateRows === 1 ? "" : "s"} and ${invalidRows} invalid row${invalidRows === 1 ? "" : "s"} will be skipped. Products are NOT imported until you click the import button below.`,
+            `Preview ready: ${readyWithinPlan} product${readyWithinPlan === 1 ? "" : "s"} can be imported now. ` +
+            `${duplicateRows} duplicate${duplicateRows === 1 ? "" : "s"}, ${invalidRows} invalid row${invalidRows === 1 ? "" : "s"}` +
+            (planOverflow > 0
+              ? `, and ${planOverflow} row${planOverflow === 1 ? "" : "s"} above the current plan limit`
+              : "") +
+            " will be skipped. Products are NOT imported until you click the import button below.",
         });
       } else {
         setFeedback({
@@ -380,8 +386,8 @@ export default function ProductImportPage() {
                   Products are not imported yet.
                 </p>
                 <p className="mt-1 text-sm leading-6 text-info-strong">
-                  Click below to import only the {preview.summary.readyRows} ready product
-                  {preview.summary.readyRows === 1 ? "" : "s"}. Duplicate and invalid rows will be skipped automatically.
+                  Click below to import up to {preview.summary.readyWithinPlan ?? preview.summary.readyRows} ready product
+                  {(preview.summary.readyWithinPlan ?? preview.summary.readyRows) === 1 ? "" : "s"}. Duplicate, invalid and plan-limit overflow rows will be skipped automatically.
                 </p>
                 <Button
                   className="mt-3"
@@ -390,7 +396,7 @@ export default function ProductImportPage() {
                 >
                   {confirming
                     ? "Importing…"
-                    : `Import ${preview.summary.readyRows} ready product${preview.summary.readyRows === 1 ? "" : "s"}`}
+                    : `Import ${preview.summary.readyWithinPlan ?? preview.summary.readyRows} ready product${(preview.summary.readyWithinPlan ?? preview.summary.readyRows) === 1 ? "" : "s"}`}
                 </Button>
               </div>
             ) : null}
