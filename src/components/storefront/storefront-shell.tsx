@@ -1,13 +1,27 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Container } from "@/components/ui";
 
-export function StorefrontShell({ children }: { children: ReactNode }) {
+export function StorefrontShell({
+  children,
+  homeHref = "/",
+  label = "Digital Showroom",
+}: {
+  children: ReactNode;
+  homeHref?: string;
+  label?: string;
+}) {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-surface">
         <Container className="flex min-h-14 items-center justify-between gap-4">
-          <p className="text-sm font-semibold tracking-tight text-foreground">Digital Showroom</p>
+          <Link
+            href={homeHref}
+            className="text-sm font-semibold tracking-tight text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          >
+            {label}
+          </Link>
           <p className="text-xs text-muted">Public catalogue</p>
         </Container>
       </header>
@@ -15,7 +29,7 @@ export function StorefrontShell({ children }: { children: ReactNode }) {
       <footer className="border-t border-border bg-surface py-6">
         <Container>
           <p className="text-center text-xs text-muted">
-            Storefront shell only. Catalogue content is connected in the storefront sprint.
+            Browse this shop&apos;s current Digital Showroom catalogue.
           </p>
         </Container>
       </footer>
@@ -25,7 +39,7 @@ export function StorefrontShell({ children }: { children: ReactNode }) {
 
 export function StorefrontHeroSkeleton() {
   return (
-    <section aria-label="Storefront header layout preview" className="border-b border-border bg-surface">
+    <section aria-label="Loading storefront header" className="border-b border-border bg-surface">
       <Container className="py-4 sm:py-6">
         <div className="aspect-[16/6] w-full animate-pulse rounded-2xl bg-surface-muted sm:aspect-[16/5]" />
         <div className="relative -mt-7 flex items-end gap-4 px-3 sm:-mt-9 sm:px-5">
@@ -34,11 +48,6 @@ export function StorefrontHeroSkeleton() {
             <div className="h-5 w-40 max-w-full animate-pulse rounded bg-surface-muted" />
             <div className="mt-2 h-3 w-56 max-w-[75%] animate-pulse rounded bg-surface-muted" />
           </div>
-        </div>
-        <div className="mt-5 grid grid-cols-3 gap-2 sm:max-w-lg">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="h-10 animate-pulse rounded-lg bg-surface-muted" />
-          ))}
         </div>
       </Container>
     </section>
@@ -71,7 +80,7 @@ export function StorefrontSection({ title, description, action, children }: Stor
 
 export function StorefrontContentSkeleton() {
   return (
-    <div className="space-y-8" aria-label="Storefront content layout preview">
+    <div className="space-y-8" aria-label="Loading storefront products">
       <div>
         <div className="h-11 w-full animate-pulse rounded-lg bg-surface-muted" />
         <div className="mt-4 flex gap-2 overflow-hidden" aria-hidden="true">

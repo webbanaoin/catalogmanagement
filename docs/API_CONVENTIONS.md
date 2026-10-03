@@ -40,11 +40,15 @@ Use consistent page/pageSize semantics initially. Cap page size server-side. Sea
 ## Public APIs
 Public storefront reads only visible/active shop/category/product data and must never return private merchant/admin fields.
 
+Sprint 3 storefront pages use a server-only Prisma read layer rather than calling authenticated merchant APIs from the browser. Public reads require an ACTIVE shop, exclude inactive categories, and exclude hidden or soft-deleted products. Product lookups remain scoped to the parent shop slug.
+
 ## Mutations
 Validate payloads. Return clear conflict/not-found/forbidden responses. Soft-delete where defined by the data model.
 
 ## Media
 Backend authorizes upload intent and generates presigned S3 operations. Validate ownership, allowed MIME types, size and destination key. Frontend never receives AWS secret credentials.
+
+Public storefront media resolves persisted storage keys on the server through the existing storage service. When media configuration is unavailable locally, storefront UI falls back to image placeholders rather than constructing bucket URLs.
 
 ## Versioning
 Phase 1 can use stable /api routes without URL versioning. Breaking changes require coordination and documentation; avoid silently changing a contract already consumed by another feature branch.
