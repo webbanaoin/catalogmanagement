@@ -52,7 +52,7 @@ export async function GET(
       })),
     );
 
-    return new Response(workbook, {
+    return new Response(Uint8Array.from(workbook), {
       status: 200,
       headers: {
         "Content-Type":
