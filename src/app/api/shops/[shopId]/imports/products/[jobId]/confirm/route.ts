@@ -1,10 +1,9 @@
-import { randomUUID } from "node:crypto";
-
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { requireShopAccess } from "@/server/auth/tenant-access";
 import { toSlug } from "@/server/catalog/slug";
+import { generateProductCode } from "@/server/catalog/product-code";
 import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
@@ -26,22 +25,6 @@ function nextSlug(baseName: string, usedSlugs: Set<string>): string {
 
   usedSlugs.add(candidate);
   return candidate;
-}
-
-function generateProductCode(usedSkus: Set<string>): string {
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    const code = `PRD-${randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
-    if (!usedSkus.has(code.toLowerCase())) {
-      usedSkus.add(code.toLowerCase());
-      return code;
-    }
-  }
-
-  throw new AppError({
-    code: "PRODUCT_CODE_GENERATION_FAILED",
-    message: "Unable to generate a unique product code. Please retry the import.",
-    status: 500,
-  });
 }
 
 function inputJsonObject(value: Prisma.JsonValue | null): Record<string, Prisma.JsonValue> {
