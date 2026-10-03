@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { StorefrontAnalytics } from "@/components/storefront/storefront-analytics";
 import { StorefrontShell } from "@/components/storefront/storefront-shell";
 import { StorefrontView } from "@/components/storefront/storefront-view";
 import {
@@ -73,6 +74,7 @@ export default async function StorefrontPage({
 
   return (
     <StorefrontShell homeHref={`/s/${shopSlug}`} label={data.shop.name}>
+      <StorefrontAnalytics shopSlug={shopSlug} eventType="CATALOG_VISIT" />
       <StorefrontView
         data={data}
         q={q}

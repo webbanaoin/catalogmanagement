@@ -53,6 +53,7 @@ function ShopHero({ shop }: { shop: PublicShop }) {
           {location ? <p className="text-sm leading-6 text-muted">{location}</p> : null}
           <StorefrontActions
             title={shop.name}
+            shopSlug={shop.slug}
             phone={shop.phone}
             whatsapp={shop.whatsapp}
             directionsUrl={shop.googleMapsUrl}

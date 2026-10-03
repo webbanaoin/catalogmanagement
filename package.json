@@ -27,7 +27,8 @@
     "react-dom": "^19.2.0",
     "zod": "^4.1.12",
     "bcryptjs": "^3.0.2",
-    "jose": "^6.1.0"
+    "jose": "^6.1.0",
+    "qrcode-generator": "^2.0.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",
