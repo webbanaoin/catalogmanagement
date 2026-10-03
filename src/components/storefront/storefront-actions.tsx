@@ -34,7 +34,7 @@ export function StorefrontActions({
       shopSlug,
       productSlug,
       eventType,
-      source: currentTrackingSource(),
+      source: currentTrackingSource(shopSlug),
     });
   }
 
