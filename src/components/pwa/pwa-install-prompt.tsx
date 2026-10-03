@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { Button } from "@/components/ui";
 import { cn } from "@/lib/cn";
@@ -20,6 +20,33 @@ function standaloneMode() {
   );
 }
 
+function subscribeStandalone(onStoreChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+
+  const media = window.matchMedia("(display-mode: standalone)");
+  const changed = () => onStoreChange();
+
+  media.addEventListener("change", changed);
+  window.addEventListener("appinstalled", changed);
+
+  return () => {
+    media.removeEventListener("change", changed);
+    window.removeEventListener("appinstalled", changed);
+  };
+}
+
+function iosDeviceSnapshot() {
+  return typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+
+function subscribeStatic() {
+  return () => {};
+}
+
+function serverFalse() {
+  return false;
+}
+
 export function PwaInstallPrompt({
   mode,
   shopSlug,
@@ -32,20 +59,28 @@ export function PwaInstallPrompt({
   className?: string;
 }) {
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
-  const [installed, setInstalled] = useState(false);
-  const [isIos, setIsIos] = useState(false);
+  const [installedAfterPrompt, setInstalledAfterPrompt] = useState(false);
+  const standaloneInstalled = useSyncExternalStore(
+    subscribeStandalone,
+    standaloneMode,
+    serverFalse,
+  );
+  const iosDevice = useSyncExternalStore(
+    subscribeStatic,
+    iosDeviceSnapshot,
+    serverFalse,
+  );
+  const installed = installedAfterPrompt || standaloneInstalled;
+  const isIos = iosDevice && !installed;
 
   useEffect(() => {
-    setInstalled(standaloneMode());
-    setIsIos(/iphone|ipad|ipod/i.test(navigator.userAgent) && !standaloneMode());
-
     const beforeInstall = (event: Event) => {
       event.preventDefault();
       setPromptEvent(event as BeforeInstallPromptEvent);
     };
     const appInstalled = () => {
       setPromptEvent(null);
-      setInstalled(true);
+      setInstalledAfterPrompt(true);
     };
 
     window.addEventListener("beforeinstallprompt", beforeInstall);
@@ -72,7 +107,7 @@ export function PwaInstallPrompt({
             source: currentTrackingSource(shopSlug),
           });
         }
-        setInstalled(true);
+        setInstalledAfterPrompt(true);
         setPromptEvent(null);
       }
     } catch {
