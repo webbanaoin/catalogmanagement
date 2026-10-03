@@ -1,3 +1,4 @@
+/* global self, caches, fetch, Response */
 const CACHE_NAME = "digital-showroom-offline-v1";
 const OFFLINE_URL = "/offline.html";
 
