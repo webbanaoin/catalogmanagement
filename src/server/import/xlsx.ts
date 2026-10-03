@@ -275,13 +275,16 @@ export function parseFirstWorksheet(buffer: Buffer): WorkbookRow[] {
     const values: string[] = [];
     let inferredColumn = 0;
 
-    for (const cellMatch of rowBody.matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>/gi)) {
-      const cellAttributes = cellMatch[1] ?? "";
+    for (const cellMatch of rowBody.matchAll(
+      /<c\b([^>]*?)\s*\/>|<c\b([^>]*)>([\s\S]*?)<\/c>/gi,
+    )) {
+      const cellAttributes = cellMatch[1] ?? cellMatch[2] ?? "";
+      const cellBody = cellMatch[3] ?? "";
       const reference = attribute(cellAttributes, "r");
       const index = reference ? columnIndex(reference) : inferredColumn;
       if (index < 0) continue;
 
-      values[index] = cellValue(cellAttributes, cellMatch[2] ?? "", strings).trim();
+      values[index] = cellValue(cellAttributes, cellBody, strings).trim();
       inferredColumn = index + 1;
     }
 
