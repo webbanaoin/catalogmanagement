@@ -60,7 +60,7 @@ Import statuses:
 - `COMPLETED`
 - `FAILED`
 
-Merchant import mutations require OWNER or MANAGER access to an APPROVED or ACTIVE shop.
+Merchant import mutations require OWNER or MANAGER access to an APPROVED or ACTIVE shop. Import-job reads, preview/confirm operations and catalogue export remain server-side shop-scoped; cross-tenant access is rejected before workbook processing.
 
 ## Public analytics event ingestion
 
@@ -121,7 +121,7 @@ All merchant analytics reads are shop-scoped through authenticated tenancy check
 ### Catalogue export
 `GET /api/shops/{shopId}/exports/products`
 
-Downloads the shop's current non-deleted catalogue in the same Excel shape used for import. Saved/generated Product Codes are included so the merchant can keep a reusable editable catalogue without maintaining codes manually.
+Downloads the shop's current non-deleted catalogue in the same Excel shape used for import. Saved/generated Product Codes are included so the merchant can keep a backup/reference catalogue without maintaining codes manually. Re-uploading the unchanged export is duplicate-safe; this Phase 1 workflow does not bulk-update existing products.
 
 ### Product-code usability
 Product Codes are system-managed by default:
@@ -130,3 +130,12 @@ Product Codes are system-managed by default:
 - duplicated products receive a generated code when none is supplied;
 - legacy products are backfilled with stable `PRD-*` codes by migration;
 - edits do not clear an existing Product Code when the field is left blank.
+
+
+### Verified merchant workflow
+The Sprint 4 integration was manually validated end to end:
+- mixed workbooks can import Ready rows while Duplicate rows are skipped;
+- blank Product Codes are generated automatically during import;
+- generated codes appear in the downloaded current catalogue;
+- imported products appear on the public storefront;
+- cross-tenant import-history and preview attempts return `403 FORBIDDEN`.
