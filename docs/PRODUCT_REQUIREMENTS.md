@@ -63,7 +63,11 @@ Customer can add a shop to home screen; merchant can add dashboard to home scree
 View pending/active/suspended shops, approve/reject/suspend/activate shops, inspect shop/subscription details, manage global business categories and plans, and view platform-level analytics.
 
 ## Subscription architecture
-Plans are database-driven. Backend enforces limits. Trial expiry must not delete merchant data. Payment gateway is not required in Phase 1.
+Plans are database-driven. Each plan defines product and image limits plus feature flags such as analytics, Excel import and custom branding. Backend enforcement is server-side and tenant-scoped.
+
+Subscriptions support trial, active, grace, expired and cancelled states. New approved shops receive the configured default trial when no subscription exists. Trial/subscription expiry must not delete merchant catalogue data or silently change shop ownership/status.
+
+Admin controls can assign/change a plan, extend a subscription and update administrative payment state. Payment gateway integration is not required in Phase 1.
 
 ## Initial target verticals
 Jewellery, Toys & Gifts, Furniture & Home Decor, Clothing/Boutique/Saree, Footwear.
