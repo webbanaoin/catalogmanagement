@@ -16,6 +16,7 @@ export class S3StorageService implements StorageService {
   constructor(private readonly config: StorageEnvironment = getStorageEnvironment()) {
     this.client = new S3Client({
       region: config.AWS_REGION,
+      ...(config.AWS_S3_ENDPOINT ? { endpoint: config.AWS_S3_ENDPOINT } : {}),
       credentials: {
         accessKeyId: config.AWS_ACCESS_KEY_ID,
         secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
