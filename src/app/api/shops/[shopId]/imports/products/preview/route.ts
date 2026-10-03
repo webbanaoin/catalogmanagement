@@ -125,11 +125,6 @@ export async function POST(
           ? {
               errorSummary: {
                 errors: preview.errors,
-        summary: {
-          readyRows: preview.successfulRows,
-          duplicateRows: preview.duplicateRows,
-          invalidRows: preview.invalidRows,
-        },
                 duplicateRows: preview.duplicateRows,
                 invalidRows: preview.invalidRows,
               },
@@ -152,6 +147,11 @@ export async function POST(
         job,
         rows: preview.rows,
         errors: preview.errors,
+        summary: {
+          readyRows: preview.successfulRows,
+          duplicateRows: preview.duplicateRows,
+          invalidRows: preview.invalidRows,
+        },
       },
     });
   } catch (error) {
