@@ -9,6 +9,7 @@ import { readJsonBody } from "@/server/http/json-body";
 import { errorResponse } from "@/server/http/error-response";
 import { AppError } from "@/server/http/app-error";
 import { productDuplicateSchema } from "@/validation/catalog";
+import { requireProductCapacity } from "@/server/subscriptions/access";
 
 async function uniqueSlug(shopId: string, name: string) {
   const base = toSlug(name);
@@ -34,6 +35,7 @@ export async function POST(
     await requireProductInShop(shopId, productId);
 
     const input = productDuplicateSchema.parse(await readJsonBody(request));
+    await requireProductCapacity(shopId);
     const source = await prisma.product.findFirst({
       where: { id: productId, shopId, deletedAt: null },
       include: { attributes: { orderBy: { displayOrder: "asc" } } },
