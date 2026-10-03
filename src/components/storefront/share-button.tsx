@@ -5,8 +5,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui";
 import { currentTrackingSource, trackPublicEvent } from "@/lib/public-analytics";
 
-function shareUrl(): string {
-  const url = new URL(window.location.href);
+function shareUrl(shopSlug: string, productSlug?: string): string {
+  const path = productSlug
+    ? `/s/${encodeURIComponent(shopSlug)}/p/${encodeURIComponent(productSlug)}`
+    : `/s/${encodeURIComponent(shopSlug)}`;
+  const url = new URL(path, window.location.origin);
   url.searchParams.set("src", "share");
   return url.toString();
 }
@@ -23,7 +26,7 @@ export function ShareButton({
   const [status, setStatus] = useState<"idle" | "copied">("idle");
 
   async function share() {
-    const url = shareUrl();
+    const url = shareUrl(shopSlug, productSlug);
 
     try {
       if (navigator.share) {
