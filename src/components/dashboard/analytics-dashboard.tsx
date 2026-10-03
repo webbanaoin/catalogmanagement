@@ -145,7 +145,6 @@ export function AnalyticsDashboard() {
   const [shopError, setShopError] = useState<string | null>(null);
   const [analyticsError, setAnalyticsError] = useState<AnalyticsApiError | null>(null);
   const [loadingShop, setLoadingShop] = useState(true);
-  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -174,8 +173,6 @@ export function AnalyticsDashboard() {
     if (!shop) return;
 
     let active = true;
-    setLoadingAnalytics(true);
-    setAnalyticsError(null);
 
     getShopAnalytics(shop.id, rangeFor(days))
       .then((summary) => {
@@ -193,15 +190,26 @@ export function AnalyticsDashboard() {
                 500,
               ),
         );
-      })
-      .finally(() => {
-        if (active) setLoadingAnalytics(false);
       });
 
     return () => {
       active = false;
     };
   }, [days, reloadKey, shop]);
+
+  const loadingAnalytics = Boolean(shop && !data && !analyticsError);
+
+  function changeRange(nextDays: RangeDays) {
+    setData(null);
+    setAnalyticsError(null);
+    setDays(nextDays);
+  }
+
+  function retryAnalytics() {
+    setData(null);
+    setAnalyticsError(null);
+    setReloadKey((value) => value + 1);
+  }
 
   const actionItems = useMemo(
     () =>
@@ -259,7 +267,7 @@ export function AnalyticsDashboard() {
         title="Unable to load analytics"
         description={analyticsError.message}
         action={
-          <Button onClick={() => setReloadKey((value) => value + 1)}>
+          <Button onClick={retryAnalytics}>
             Try again
           </Button>
         }
@@ -280,7 +288,7 @@ export function AnalyticsDashboard() {
           <Select
             id="analytics-range"
             value={days}
-            onChange={(event) => setDays(event.target.value as RangeDays)}
+            onChange={(event) => changeRange(event.target.value as RangeDays)}
             disabled={loadingAnalytics}
           >
             {RANGE_OPTIONS.map((option) => (
