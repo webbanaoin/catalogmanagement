@@ -74,7 +74,7 @@ export type ExistingProductForImport = {
 };
 
 function normalizeHeader(value: string): string {
-  return value.trim().toLowerCase().replace(/[\s_—–-]+/g, " ");
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
 }
 
 function headerAliases(header: (typeof PRODUCT_IMPORT_HEADERS)[number]): string[] {
