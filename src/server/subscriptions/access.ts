@@ -31,8 +31,15 @@ export function effectiveSubscriptionStatus(
     return subscription.status;
   }
 
+  if (subscription.status === "GRACE") {
+    return subscription.graceEndsAt &&
+      now.getTime() <= subscription.graceEndsAt.getTime()
+      ? "GRACE"
+      : "EXPIRED";
+  }
+
   if (now.getTime() <= subscription.endDate.getTime()) {
-    return subscription.status === "TRIAL" ? "TRIAL" : "ACTIVE";
+    return subscription.status;
   }
 
   if (
