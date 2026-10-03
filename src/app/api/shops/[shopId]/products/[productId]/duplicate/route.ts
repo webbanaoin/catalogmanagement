@@ -4,6 +4,7 @@ import { prisma } from "@/server/database/prisma";
 import { requireShopAccess } from "@/server/auth/tenant-access";
 import { requireProductInShop } from "@/server/catalog/guards";
 import { toSlug } from "@/server/catalog/slug";
+import { generateProductCode } from "@/server/catalog/product-code";
 import { readJsonBody } from "@/server/http/json-body";
 import { errorResponse } from "@/server/http/error-response";
 import { AppError } from "@/server/http/app-error";
@@ -42,13 +43,24 @@ export async function POST(
     }
 
     const name = input.name ?? `${source.name} Copy`;
-    const sku = input.sku?.trim() || null;
-    if (sku) {
-      const duplicateSku = await prisma.product.findFirst({ where: { shopId, sku } });
+    const requestedSku = input.sku?.trim() || null;
+    if (requestedSku) {
+      const duplicateSku = await prisma.product.findFirst({ where: { shopId, sku: requestedSku } });
       if (duplicateSku) {
-        throw new AppError({ code: "SKU_CONFLICT", message: "SKU already exists in this shop", status: 409 });
+        throw new AppError({ code: "SKU_CONFLICT", message: "Product code already exists in this shop", status: 409 });
       }
     }
+
+    const existingCodes = await prisma.product.findMany({
+      where: { shopId, sku: { not: null } },
+      select: { sku: true },
+    });
+    const usedCodes = new Set(
+      existingCodes
+        .map((row) => row.sku?.trim().toLowerCase())
+        .filter((value): value is string => Boolean(value)),
+    );
+    const sku = requestedSku ?? generateProductCode(usedCodes);
 
     const data = await prisma.product.create({
       data: {
