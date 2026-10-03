@@ -78,25 +78,36 @@ export async function POST(
         select: { id: true, name: true, slug: true },
       }),
       prisma.product.findMany({
-        where: { shopId, sku: { not: null } },
-        select: { sku: true },
+        where: { shopId, deletedAt: null },
+        select: {
+          id: true,
+          name: true,
+          sku: true,
+          categoryId: true,
+          price: true,
+          discountPrice: true,
+          priceType: true,
+        },
       }),
     ]);
 
     const workbookRows = parseFirstWorksheet(Buffer.from(await file.arrayBuffer()));
-    const existingSkus = new Set(
-      existingProducts
-        .map((product) => product.sku?.trim().toLowerCase())
-        .filter((sku): sku is string => Boolean(sku)),
-    );
 
     const preview = previewProductImport({
       rows: workbookRows,
       categories,
-      existingSkus,
+      existingProducts: existingProducts.map((product) => ({
+        id: product.id,
+        name: product.name,
+        sku: product.sku,
+        categoryId: product.categoryId,
+        price: product.price == null ? null : product.price.toString(),
+        discountPrice: product.discountPrice == null ? null : product.discountPrice.toString(),
+        priceType: product.priceType,
+      })),
     });
 
-    const status = preview.errors.length > 0 ? "VALIDATION_FAILED" : "PREVIEW_READY";
+    const status = preview.successfulRows > 0 ? "PREVIEW_READY" : "VALIDATION_FAILED";
 
     const job = await prisma.importJob.create({
       data: {
@@ -107,10 +118,23 @@ export async function POST(
         failedRows: preview.failedRows,
         status,
         previewData: {
-          version: 1,
+          version: 2,
           products: preview.products,
         },
-        ...(preview.errors.length > 0 ? { errorSummary: preview.errors } : {}),
+        ...(preview.failedRows > 0
+          ? {
+              errorSummary: {
+                errors: preview.errors,
+        summary: {
+          readyRows: preview.successfulRows,
+          duplicateRows: preview.duplicateRows,
+          invalidRows: preview.invalidRows,
+        },
+                duplicateRows: preview.duplicateRows,
+                invalidRows: preview.invalidRows,
+              },
+            }
+          : {}),
       },
       select: {
         id: true,
