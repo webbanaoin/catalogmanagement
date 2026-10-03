@@ -37,16 +37,33 @@ export async function PATCH(
 
     const input = productImageUpdateSchema.parse(await readJsonBody(request));
     const data = await prisma.$transaction(async (tx) => {
+      const updateData = { ...input };
+
       if (input.isPrimary) {
         await tx.productImage.updateMany({
           where: { productId, id: { not: imageId } },
           data: { isPrimary: false },
         });
+      } else if (input.isPrimary === false && existing.isPrimary) {
+        const replacement = await tx.productImage.findFirst({
+          where: { productId, id: { not: imageId } },
+          orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+          select: { id: true },
+        });
+
+        if (replacement) {
+          await tx.productImage.update({
+            where: { id: replacement.id },
+            data: { isPrimary: true },
+          });
+        } else {
+          updateData.isPrimary = true;
+        }
       }
 
       return tx.productImage.update({
         where: { id: imageId },
-        data: input,
+        data: updateData,
       });
     });
 
