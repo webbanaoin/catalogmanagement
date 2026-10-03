@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireShopAccess } from "@/server/auth/tenant-access";
 import { requireProductInShop } from "@/server/catalog/guards";
 import { errorResponse } from "@/server/http/error-response";
+import { readJsonBody } from "@/server/http/json-body";
 import { createProductImageStorageKey } from "@/server/media/product-image";
 import { S3StorageService } from "@/services/storage/s3-storage";
 import { productImageUploadSchema } from "@/validation/media";
@@ -20,7 +21,7 @@ export async function POST(
     });
     await requireProductInShop(shopId, productId);
 
-    const input = productImageUploadSchema.parse(await request.json());
+    const input = productImageUploadSchema.parse(await readJsonBody(request));
     const key = createProductImageStorageKey(shopId, productId, input.mimeType);
     const storage = new S3StorageService();
 
