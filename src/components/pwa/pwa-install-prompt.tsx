@@ -60,19 +60,23 @@ export function PwaInstallPrompt({
   async function install() {
     if (!promptEvent) return;
 
-    await promptEvent.prompt();
-    const choice = await promptEvent.userChoice;
+    try {
+      await promptEvent.prompt();
+      const choice = await promptEvent.userChoice;
 
-    if (choice.outcome === "accepted") {
-      if (mode === "shop" && shopSlug) {
-        void trackPublicEvent({
-          shopSlug,
-          eventType: "PWA_INSTALL",
-          source: currentTrackingSource(shopSlug),
-        });
+      if (choice.outcome === "accepted") {
+        if (mode === "shop" && shopSlug) {
+          void trackPublicEvent({
+            shopSlug,
+            eventType: "PWA_INSTALL",
+            source: currentTrackingSource(shopSlug),
+          });
+        }
+        setInstalled(true);
+        setPromptEvent(null);
       }
-      setInstalled(true);
-      setPromptEvent(null);
+    } catch {
+      // Browser install prompts may become unavailable between render and click.
     }
   }
 
