@@ -8,6 +8,7 @@ import { AppError } from "@/server/http/app-error";
 import { productImageSchema } from "@/validation/catalog";
 import { withProductImageUrls } from "@/server/media/media-response";
 import { S3StorageService } from "@/services/storage/s3-storage";
+import { requireImageCapacity } from "@/server/subscriptions/access";
 
 export async function POST(
   r: Request,
@@ -22,6 +23,7 @@ export async function POST(
     await requireProductInShop(shopId, productId);
 
     const input = productImageSchema.parse(await readJsonBody(r));
+    await requireImageCapacity(shopId, productId);
     const productStoragePrefix = `shops/${shopId}/products/${productId}/`;
 
     if (!input.storageKey.startsWith(productStoragePrefix)) {
