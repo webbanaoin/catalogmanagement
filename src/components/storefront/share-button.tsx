@@ -41,7 +41,7 @@ export function ShareButton({
         shopSlug,
         productSlug,
         eventType: "SHARE",
-        source: currentTrackingSource(),
+        source: currentTrackingSource(shopSlug),
       });
     } catch {
       // The user may cancel the native share dialog. Do not count cancelled shares.
