@@ -6,8 +6,8 @@ This file is the shared execution plan for Prashant and Parixit. It complements 
 ## Branch model
 - Production: `main`
 - Integration/testing: `staging`
-- Prashant current branch: `feature/prashant-subscriptions`
-- Parixit current branch: `feature/parixit-dashboard-pwa`
+- Prashant current branch: `feature/prashant-sprint5-subscriptions`
+- Parixit current branch: `feature/parixit-sprint5-dashboard-pwa`
 
 Feature branches always start from latest `staging`. Normal flow:
 feature branch -> PR -> staging -> integration testing -> PR -> main.
@@ -168,7 +168,7 @@ Own:
 ## Sprint 5 — Plans, Merchant Analytics and PWA
 
 ### Prashant
-Branch: `feature/prashant-subscriptions`
+Branch: `feature/prashant-sprint5-subscriptions`
 
 Own:
 - Database-driven plans.
@@ -178,7 +178,7 @@ Own:
 - No payment gateway unless scope is explicitly changed.
 
 ### Parixit
-Branch: `feature/parixit-dashboard-pwa`
+Branch: `feature/parixit-sprint5-dashboard-pwa`
 
 Own:
 - Merchant analytics dashboard.
