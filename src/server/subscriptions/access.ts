@@ -136,6 +136,18 @@ export async function requireProductCapacity(
 
 export async function getImageCapacity(shopId: string, productId: string) {
   const access = await requireUsableSubscription(shopId);
+  const product = await prisma.product.findFirst({
+    where: { id: productId, shopId, deletedAt: null },
+    select: { id: true },
+  });
+  if (!product) {
+    throw new AppError({
+      code: "PRODUCT_NOT_FOUND",
+      message: "Product was not found in this shop",
+      status: 404,
+    });
+  }
+
   const currentImages = await prisma.productImage.count({ where: { productId } });
   const limit = access.subscription.plan.imageLimitPerProduct;
 
