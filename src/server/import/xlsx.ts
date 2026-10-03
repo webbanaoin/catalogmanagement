@@ -4,7 +4,7 @@ import { inflateRawSync } from "node:zlib";
 
 import { AppError } from "@/server/http/app-error";
 
-const MAX_WORKBOOK_BYTES = 5 * 1024 * 1024;
+export const PRODUCT_IMPORT_MAX_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_UNCOMPRESSED_ENTRY_BYTES = 20 * 1024 * 1024;
 
 export const PRODUCT_IMPORT_HEADERS = [
@@ -82,7 +82,7 @@ type ZipEntry = {
 };
 
 function readZipDirectory(buffer: Buffer): Map<string, ZipEntry> {
-  if (buffer.length > MAX_WORKBOOK_BYTES) {
+  if (buffer.length > PRODUCT_IMPORT_MAX_FILE_BYTES) {
     workbookError("Excel file must be 5 MiB or smaller");
   }
 
