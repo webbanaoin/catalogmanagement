@@ -22,7 +22,7 @@ const storedProductSchema = z.object({
 });
 
 export const storedProductImportPreviewSchema = z.object({
-  version: z.literal(1),
+  version: z.literal(2),
   products: z.array(storedProductSchema).max(PRODUCT_IMPORT_MAX_ROWS),
 });
 
@@ -35,11 +35,25 @@ export type ProductImportError = {
   message: string;
 };
 
+export type ProductImportDuplicate = {
+  rowNumber: number;
+  reason: "SKU" | "FINGERPRINT";
+  message: string;
+  existingProduct: {
+    id: string;
+    name: string;
+    sku: string | null;
+  } | null;
+};
+
 export type ProductImportPreviewRow = {
   rowNumber: number;
   values: Record<string, string>;
   valid: boolean;
+  status: "READY" | "DUPLICATE" | "INVALID";
   errors: ProductImportError[];
+  duplicate: ProductImportDuplicate | null;
+  autoSku: boolean;
   data: StoredImportProduct | null;
 };
 
@@ -49,15 +63,82 @@ type ShopCategoryForImport = {
   slug: string;
 };
 
+export type ExistingProductForImport = {
+  id: string;
+  name: string;
+  sku: string | null;
+  categoryId: string | null;
+  price: string | null;
+  discountPrice: string | null;
+  priceType: "FIXED" | "STARTING_FROM" | "ASK_PRICE";
+};
+
 function normalizeHeader(value: string): string {
-  return value.trim().toLowerCase().replace(/[\s_-]+/g, " ");
+  return value.trim().toLowerCase().replace(/[\s_—–-]+/g, " ");
+}
+
+function headerAliases(header: (typeof PRODUCT_IMPORT_HEADERS)[number]): string[] {
+  if (header === "SKU") {
+    return [
+      "sku",
+      "product code",
+      "sku product code",
+      "sku product code optional",
+      "sku product code optional auto generated if blank",
+    ];
+  }
+
+  return [normalizeHeader(header)];
 }
 
 function normalizeEnum(value: string): string {
   return value.trim().toUpperCase().replace(/[\s-]+/g, "_");
 }
 
-function nullableText(value: string, max: number, field: string, rowNumber: number, errors: ProductImportError[]) {
+function normalizeName(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function normalizedMoney(value: string | null): string {
+  if (!value) return "";
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed.toFixed(2) : value;
+}
+
+export function productFingerprint(product: {
+  name: string;
+  categoryId: string | null;
+  priceType: "FIXED" | "STARTING_FROM" | "ASK_PRICE";
+  price: string | null;
+  discountPrice?: string | null;
+}): string {
+  const price = product.priceType === "ASK_PRICE" ? "" : normalizedMoney(product.price);
+  const discount =
+    product.priceType === "FIXED" ? normalizedMoney(product.discountPrice ?? null) : "";
+
+  return [
+    normalizeName(product.name),
+    product.categoryId ?? "",
+    product.priceType,
+    price,
+    discount,
+  ].join("|");
+}
+
+function nullableText(
+  value: string,
+  max: number,
+  field: string,
+  rowNumber: number,
+  errors: ProductImportError[],
+) {
   const trimmed = value.trim();
   if (!trimmed) return null;
 
@@ -172,7 +253,10 @@ function categoryId(
   const slugMatch = categories.find((category) => category.slug.toLowerCase() === normalized);
   if (slugMatch) return { id: slugMatch.id, name: slugMatch.name };
 
-  const nameMatches = categories.filter((category) => category.name.trim().toLowerCase() === normalized);
+  const nameMatches = categories.filter(
+    (category) => category.name.trim().toLowerCase() === normalized,
+  );
+
   if (nameMatches.length === 1) {
     return { id: nameMatches[0]?.id ?? null, name: nameMatches[0]?.name ?? null };
   }
@@ -188,6 +272,35 @@ function categoryId(
   return { id: null, name: value.trim() || null };
 }
 
+function buildColumnIndexes(headerRow: WorkbookRow): {
+  indexes: Map<string, number>;
+  errors: ProductImportError[];
+} {
+  const actualHeaders = headerRow.values.map((value) => normalizeHeader(value ?? ""));
+  const indexes = new Map<string, number>();
+  const errors: ProductImportError[] = [];
+
+  for (const header of PRODUCT_IMPORT_HEADERS) {
+    const aliases = headerAliases(header);
+    const index = actualHeaders.findIndex((actual) => aliases.includes(actual));
+
+    if (index < 0) {
+      errors.push({
+        rowNumber: null,
+        field: header,
+        message:
+          header === "SKU"
+            ? 'Required column "SKU / Product Code (Optional)" is missing'
+            : `Required column "${header}" is missing`,
+      });
+    } else {
+      indexes.set(normalizeHeader(header), index);
+    }
+  }
+
+  return { indexes, errors };
+}
+
 function rowValues(
   row: WorkbookRow,
   indexes: Map<string, number>,
@@ -200,19 +313,37 @@ function rowValues(
   );
 }
 
+function existingSkuMap(products: ExistingProductForImport[]) {
+  return new Map(
+    products
+      .filter((product) => Boolean(product.sku?.trim()))
+      .map((product) => [product.sku!.trim().toLowerCase(), product]),
+  );
+}
+
+function existingFingerprintMap(products: ExistingProductForImport[]) {
+  const map = new Map<string, ExistingProductForImport>();
+  for (const product of products) {
+    const key = productFingerprint(product);
+    if (!map.has(key)) map.set(key, product);
+  }
+  return map;
+}
+
 export function previewProductImport(options: {
   rows: WorkbookRow[];
   categories: ShopCategoryForImport[];
-  existingSkus: ReadonlySet<string>;
+  existingProducts: ExistingProductForImport[];
 }) {
-  const { rows, categories, existingSkus } = options;
-  const globalErrors: ProductImportError[] = [];
+  const { rows, categories, existingProducts } = options;
 
   if (rows.length === 0) {
     return {
       totalRows: 0,
       successfulRows: 0,
       failedRows: 0,
+      duplicateRows: 0,
+      invalidRows: 0,
       products: [] as StoredImportProduct[],
       rows: [] as ProductImportPreviewRow[],
       errors: [
@@ -226,24 +357,10 @@ export function previewProductImport(options: {
   }
 
   const headerRow = rows[0] as WorkbookRow;
-  const indexes = new Map<string, number>();
-
-  headerRow.values.forEach((value, index) => {
-    const normalized = normalizeHeader(value ?? "");
-    if (normalized && !indexes.has(normalized)) indexes.set(normalized, index);
-  });
-
-  for (const header of PRODUCT_IMPORT_HEADERS) {
-    if (!indexes.has(normalizeHeader(header))) {
-      globalErrors.push({
-        rowNumber: null,
-        field: header,
-        message: `Required column "${header}" is missing`,
-      });
-    }
-  }
-
+  const { indexes, errors: headerErrors } = buildColumnIndexes(headerRow);
   const dataRows = rows.slice(1);
+  const globalErrors = [...headerErrors];
+
   if (dataRows.length === 0) {
     globalErrors.push({
       rowNumber: null,
@@ -261,23 +378,32 @@ export function previewProductImport(options: {
   }
 
   if (globalErrors.length > 0) {
+    const limitedRows = dataRows.slice(0, PRODUCT_IMPORT_MAX_ROWS);
     return {
       totalRows: dataRows.length,
       successfulRows: 0,
       failedRows: dataRows.length,
+      duplicateRows: 0,
+      invalidRows: dataRows.length,
       products: [] as StoredImportProduct[],
-      rows: dataRows.slice(0, PRODUCT_IMPORT_MAX_ROWS).map((row) => ({
+      rows: limitedRows.map((row) => ({
         rowNumber: row.rowNumber,
         values: rowValues(row, indexes),
         valid: false,
+        status: "INVALID" as const,
         errors: globalErrors,
+        duplicate: null,
+        autoSku: false,
         data: null,
       })),
       errors: globalErrors,
     };
   }
 
+  const existingBySku = existingSkuMap(existingProducts);
+  const existingByFingerprint = existingFingerprintMap(existingProducts);
   const seenSkus = new Set<string>();
+  const seenFingerprints = new Map<string, StoredImportProduct>();
   const previewRows: ProductImportPreviewRow[] = [];
   const products: StoredImportProduct[] = [];
   const allErrors: ProductImportError[] = [];
@@ -301,26 +427,7 @@ export function previewProductImport(options: {
       });
     }
 
-    const sku = nullableText(values.SKU ?? "", 100, "SKU", row.rowNumber, errors);
-    const normalizedSku = sku?.toLowerCase() ?? null;
-    if (normalizedSku) {
-      if (existingSkus.has(normalizedSku)) {
-        errors.push({
-          rowNumber: row.rowNumber,
-          field: "SKU",
-          message: "SKU already exists in this shop",
-        });
-      } else if (seenSkus.has(normalizedSku)) {
-        errors.push({
-          rowNumber: row.rowNumber,
-          field: "SKU",
-          message: "SKU is duplicated within this workbook",
-        });
-      } else {
-        seenSkus.add(normalizedSku);
-      }
-    }
-
+    const sku = nullableText(values.SKU ?? "", 100, "SKU / Product Code", row.rowNumber, errors);
     const category = categoryId(values.Category ?? "", categories, row.rowNumber, errors);
     const type = priceType(values["Price Type"] ?? "", row.rowNumber, errors);
     const price = money(values.Price ?? "", "Price", row.rowNumber, errors);
@@ -372,7 +479,7 @@ export function previewProductImport(options: {
       errors,
     );
 
-    const data: StoredImportProduct | null =
+    const candidate: StoredImportProduct | null =
       errors.length === 0
         ? {
             rowNumber: row.rowNumber,
@@ -390,24 +497,92 @@ export function previewProductImport(options: {
           }
         : null;
 
-    const preview: ProductImportPreviewRow = {
+    let duplicate: ProductImportDuplicate | null = null;
+
+    if (candidate) {
+      const normalizedSku = candidate.sku?.trim().toLowerCase() ?? null;
+
+      if (normalizedSku) {
+        const existing = existingBySku.get(normalizedSku);
+        if (existing) {
+          duplicate = {
+            rowNumber: row.rowNumber,
+            reason: "SKU",
+            message: `Product code ${candidate.sku} already exists in this shop`,
+            existingProduct: {
+              id: existing.id,
+              name: existing.name,
+              sku: existing.sku,
+            },
+          };
+        } else if (seenSkus.has(normalizedSku)) {
+          duplicate = {
+            rowNumber: row.rowNumber,
+            reason: "SKU",
+            message: `Product code ${candidate.sku} is repeated in this workbook`,
+            existingProduct: null,
+          };
+        } else {
+          seenSkus.add(normalizedSku);
+        }
+      } else {
+        const fingerprint = productFingerprint(candidate);
+        const existing = existingByFingerprint.get(fingerprint);
+        const previous = seenFingerprints.get(fingerprint);
+
+        if (existing) {
+          duplicate = {
+            rowNumber: row.rowNumber,
+            reason: "FINGERPRINT",
+            message: "A very similar product already exists; skipped to avoid a duplicate",
+            existingProduct: {
+              id: existing.id,
+              name: existing.name,
+              sku: existing.sku,
+            },
+          };
+        } else if (previous) {
+          duplicate = {
+            rowNumber: row.rowNumber,
+            reason: "FINGERPRINT",
+            message: `Similar to row ${previous.rowNumber}; skipped to avoid a duplicate`,
+            existingProduct: null,
+          };
+        } else {
+          seenFingerprints.set(fingerprint, candidate);
+        }
+      }
+    }
+
+    const status: ProductImportPreviewRow["status"] =
+      errors.length > 0 ? "INVALID" : duplicate ? "DUPLICATE" : "READY";
+    const data = status === "READY" ? candidate : null;
+
+    const previewRow: ProductImportPreviewRow = {
       rowNumber: row.rowNumber,
       values,
-      valid: errors.length === 0,
+      valid: status === "READY",
+      status,
       errors,
+      duplicate,
+      autoSku: status === "READY" && !candidate?.sku,
       data,
     };
-    previewRows.push(preview);
+
+    previewRows.push(previewRow);
     allErrors.push(...errors);
     if (data) products.push(data);
   }
 
-  const failedRows = previewRows.filter((row) => !row.valid).length;
+  const duplicateRows = previewRows.filter((row) => row.status === "DUPLICATE").length;
+  const invalidRows = previewRows.filter((row) => row.status === "INVALID").length;
 
   return {
     totalRows: previewRows.length,
-    successfulRows: previewRows.length - failedRows,
-    failedRows,
+    successfulRows: products.length,
+    failedRows: previewRows.length - products.length,
+    duplicateRows,
+    invalidRows,
     products,
     rows: previewRows,
     errors: allErrors,
