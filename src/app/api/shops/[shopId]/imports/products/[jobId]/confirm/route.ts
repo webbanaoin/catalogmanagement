@@ -12,6 +12,7 @@ import {
   storedProductImportPreviewSchema,
   type StoredImportProduct,
 } from "@/server/import/product-import";
+import { requireSubscriptionFeature } from "@/server/subscriptions/access";
 
 function nextSlug(baseName: string, usedSlugs: Set<string>): string {
   const base = toSlug(baseName);
@@ -43,6 +44,10 @@ export async function POST(
       roles: ["OWNER", "MANAGER"],
       shopStatuses: ["APPROVED", "ACTIVE"],
     });
+    const subscriptionAccess = await requireSubscriptionFeature(
+      shopId,
+      "excelImportEnabled",
+    );
 
     const job = await prisma.importJob.findFirst({
       where: { id: jobId, shopId },
@@ -115,6 +120,8 @@ export async function POST(
     ]);
 
     const activeCategoryIds = new Set(activeCategories.map((category) => category.id));
+    const productLimit = subscriptionAccess.subscription.plan.productLimit;
+    const remainingProductSlots = Math.max(0, productLimit - existingProducts.length);
     const usedSlugs = new Set(slugRows.map((row) => row.slug));
     const usedSkus = new Set(
       existingProducts
@@ -162,6 +169,15 @@ export async function POST(
           });
           continue;
         }
+        if (importable.length >= remainingProductSlots) {
+          skipped.push({
+            rowNumber: product.rowNumber,
+            reason: "PRODUCT_LIMIT_REACHED",
+            message: `Plan product limit of ${productLimit} reached; row was skipped`,
+          });
+          continue;
+        }
+
         usedSkus.add(normalizedSku);
         importable.push({ ...product, resolvedSku: product.sku });
         continue;
@@ -173,6 +189,15 @@ export async function POST(
           rowNumber: product.rowNumber,
           reason: "DUPLICATE_PRODUCT",
           message: "A very similar product already exists; row was skipped",
+        });
+        continue;
+      }
+
+      if (importable.length >= remainingProductSlots) {
+        skipped.push({
+          rowNumber: product.rowNumber,
+          reason: "PRODUCT_LIMIT_REACHED",
+          message: `Plan product limit of ${productLimit} reached; row was skipped`,
         });
         continue;
       }
