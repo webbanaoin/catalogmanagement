@@ -244,6 +244,14 @@ export function previewProductImport(options: {
   }
 
   const dataRows = rows.slice(1);
+  if (dataRows.length === 0) {
+    globalErrors.push({
+      rowNumber: null,
+      field: "file",
+      message: "The workbook does not contain any product rows",
+    });
+  }
+
   if (dataRows.length > PRODUCT_IMPORT_MAX_ROWS) {
     globalErrors.push({
       rowNumber: null,
