@@ -49,6 +49,29 @@ enum AvailabilityStatus {
   ON_REQUEST
 }
 
+enum ImportJobStatus {
+  PREVIEW_READY
+  VALIDATION_FAILED
+  COMPLETED
+  FAILED
+}
+
+enum AnalyticsDeviceType {
+  MOBILE
+  TABLET
+  DESKTOP
+  OTHER
+  UNKNOWN
+}
+
+enum CustomerActionType {
+  WHATSAPP
+  CALL
+  DIRECTIONS
+  SHARE
+  PWA_INSTALL
+}
+
 model User {
   id String @id @default(cuid())
   name String @db.VarChar(120)
@@ -93,6 +116,10 @@ model Shop {
   categories ShopCategory[]
   products Product[]
   hours ShopHour[]
+  importJobs ImportJob[]
+  catalogVisits CatalogVisit[]
+  productViews ProductView[]
+  customerActions CustomerAction[]
   @@index([businessCategoryId])
   @@index([status])
   @@index([city])
@@ -183,6 +210,8 @@ model Product {
   category ShopCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   images ProductImage[]
   attributes ProductAttribute[]
+  views ProductView[]
+  customerActions CustomerAction[]
   @@unique([shopId, slug])
   @@unique([shopId, sku])
   @@index([shopId, isVisible, deletedAt, createdAt])
@@ -229,4 +258,69 @@ model ShopHour {
   @@unique([shopId, dayOfWeek])
   @@index([shopId])
   @@map("shop_hours")
+}
+
+
+model ImportJob {
+  id String @id @default(cuid())
+  shopId String @map("shop_id")
+  fileName String @map("file_name") @db.VarChar(255)
+  totalRows Int @default(0) @map("total_rows")
+  successfulRows Int @default(0) @map("successful_rows")
+  failedRows Int @default(0) @map("failed_rows")
+  status ImportJobStatus
+  previewData Json? @map("preview_data")
+  errorSummary Json? @map("error_summary")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  completedAt DateTime? @map("completed_at")
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  @@index([shopId, status, createdAt])
+  @@map("import_jobs")
+}
+
+model CatalogVisit {
+  id String @id @default(cuid())
+  shopId String @map("shop_id")
+  sessionId String @map("session_id") @db.VarChar(128)
+  source String? @db.VarChar(80)
+  deviceType AnalyticsDeviceType @default(UNKNOWN) @map("device_type")
+  visitedAt DateTime @default(now()) @map("visited_at")
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  @@index([shopId, visitedAt])
+  @@index([shopId, sessionId, visitedAt])
+  @@index([shopId, source, visitedAt])
+  @@map("catalog_visits")
+}
+
+model ProductView {
+  id String @id @default(cuid())
+  shopId String @map("shop_id")
+  productId String @map("product_id")
+  sessionId String @map("session_id") @db.VarChar(128)
+  source String? @db.VarChar(80)
+  viewedAt DateTime @default(now()) @map("viewed_at")
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  @@index([shopId, viewedAt])
+  @@index([shopId, productId, viewedAt])
+  @@index([shopId, sessionId, viewedAt])
+  @@map("product_views")
+}
+
+model CustomerAction {
+  id String @id @default(cuid())
+  shopId String @map("shop_id")
+  productId String? @map("product_id")
+  sessionId String @map("session_id") @db.VarChar(128)
+  actionType CustomerActionType @map("action_type")
+  source String? @db.VarChar(80)
+  createdAt DateTime @default(now()) @map("created_at")
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  @@index([shopId, createdAt])
+  @@index([shopId, actionType, createdAt])
+  @@index([shopId, productId, createdAt])
+  @@index([shopId, sessionId, createdAt])
+  @@map("customer_actions")
 }
