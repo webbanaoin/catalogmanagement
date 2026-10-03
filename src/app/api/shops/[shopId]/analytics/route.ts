@@ -4,6 +4,7 @@ import { requireShopAccess } from "@/server/auth/tenant-access";
 import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
+import { requireSubscriptionFeature } from "@/server/subscriptions/access";
 
 const MAX_RANGE_MS = 366 * 24 * 60 * 60 * 1000;
 
@@ -51,6 +52,7 @@ export async function GET(
   try {
     const { shopId } = await context.params;
     await requireShopAccess(shopId);
+    await requireSubscriptionFeature(shopId, "analyticsEnabled");
 
     const { from, to } = dateRange(request);
     const visitWhere = { shopId, visitedAt: { gte: from, lte: to } };
