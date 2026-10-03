@@ -25,15 +25,19 @@ export function StorefrontShell({
           >
             {label}
           </Link>
-          <div className="flex items-center gap-2">
-            <p className="hidden text-xs text-muted sm:block">Public catalogue</p>
-            {shopSlug ? <PwaInstallPrompt mode="shop" shopSlug={shopSlug} compact /> : null}
-          </div>
+          <p className="text-xs text-muted">Public catalogue</p>
         </Container>
       </header>
       <main>{children}</main>
       <footer className="border-t border-border bg-surface py-6">
         <Container>
+          {shopSlug ? (
+            <PwaInstallPrompt
+              mode="shop"
+              shopSlug={shopSlug}
+              className="mx-auto mb-5 max-w-2xl"
+            />
+          ) : null}
           <p className="text-center text-xs text-muted">
             Browse this shop&apos;s current Digital Showroom catalogue.
           </p>
