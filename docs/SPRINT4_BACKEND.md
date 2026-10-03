@@ -12,7 +12,7 @@ Returns `catalog-product-import-template.xlsx`.
 
 Required template columns:
 - Product Name
-- SKU
+- SKU / Product Code (Optional)
 - Category
 - Price
 - Price Type
@@ -38,14 +38,17 @@ Rules:
 - `.xlsx` only
 - maximum workbook size: 5 MiB
 - maximum data rows per import: 1000
-- validates required columns, price rules, active category ownership, existing SKU conflicts, duplicate workbook SKUs, booleans and enums
-- does not create products
-- creates an import job with `PREVIEW_READY` or `VALIDATION_FAILED`
+- Product Code is optional; when blank the backend generates a stable `PRD-XXXXXXXX` code during confirmed import
+- validates required columns, price rules, active category ownership, existing product-code conflicts, likely duplicate products, booleans and enums
+- duplicate detection uses an existing Product Code when supplied, otherwise a normalized product fingerprint (name + category + price mode/pricing)
+- preview does not create products
+- if at least one row is importable the job is `PREVIEW_READY`; duplicate/invalid rows can coexist and are skipped
+- `VALIDATION_FAILED` is used only when no row is ready to import
 
 ### Confirm
 `POST /api/shops/{shopId}/imports/products/{jobId}/confirm`
 
-Only `PREVIEW_READY` jobs can be confirmed. The backend rechecks SKU and active-category conflicts before an all-or-nothing transaction creates products. Imported products use unique shop-scoped slugs and are visible after successful confirmation.
+Only `PREVIEW_READY` jobs can be confirmed. The backend rechecks product-code, duplicate-product and active-category conflicts. Ready rows are imported; duplicate/invalid rows are skipped instead of blocking the whole workbook. Imported products receive a generated Product Code when the Excel value is blank, use unique shop-scoped slugs, and are visible after successful confirmation.
 
 ### Job tracking
 - `GET /api/shops/{shopId}/imports/products`
@@ -113,3 +116,17 @@ Returns:
 - traffic sources
 
 All merchant analytics reads are shop-scoped through authenticated tenancy checks.
+
+
+### Catalogue export
+`GET /api/shops/{shopId}/exports/products`
+
+Downloads the shop's current non-deleted catalogue in the same Excel shape used for import. Saved/generated Product Codes are included so the merchant can keep a reusable editable catalogue without maintaining codes manually.
+
+### Product-code usability
+Product Codes are system-managed by default:
+- manual product creation generates a code when the merchant leaves it blank;
+- Excel import generates a code for every ready row with a blank Product Code;
+- duplicated products receive a generated code when none is supplied;
+- legacy products are backfilled with stable `PRD-*` codes by migration;
+- edits do not clear an existing Product Code when the field is left blank.
