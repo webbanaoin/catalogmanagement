@@ -29,11 +29,25 @@ export interface ProductImportError {
   message: string;
 }
 
+export interface ProductImportDuplicate {
+  rowNumber: number;
+  reason: "SKU" | "FINGERPRINT";
+  message: string;
+  existingProduct: {
+    id: string;
+    name: string;
+    sku: string | null;
+  } | null;
+}
+
 export interface ProductImportPreviewRow {
   rowNumber: number;
   values: Record<string, string>;
   valid: boolean;
+  status: "READY" | "DUPLICATE" | "INVALID";
   errors: ProductImportError[];
+  duplicate: ProductImportDuplicate | null;
+  autoSku: boolean;
   data: unknown | null;
 }
 
@@ -54,6 +68,11 @@ export interface ProductImportPreviewResponse {
     job: ProductImportJob;
     rows: ProductImportPreviewRow[];
     errors: ProductImportError[];
+    summary: {
+      readyRows: number;
+      duplicateRows: number;
+      invalidRows: number;
+    };
   };
 }
 
@@ -92,6 +111,12 @@ export async function confirmProductImport(shopId: string, jobId: string) {
       jobId: string;
       status: "COMPLETED";
       importedCount: number;
+      skippedCount: number;
+      skipped: Array<{
+        rowNumber: number;
+        reason: string;
+        message: string;
+      }>;
       products: Array<{
         id: string;
         name: string;
