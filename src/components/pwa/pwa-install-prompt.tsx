@@ -11,6 +11,11 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 }
 
+type InstallPromptWindow = Window & {
+  __digitalShowroomInstallPrompt?: BeforeInstallPromptEvent | null;
+  __digitalShowroomInstalled?: boolean;
+};
+
 function standaloneMode() {
   if (typeof window === "undefined") return false;
   const navigatorWithStandalone = navigator as Navigator & { standalone?: boolean };
@@ -74,21 +79,44 @@ export function PwaInstallPrompt({
   const isIos = iosDevice && !installed;
 
   useEffect(() => {
+    const installWindow = window as InstallPromptWindow;
+
+    const syncCapturedPrompt = () => {
+      const captured = installWindow.__digitalShowroomInstallPrompt;
+      if (captured) setPromptEvent(captured);
+    };
+
     const beforeInstall = (event: Event) => {
       event.preventDefault();
-      setPromptEvent(event as BeforeInstallPromptEvent);
+      const prompt = event as BeforeInstallPromptEvent;
+      installWindow.__digitalShowroomInstallPrompt = prompt;
+      setPromptEvent(prompt);
     };
+
     const appInstalled = () => {
+      installWindow.__digitalShowroomInstallPrompt = null;
+      installWindow.__digitalShowroomInstalled = true;
       setPromptEvent(null);
       setInstalledAfterPrompt(true);
     };
 
+    queueMicrotask(() => {
+      syncCapturedPrompt();
+      if (installWindow.__digitalShowroomInstalled) {
+        setInstalledAfterPrompt(true);
+      }
+    });
+
     window.addEventListener("beforeinstallprompt", beforeInstall);
     window.addEventListener("appinstalled", appInstalled);
+    window.addEventListener("digital-showroom-install-prompt", syncCapturedPrompt);
+    window.addEventListener("digital-showroom-app-installed", appInstalled);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", beforeInstall);
       window.removeEventListener("appinstalled", appInstalled);
+      window.removeEventListener("digital-showroom-install-prompt", syncCapturedPrompt);
+      window.removeEventListener("digital-showroom-app-installed", appInstalled);
     };
   }, []);
 
@@ -107,6 +135,9 @@ export function PwaInstallPrompt({
             source: currentTrackingSource(shopSlug),
           });
         }
+        const installWindow = window as InstallPromptWindow;
+        installWindow.__digitalShowroomInstallPrompt = null;
+        installWindow.__digitalShowroomInstalled = true;
         setInstalledAfterPrompt(true);
         setPromptEvent(null);
       }
