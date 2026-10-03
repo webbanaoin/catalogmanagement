@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Showroom",
     description: "Manage your Digital Showroom catalogue and performance.",
     start_url: "/dashboard",
-    scope: "/",
+    scope: "/dashboard",
     display: "standalone",
     background_color: "#f8fafc",
     theme_color: "#0f766e",
