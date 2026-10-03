@@ -8,7 +8,6 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Digital Showroom",
   description: "A digital catalogue platform for local retailers.",
-  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
       { url: "/pwa/icon-192.png", sizes: "192x192", type: "image/png" },
