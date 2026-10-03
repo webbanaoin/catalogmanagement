@@ -14,7 +14,7 @@ const navigationItems: DashboardNavigationItem[] = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Products", badge: "Later sprint" },
   { label: "Categories", href: "/dashboard/categories", badge: "Connected" },
-  { label: "QR", badge: "Later sprint" },
+  { label: "QR", href: "/dashboard/qr", badge: "Sprint 4" },
   { label: "Shop Profile", href: "/dashboard/shop", badge: "Connected" },
   { label: "Analytics", badge: "Later sprint" },
   { label: "Subscription", badge: "Later sprint" },
@@ -77,7 +77,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             <DashboardNavigation />
           </div>
           <div className="border-t border-border p-4 text-xs leading-5 text-muted">
-            Sprint 2 connects shop profile and category management to tenant-safe merchant APIs.
+            Sprint 4 adds permanent QR and sharing while preserving tenant-safe merchant boundaries.
           </div>
         </aside>
 

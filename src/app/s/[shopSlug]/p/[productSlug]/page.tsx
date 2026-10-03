@@ -3,11 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ProductGallery } from "@/components/storefront/product-gallery";
+import { StorefrontAnalytics } from "@/components/storefront/storefront-analytics";
 import { StorefrontActions } from "@/components/storefront/storefront-actions";
 import { StorefrontShell } from "@/components/storefront/storefront-shell";
 import { Badge, Card, CardContent, Container, buttonClassName } from "@/components/ui";
 import { availabilityLabel, formatInr } from "@/lib/storefront";
 import { getPublicProduct } from "@/server/storefront/storefront-data";
+import { getAppEnvironment } from "@/server/env";
 
 export const dynamic = "force-dynamic";
 
@@ -74,10 +76,19 @@ export default async function ProductPage({
   if (!result) notFound();
 
   const { shop, product } = result;
-  const whatsappMessage = `Hi, I'm interested in ${product.name} from ${shop.name}.`;
+  const productUrl = new URL(
+    `/s/${shopSlug}/p/${productSlug}`,
+    getAppEnvironment().APP_URL,
+  ).toString();
+  const whatsappMessage = `Hi, I'm interested in ${product.name} from ${shop.name}. ${productUrl}`;
 
   return (
     <StorefrontShell homeHref={`/s/${shopSlug}`} label={shop.name}>
+      <StorefrontAnalytics
+        shopSlug={shopSlug}
+        productSlug={productSlug}
+        eventType="PRODUCT_VIEW"
+      />
       <Container className="py-5 sm:py-8">
         <Link
           href={`/s/${shopSlug}`}
@@ -117,6 +128,8 @@ export default async function ProductPage({
 
             <StorefrontActions
               title={`${product.name} | ${shop.name}`}
+              shopSlug={shopSlug}
+              productSlug={productSlug}
               phone={shop.phone}
               whatsapp={shop.whatsapp}
               directionsUrl={shop.googleMapsUrl}

@@ -27,8 +27,14 @@ const workspaces = [
   },
   {
     title: "Products",
-    description: "Full merchant product management remains outside Parixit's current Sprint 2 UI ownership.",
-    status: "Later sprint",
+    description: "Manage the catalogue and product media through the Sprint 3 merchant workflow.",
+    status: "Sprint 3",
+  },
+  {
+    title: "QR & sharing",
+    description: "Open the permanent shop QR workspace to copy, download, print or share the public catalogue link.",
+    href: "/dashboard/qr",
+    status: "Sprint 4",
   },
 ];
 
@@ -36,13 +42,13 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Sprint 2"
+        eyebrow="Sprint 4"
         title="Merchant dashboard"
-        description="Shop-management UI now builds on the Sprint 1 authentication and tenant foundation without inventing catalogue API contracts."
+        description="Manage the shop catalogue and sharing surfaces built through Sprints 1–4."
       />
 
-      <Alert title="Contract-first merchant UI">
-        Shop-profile persistence and category CRUD will connect only to tenant-safe server APIs. Until those contracts exist, the UI exposes validation and integration boundaries rather than fake merchant data.
+      <Alert title="Permanent public catalogue">
+        Your shop slug remains the stable public catalogue route. Sprint 4 adds a permanent QR and sharing workspace without exposing tenant IDs or environment-specific secrets.
       </Alert>
 
       <section aria-labelledby="merchant-workspaces-heading">
@@ -55,7 +61,7 @@ export default function DashboardPage() {
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <CardTitle>{workspace.title}</CardTitle>
-                  <Badge variant={workspace.status === "Sprint 2" ? "info" : "neutral"}>
+                  <Badge variant={workspace.status.startsWith("Sprint") ? "info" : "neutral"}>
                     {workspace.status}
                   </Badge>
                 </div>
