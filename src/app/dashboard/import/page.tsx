@@ -27,6 +27,7 @@ import {
   previewProductImport,
   type ProductImportJob,
   type ProductImportPreviewResponse,
+  type ProductImportPreviewRow,
 } from "@/lib/import-api";
 
 function statusVariant(
@@ -36,6 +37,20 @@ function statusVariant(
   if (status === "PREVIEW_READY") return "info";
   if (status === "VALIDATION_FAILED") return "warning";
   return "error";
+}
+
+function rowVariant(
+  status: ProductImportPreviewRow["status"],
+): "success" | "warning" | "error" {
+  if (status === "READY") return "success";
+  if (status === "DUPLICATE") return "warning";
+  return "error";
+}
+
+function rowLabel(status: ProductImportPreviewRow["status"]) {
+  if (status === "READY") return "Ready";
+  if (status === "DUPLICATE") return "Duplicate";
+  return "Fix row";
 }
 
 function formatDate(value: string) {
@@ -62,6 +77,14 @@ export default function ProductImportPage() {
     () =>
       shop
         ? `/api/shops/${encodeURIComponent(shop.id)}/imports/products/template`
+        : "#",
+    [shop],
+  );
+
+  const exportUrl = useMemo(
+    () =>
+      shop
+        ? `/api/shops/${encodeURIComponent(shop.id)}/exports/products`
         : "#",
     [shop],
   );
@@ -126,14 +149,21 @@ export default function ProductImportPage() {
       setPreview(response.data);
       await refreshJobs(shop.id);
 
-      setFeedback({
-        variant:
-          response.data.job.status === "PREVIEW_READY" ? "success" : "warning",
-        message:
-          response.data.job.status === "PREVIEW_READY"
-            ? "Validation passed. Review the rows below, then confirm the import."
-            : "Validation found issues. Fix the highlighted rows in Excel and upload the file again.",
-      });
+      const { readyRows, duplicateRows, invalidRows } = response.data.summary;
+      if (readyRows > 0) {
+        setFeedback({
+          variant: "info",
+          message:
+            `Preview ready: ${readyRows} product${readyRows === 1 ? "" : "s"} can be imported. ` +
+            `${duplicateRows} duplicate${duplicateRows === 1 ? "" : "s"} and ${invalidRows} invalid row${invalidRows === 1 ? "" : "s"} will be skipped. Products are NOT imported until you click the import button below.`,
+        });
+      } else {
+        setFeedback({
+          variant: "warning",
+          message:
+            "No rows are ready to import. Duplicate products are skipped automatically; fix invalid rows and upload again.",
+        });
+      }
     } catch (error) {
       setFeedback({
         variant: "error",
@@ -157,9 +187,9 @@ export default function ProductImportPage() {
       const response = await confirmProductImport(shop.id, preview.job.id);
       setFeedback({
         variant: "success",
-        message: `${response.data.importedCount} product${
-          response.data.importedCount === 1 ? "" : "s"
-        } imported successfully.`,
+        message:
+          `${response.data.importedCount} product${response.data.importedCount === 1 ? "" : "s"} imported successfully. ` +
+          `${response.data.skippedCount} row${response.data.skippedCount === 1 ? "" : "s"} skipped. Blank product codes were generated automatically and are included when you download the current catalogue.`,
       });
       setPreview((current) =>
         current
@@ -169,7 +199,7 @@ export default function ProductImportPage() {
                 ...current.job,
                 status: "COMPLETED",
                 successfulRows: response.data.importedCount,
-                failedRows: 0,
+                failedRows: response.data.skippedCount,
               },
             }
           : current,
@@ -202,8 +232,8 @@ export default function ProductImportPage() {
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         eyebrow="Sprint 4"
-        title="Excel product import"
-        description="Download the standard template, validate product rows, preview any issues, and confirm an all-or-nothing import."
+        title="Easy Excel product import"
+        description="Product Code is optional. Leave it blank and the system will generate one automatically. Existing or likely duplicate products are detected and skipped."
         actions={<Badge variant="success">API connected</Badge>}
       />
 
@@ -211,16 +241,24 @@ export default function ProductImportPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>1. Download the template</CardTitle>
+          <CardTitle>1. Start with Excel</CardTitle>
           <CardDescription>
-            Keep the column headers unchanged. Category can be an active shop category name or slug.
+            Download a blank template for new products, or download your current catalogue when you want a backup/editable sheet with saved product codes.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap items-center gap-3">
-          <a href={templateUrl} className={buttonClassName("secondary", "md")}>
-            Download Excel template
-          </a>
-          <p className="text-sm text-muted">
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-3">
+            <a href={templateUrl} className={buttonClassName("primary", "md")}>
+              Download blank template
+            </a>
+            <a href={exportUrl} className={buttonClassName("secondary", "md")}>
+              Download current catalogue
+            </a>
+          </div>
+          <p className="text-sm leading-6 text-muted">
+            SKU / Product Code is optional. If blank, a code such as PRD-A1B2C3D4 is generated automatically. Keep generated codes when editing/re-uploading exported products so duplicates are easy to identify.
+          </p>
+          <p className="text-xs text-muted">
             Maximum file size 5 MiB · Maximum 1000 product rows
           </p>
         </CardContent>
@@ -228,9 +266,9 @@ export default function ProductImportPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>2. Upload and validate</CardTitle>
+          <CardTitle>2. Upload and check</CardTitle>
           <CardDescription>
-            Validation checks required columns, price rules, categories, duplicate SKUs, availability and flags before any product is created.
+            The system checks price rules, categories, product codes and likely duplicates before creating anything. Good rows can still be imported even when other rows need attention.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -254,7 +292,7 @@ export default function ProductImportPage() {
           ) : null}
 
           <Button onClick={() => void handlePreview()} disabled={!file || previewing}>
-            {previewing ? "Validating…" : "Validate & preview"}
+            {previewing ? "Checking products…" : "Check & preview"}
           </Button>
         </CardContent>
       </Card>
@@ -264,29 +302,29 @@ export default function ProductImportPage() {
           <CardHeader>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <CardTitle>3. Review preview</CardTitle>
+                <CardTitle>3. Review before import</CardTitle>
                 <CardDescription>
-                  {preview.job.successfulRows} valid · {preview.job.failedRows} invalid · {preview.job.totalRows} total
+                  {preview.summary.readyRows} ready · {preview.summary.duplicateRows} duplicate · {preview.summary.invalidRows} invalid · {preview.job.totalRows} total
                 </CardDescription>
               </div>
               <Badge variant={statusVariant(preview.job.status)}>
-                {preview.job.status.replaceAll("_", " ")}
+                {preview.job.status === "PREVIEW_READY" ? "READY TO IMPORT" : preview.job.status.replaceAll("_", " ")}
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="overflow-x-auto rounded-xl border border-border">
-              <table className="min-w-[980px] w-full text-left text-sm">
+              <table className="min-w-[1040px] w-full text-left text-sm">
                 <thead className="bg-surface-muted text-xs uppercase tracking-wide text-muted-strong">
                   <tr>
                     <th className="px-3 py-3">Row</th>
                     <th className="px-3 py-3">Status</th>
                     <th className="px-3 py-3">Product</th>
-                    <th className="px-3 py-3">SKU</th>
+                    <th className="px-3 py-3">Product code</th>
                     <th className="px-3 py-3">Category</th>
                     <th className="px-3 py-3">Price type</th>
                     <th className="px-3 py-3">Availability</th>
-                    <th className="px-3 py-3">Validation</th>
+                    <th className="px-3 py-3">Result</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -294,18 +332,32 @@ export default function ProductImportPage() {
                     <tr key={row.rowNumber} className="bg-background align-top">
                       <td className="px-3 py-3 font-medium">{row.rowNumber}</td>
                       <td className="px-3 py-3">
-                        <Badge variant={row.valid ? "success" : "error"}>
-                          {row.valid ? "Valid" : "Fix row"}
-                        </Badge>
+                        <Badge variant={rowVariant(row.status)}>{rowLabel(row.status)}</Badge>
                       </td>
                       <td className="px-3 py-3">{row.values["Product Name"] || "—"}</td>
-                      <td className="px-3 py-3">{row.values.SKU || "—"}</td>
+                      <td className="px-3 py-3">
+                        {row.values.SKU || (row.autoSku ? "Auto-generate" : "—")}
+                      </td>
                       <td className="px-3 py-3">{row.values.Category || "—"}</td>
                       <td className="px-3 py-3">{row.values["Price Type"] || "—"}</td>
                       <td className="px-3 py-3">{row.values.Availability || "—"}</td>
                       <td className="px-3 py-3">
-                        {row.errors.length === 0 ? (
-                          <span className="text-success-strong">Ready</span>
+                        {row.status === "READY" ? (
+                          <span className="text-success-strong">
+                            {row.autoSku ? "Ready · product code will be generated" : "Ready"}
+                          </span>
+                        ) : row.status === "DUPLICATE" ? (
+                          <div className="space-y-1 text-warning-strong">
+                            <p>{row.duplicate?.message ?? "Duplicate product skipped"}</p>
+                            {row.duplicate?.existingProduct ? (
+                              <p className="text-xs text-muted">
+                                Existing: {row.duplicate.existingProduct.name}
+                                {row.duplicate.existingProduct.sku
+                                  ? ` · ${row.duplicate.existingProduct.sku}`
+                                  : ""}
+                              </p>
+                            ) : null}
+                          </div>
                         ) : (
                           <ul className="space-y-1 text-danger">
                             {row.errors.map((error, index) => (
@@ -323,13 +375,23 @@ export default function ProductImportPage() {
             </div>
 
             {preview.job.status === "PREVIEW_READY" ? (
-              <div className="flex flex-wrap items-center gap-3">
-                <Button onClick={() => void handleConfirm()} disabled={confirming}>
-                  {confirming ? "Importing…" : "Confirm import"}
-                </Button>
-                <p className="text-sm text-muted">
-                  Products are created only after this confirmation.
+              <div className="rounded-xl border border-info/20 bg-info-soft p-4">
+                <p className="font-semibold text-info-strong">
+                  Products are not imported yet.
                 </p>
+                <p className="mt-1 text-sm leading-6 text-info-strong">
+                  Click below to import only the {preview.summary.readyRows} ready product
+                  {preview.summary.readyRows === 1 ? "" : "s"}. Duplicate and invalid rows will be skipped automatically.
+                </p>
+                <Button
+                  className="mt-3"
+                  onClick={() => void handleConfirm()}
+                  disabled={confirming}
+                >
+                  {confirming
+                    ? "Importing…"
+                    : `Import ${preview.summary.readyRows} ready product${preview.summary.readyRows === 1 ? "" : "s"}`}
+                </Button>
               </div>
             ) : null}
           </CardContent>
@@ -340,14 +402,14 @@ export default function ProductImportPage() {
         <CardHeader>
           <CardTitle>Recent imports</CardTitle>
           <CardDescription>
-            Latest preview and import jobs for {shop?.name ?? "this shop"}.
+            Latest Excel checks and imports for {shop?.name ?? "this shop"}.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {jobs.length === 0 ? (
             <EmptyState
               title="No import jobs yet"
-              description="Download the template and validate your first Excel file."
+              description="Download the template and check your first Excel file."
               className="min-h-40"
             />
           ) : (
@@ -358,8 +420,8 @@ export default function ProductImportPage() {
                     <th className="px-3 py-3">File</th>
                     <th className="px-3 py-3">Status</th>
                     <th className="px-3 py-3">Rows</th>
-                    <th className="px-3 py-3">Valid</th>
-                    <th className="px-3 py-3">Failed</th>
+                    <th className="px-3 py-3">Imported / ready</th>
+                    <th className="px-3 py-3">Skipped / failed</th>
                     <th className="px-3 py-3">Created</th>
                   </tr>
                 </thead>
@@ -385,8 +447,8 @@ export default function ProductImportPage() {
         </CardContent>
       </Card>
 
-      <Alert title="Safe import flow">
-        Preview never creates products. Confirmation rechecks SKU/category conflicts and then creates all validated rows in one transaction.
+      <Alert title="Designed for shopkeepers">
+        You do not need to maintain product codes manually. Leave the field blank, import ready rows, and download the current catalogue whenever you need the saved auto-generated codes.
       </Alert>
     </div>
   );
