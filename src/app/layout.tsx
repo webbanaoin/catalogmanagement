@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
-import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
-
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -29,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body><ServiceWorkerRegistration />{children}</body>
+      <body>{children}</body>
     </html>
   );
 }
