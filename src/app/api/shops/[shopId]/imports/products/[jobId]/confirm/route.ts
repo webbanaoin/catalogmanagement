@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
@@ -6,7 +8,11 @@ import { toSlug } from "@/server/catalog/slug";
 import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
-import { storedProductImportPreviewSchema } from "@/server/import/product-import";
+import {
+  productFingerprint,
+  storedProductImportPreviewSchema,
+  type StoredImportProduct,
+} from "@/server/import/product-import";
 
 function nextSlug(baseName: string, usedSlugs: Set<string>): string {
   const base = toSlug(baseName);
@@ -20,6 +26,27 @@ function nextSlug(baseName: string, usedSlugs: Set<string>): string {
 
   usedSlugs.add(candidate);
   return candidate;
+}
+
+function generateProductCode(usedSkus: Set<string>): string {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const code = `PRD-${randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+    if (!usedSkus.has(code.toLowerCase())) {
+      usedSkus.add(code.toLowerCase());
+      return code;
+    }
+  }
+
+  throw new AppError({
+    code: "PRODUCT_CODE_GENERATION_FAILED",
+    message: "Unable to generate a unique product code. Please retry the import.",
+    status: 500,
+  });
+}
+
+function inputJsonObject(value: Prisma.JsonValue | null): Record<string, Prisma.JsonValue> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, Prisma.JsonValue>;
 }
 
 export async function POST(
@@ -40,6 +67,8 @@ export async function POST(
         id: true,
         status: true,
         previewData: true,
+        errorSummary: true,
+        totalRows: true,
       },
     });
 
@@ -54,7 +83,7 @@ export async function POST(
     if (job.status !== "PREVIEW_READY") {
       throw new AppError({
         code: "IMPORT_NOT_READY",
-        message: "This import cannot be confirmed; upload and validate the workbook again",
+        message: "This import cannot be confirmed; validate the workbook again",
         status: 409,
       });
     }
@@ -69,10 +98,6 @@ export async function POST(
     }
 
     const products = parsedPreview.data.products;
-    const skus = products
-      .map((product) => product.sku)
-      .filter((sku): sku is string => Boolean(sku));
-
     const categoryIds = [
       ...new Set(
         products
@@ -81,13 +106,7 @@ export async function POST(
       ),
     ];
 
-    const [existingSkuRows, activeCategories, slugRows] = await Promise.all([
-      skus.length
-        ? prisma.product.findMany({
-            where: { shopId, sku: { in: skus } },
-            select: { sku: true },
-          })
-        : Promise.resolve([]),
+    const [activeCategories, existingProducts, slugRows] = await Promise.all([
       categoryIds.length
         ? prisma.shopCategory.findMany({
             where: { shopId, id: { in: categoryIds }, status: "ACTIVE" },
@@ -95,43 +114,110 @@ export async function POST(
           })
         : Promise.resolve([]),
       prisma.product.findMany({
+        where: { shopId, deletedAt: null },
+        select: {
+          id: true,
+          name: true,
+          sku: true,
+          categoryId: true,
+          price: true,
+          discountPrice: true,
+          priceType: true,
+        },
+      }),
+      prisma.product.findMany({
         where: { shopId },
         select: { slug: true },
       }),
     ]);
 
-    if (existingSkuRows.length > 0) {
-      throw new AppError({
-        code: "IMPORT_CONFLICT",
-        message: "One or more SKUs now exist in this shop; create a fresh preview before importing",
-        status: 409,
-      });
-    }
-
     const activeCategoryIds = new Set(activeCategories.map((category) => category.id));
-    const unavailableCategory = categoryIds.find((categoryId) => !activeCategoryIds.has(categoryId));
-    if (unavailableCategory) {
-      throw new AppError({
-        code: "IMPORT_CONFLICT",
-        message: "One or more categories changed after preview; create a fresh preview before importing",
-        status: 409,
+    const usedSlugs = new Set(slugRows.map((row) => row.slug));
+    const usedSkus = new Set(
+      existingProducts
+        .map((product) => product.sku?.trim().toLowerCase())
+        .filter((sku): sku is string => Boolean(sku)),
+    );
+    const existingFingerprints = new Set(
+      existingProducts.map((product) =>
+        productFingerprint({
+          name: product.name,
+          categoryId: product.categoryId,
+          priceType: product.priceType,
+          price: product.price == null ? null : product.price.toString(),
+          discountPrice:
+            product.discountPrice == null ? null : product.discountPrice.toString(),
+        }),
+      ),
+    );
+
+    const importable: Array<StoredImportProduct & { resolvedSku: string }> = [];
+    const skipped: Array<{
+      rowNumber: number;
+      reason: string;
+      message: string;
+    }> = [];
+    const pendingFingerprints = new Set<string>();
+
+    for (const product of products) {
+      if (product.categoryId && !activeCategoryIds.has(product.categoryId)) {
+        skipped.push({
+          rowNumber: product.rowNumber,
+          reason: "CATEGORY_CHANGED",
+          message: "Category is no longer active; row was skipped",
+        });
+        continue;
+      }
+
+      if (product.sku) {
+        const normalizedSku = product.sku.trim().toLowerCase();
+        if (usedSkus.has(normalizedSku)) {
+          skipped.push({
+            rowNumber: product.rowNumber,
+            reason: "SKU_CONFLICT",
+            message: `Product code ${product.sku} already exists; row was skipped`,
+          });
+          continue;
+        }
+        usedSkus.add(normalizedSku);
+        importable.push({ ...product, resolvedSku: product.sku });
+        continue;
+      }
+
+      const fingerprint = productFingerprint(product);
+      if (existingFingerprints.has(fingerprint) || pendingFingerprints.has(fingerprint)) {
+        skipped.push({
+          rowNumber: product.rowNumber,
+          reason: "DUPLICATE_PRODUCT",
+          message: "A very similar product already exists; row was skipped",
+        });
+        continue;
+      }
+
+      pendingFingerprints.add(fingerprint);
+      importable.push({
+        ...product,
+        resolvedSku: generateProductCode(usedSkus),
       });
     }
-
-    const usedSlugs = new Set(slugRows.map((row) => row.slug));
 
     try {
       const imported = await prisma.$transaction(async (tx) => {
-        const created: Array<{ id: string; name: string; slug: string; sku: string | null }> = [];
+        const created: Array<{
+          id: string;
+          name: string;
+          slug: string;
+          sku: string | null;
+        }> = [];
 
-        for (const product of products) {
+        for (const product of importable) {
           const row = await tx.product.create({
             data: {
               shopId,
               categoryId: product.categoryId,
               name: product.name,
               slug: nextSlug(product.name, usedSlugs),
-              sku: product.sku,
+              sku: product.resolvedSku,
               description: product.description,
               price: product.price,
               discountPrice: product.discountPrice,
@@ -152,13 +238,22 @@ export async function POST(
           created.push(row);
         }
 
+        const previousSummary = inputJsonObject(job.errorSummary);
+        const nextSummary: Prisma.InputJsonObject = {
+          ...previousSummary,
+          ...(skipped.length > 0 ? { skippedDuringConfirm: skipped } : {}),
+        };
+
         await tx.importJob.update({
           where: { id: job.id },
           data: {
             status: "COMPLETED",
             successfulRows: created.length,
-            failedRows: 0,
+            failedRows: Math.max(0, job.totalRows - created.length),
             completedAt: new Date(),
+            ...(Object.keys(nextSummary).length > 0
+              ? { errorSummary: nextSummary }
+              : {}),
           },
         });
 
@@ -170,6 +265,8 @@ export async function POST(
           jobId: job.id,
           status: "COMPLETED",
           importedCount: imported.length,
+          skippedCount: Math.max(0, job.totalRows - imported.length),
+          skipped,
           products: imported,
         },
       });
@@ -182,7 +279,8 @@ export async function POST(
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         throw new AppError({
           code: "IMPORT_CONFLICT",
-          message: "An SKU or product slug conflict occurred; create a fresh preview before importing",
+          message:
+            "A product code conflict occurred while importing. Validate the workbook again and retry.",
           status: 409,
         });
       }
