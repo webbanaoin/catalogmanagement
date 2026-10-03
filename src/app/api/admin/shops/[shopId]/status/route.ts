@@ -6,6 +6,7 @@ import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
 import { readJsonBody } from "@/server/http/json-body";
+import { ensureDefaultTrialSubscription } from "@/server/subscriptions/trial";
 import { adminShopStatusSchema } from "@/validation/admin";
 
 const ALLOWED_TRANSITIONS: Record<ShopStatus, readonly ShopStatus[]> = {
@@ -39,11 +40,20 @@ export async function PATCH(request: Request, context: { params: Promise<{ shopI
       });
     }
 
-    const updated = await prisma.shop.update({
-      where: { id: shop.id },
-      data: { status: input.status },
-      select: { id: true, name: true, slug: true, status: true, updatedAt: true },
+    const updated = await prisma.$transaction(async (tx) => {
+      const nextShop = await tx.shop.update({
+        where: { id: shop.id },
+        data: { status: input.status },
+        select: { id: true, name: true, slug: true, status: true, updatedAt: true },
+      });
+
+      if (input.status === "APPROVED" || input.status === "ACTIVE") {
+        await ensureDefaultTrialSubscription(tx, shop.id);
+      }
+
+      return nextShop;
     });
+
     return NextResponse.json({ data: updated });
   } catch (error) {
     return errorResponse(error);
