@@ -279,7 +279,8 @@ Do not add these unless requirements are explicitly updated:
 - [x] Sprint 4 cross-tenant import read/write isolation validated
 - [x] Merge validated Sprint 4 integration into `staging` via PR #15
 - [x] Sprint 5 branches created from latest `staging`
-- [ ] Sprint 5 Prashant plans/subscriptions implementation
+- [x] Sprint 5 Prashant plans/subscriptions implementation prepared on feature branch
+- [ ] Sprint 5 Prashant migration, lint, typecheck, build and API/limit validation
 - [ ] Sprint 5 Parixit analytics-dashboard/PWA implementation
 
 ## How ChatGPT/Codex should use this file

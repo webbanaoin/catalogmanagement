@@ -28,6 +28,12 @@ export async function generateMetadata({
     description:
       result.product.description?.slice(0, 160) ??
       `View ${result.product.name} from ${result.shop.name}.`,
+    manifest: `/s/${shopSlug}/manifest.webmanifest`,
+    appleWebApp: {
+      capable: true,
+      title: result.shop.name,
+      statusBarStyle: "default",
+    },
   };
 }
 
@@ -83,7 +89,7 @@ export default async function ProductPage({
   const whatsappMessage = `Hi, I'm interested in ${product.name} from ${shop.name}. ${productUrl}`;
 
   return (
-    <StorefrontShell homeHref={`/s/${shopSlug}`} label={shop.name}>
+    <StorefrontShell homeHref={`/s/${shopSlug}`} label={shop.name} shopSlug={shopSlug}>
       <StorefrontAnalytics
         shopSlug={shopSlug}
         productSlug={productSlug}

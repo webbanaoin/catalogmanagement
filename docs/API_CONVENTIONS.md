@@ -99,3 +99,22 @@ Product media lifecycle additions:
 - PATCH `/api/shops/{shopId}/products/{productId}` is used for edit and hide/show through `isVisible`.
 - DELETE and restore retain the Sprint 2 soft-delete behavior; restored products remain hidden until explicitly published.
 - POST `/api/shops/{shopId}/products/{productId}/duplicate` accepts optional `name` and `sku`. The copy starts hidden and does not copy image objects, preventing accidental publication or duplicated S3 ownership.
+
+
+## Sprint 5 plan and subscription contracts
+
+Plans are database-driven and subscription enforcement happens server-side after normal tenant authorization.
+
+- GET `/api/plans`
+- GET/POST `/api/admin/plans`
+- PATCH `/api/admin/plans/{planId}`
+- GET `/api/shops/{shopId}/subscription`
+- GET/POST/PATCH `/api/admin/shops/{shopId}/subscription`
+
+Platform-admin mutations require `PlatformRole.ADMIN`.
+
+Merchant entitlement checks never trust a client-supplied plan, limit or subscription status. Product/image limits and feature flags are resolved from the shop's persisted subscription and plan.
+
+Plan-gated operations return explicit 403/409 errors rather than silently truncating manual mutations. Confirmed Excel imports may partially succeed within the remaining product capacity and report overflow rows as skipped.
+
+Subscription expiry preserves merchant data. It does not implicitly delete products or change shop status.

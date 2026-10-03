@@ -2,6 +2,7 @@ import { requireShopAccess } from "@/server/auth/tenant-access";
 import { prisma } from "@/server/database/prisma";
 import { errorResponse } from "@/server/http/error-response";
 import { buildProductExportWorkbook } from "@/server/import/xlsx";
+import { requireSubscriptionFeature } from "@/server/subscriptions/access";
 
 export async function GET(
   _request: Request,
@@ -14,6 +15,7 @@ export async function GET(
       roles: ["OWNER", "MANAGER"],
       shopStatuses: ["APPROVED", "ACTIVE"],
     });
+    await requireSubscriptionFeature(shopId, "excelImportEnabled");
 
     const products = await prisma.product.findMany({
       where: { shopId, deletedAt: null },

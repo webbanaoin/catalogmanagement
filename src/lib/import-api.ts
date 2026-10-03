@@ -72,6 +72,8 @@ export interface ProductImportPreviewResponse {
       readyRows: number;
       duplicateRows: number;
       invalidRows: number;
+      remainingProductSlots?: number;
+      readyWithinPlan?: number;
     };
   };
 }

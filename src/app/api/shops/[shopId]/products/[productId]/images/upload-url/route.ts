@@ -7,6 +7,7 @@ import { readJsonBody } from "@/server/http/json-body";
 import { createProductImageStorageKey } from "@/server/media/product-image";
 import { S3StorageService } from "@/services/storage/s3-storage";
 import { productImageUploadSchema } from "@/validation/media";
+import { requireImageCapacity } from "@/server/subscriptions/access";
 
 export async function POST(
   request: Request,
@@ -22,6 +23,7 @@ export async function POST(
     await requireProductInShop(shopId, productId);
 
     const input = productImageUploadSchema.parse(await readJsonBody(request));
+    await requireImageCapacity(shopId, productId);
     const key = createProductImageStorageKey(shopId, productId, input.mimeType);
     const storage = new S3StorageService();
 

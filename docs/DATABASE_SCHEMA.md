@@ -32,10 +32,14 @@ id, product_id, attribute_name, attribute_value, display_order.
 id, shop_id, day_of_week, is_closed, open_time, close_time.
 
 ## plans
-id, name, monthly_price, annual_price, product_limit, image_limit_per_product, analytics_enabled, excel_import_enabled, custom_branding_enabled, status.
+id, name, slug, description, monthly_price, annual_price, product_limit, image_limit_per_product, analytics_enabled, excel_import_enabled, custom_branding_enabled, trial_days, grace_days, is_default_trial, status, created_at, updated_at.
+
+Plans are database-driven. A single ACTIVE plan is selected by application/admin rules as the default trial; it must have at least one trial day.
 
 ## subscriptions
-id, shop_id, plan_id, start_date, end_date, status, payment_status, created_at, updated_at.
+id, shop_id, plan_id, start_date, end_date, grace_ends_at, status, payment_status, created_at, updated_at.
+
+Phase 1 keeps one current subscription row per shop. Subscription statuses: `TRIAL`, `ACTIVE`, `GRACE`, `EXPIRED`, `CANCELLED`. Payment status is administrative tracking only; no payment gateway is required. Effective access is date-aware and expiry does not delete catalogue data.
 
 ## catalog_visits
 id, shop_id, session_id, source, device_type, visited_at.
