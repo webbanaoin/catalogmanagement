@@ -396,32 +396,108 @@ function inlineCell(reference: string, value: string): string {
   return `<c r="${reference}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(value)}</t></is></c>`;
 }
 
-export function buildProductImportTemplate(): Buffer {
-  const cells = PRODUCT_IMPORT_HEADERS.map((header, index) => {
-    let column = "";
-    let value = index + 1;
-    while (value > 0) {
-      const remainder = (value - 1) % 26;
-      column = String.fromCharCode(65 + remainder) + column;
-      value = Math.floor((value - 1) / 26);
-    }
-    return inlineCell(`${column}1`, header);
-  }).join("");
+function columnName(index: number): string {
+  let column = "";
+  let value = index + 1;
 
+  while (value > 0) {
+    const remainder = (value - 1) % 26;
+    column = String.fromCharCode(65 + remainder) + column;
+    value = Math.floor((value - 1) / 26);
+  }
+
+  return column;
+}
+
+const PRODUCT_WORKBOOK_HEADERS = [
+  "Product Name",
+  "SKU / Product Code (Optional)",
+  "Category",
+  "Price",
+  "Price Type",
+  "Discount Price",
+  "Description",
+  "Availability",
+  "Featured",
+  "New Arrival",
+] as const;
+
+export type ProductWorkbookRow = {
+  name: string;
+  sku: string | null;
+  category: string | null;
+  price: string | null;
+  priceType: "FIXED" | "STARTING_FROM" | "ASK_PRICE";
+  discountPrice: string | null;
+  description: string | null;
+  availabilityStatus: "IN_STOCK" | "OUT_OF_STOCK" | "ON_REQUEST";
+  isFeatured: boolean;
+  isNewArrival: boolean;
+};
+
+function priceTypeLabel(value: ProductWorkbookRow["priceType"]): string {
+  if (value === "STARTING_FROM") return "Starting From";
+  if (value === "ASK_PRICE") return "Ask Price";
+  return "Fixed";
+}
+
+function availabilityLabel(value: ProductWorkbookRow["availabilityStatus"]): string {
+  if (value === "OUT_OF_STOCK") return "Out of Stock";
+  if (value === "ON_REQUEST") return "On Request";
+  return "In Stock";
+}
+
+function workbookRowValues(row: ProductWorkbookRow): string[] {
+  return [
+    row.name,
+    row.sku ?? "",
+    row.category ?? "",
+    row.price ?? "",
+    priceTypeLabel(row.priceType),
+    row.discountPrice ?? "",
+    row.description ?? "",
+    availabilityLabel(row.availabilityStatus),
+    row.isFeatured ? "Yes" : "No",
+    row.isNewArrival ? "Yes" : "No",
+  ];
+}
+
+function buildProductWorkbook(rows: ProductWorkbookRow[], sheetName = "Products"): Buffer {
+  const headerCells = PRODUCT_WORKBOOK_HEADERS.map((header, index) =>
+    inlineCell(`${columnName(index)}1`, header),
+  ).join("");
+
+  const dataRows = rows
+    .map((row, rowIndex) => {
+      const excelRow = rowIndex + 2;
+      const cells = workbookRowValues(row)
+        .map((value, columnIndex) =>
+          inlineCell(`${columnName(columnIndex)}${excelRow}`, value),
+        )
+        .join("");
+      return `<row r="${excelRow}">${cells}</row>`;
+    })
+    .join("");
+
+  const lastRow = Math.max(1, rows.length + 1);
   const worksheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <dimension ref="A1:J1"/>
+  <dimension ref="A1:J${lastRow}"/>
   <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
   <sheetFormatPr defaultRowHeight="15"/>
   <cols>
-    <col min="1" max="1" width="28" customWidth="1"/>
-    <col min="2" max="3" width="20" customWidth="1"/>
+    <col min="1" max="1" width="30" customWidth="1"/>
+    <col min="2" max="2" width="28" customWidth="1"/>
+    <col min="3" max="3" width="22" customWidth="1"/>
     <col min="4" max="6" width="16" customWidth="1"/>
-    <col min="7" max="7" width="36" customWidth="1"/>
+    <col min="7" max="7" width="42" customWidth="1"/>
     <col min="8" max="10" width="18" customWidth="1"/>
   </cols>
-  <sheetData><row r="1">${cells}</row></sheetData>
-  <autoFilter ref="A1:J1"/>
+  <sheetData>
+    <row r="1">${headerCells}</row>
+    ${dataRows}
+  </sheetData>
+  <autoFilter ref="A1:J${lastRow}"/>
 </worksheet>`;
 
   return buildZip([
@@ -447,7 +523,7 @@ export function buildProductImportTemplate(): Buffer {
       name: "xl/workbook.xml",
       content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <sheets><sheet name="Products" sheetId="1" r:id="rId1"/></sheets>
+  <sheets><sheet name="${escapeXml(sheetName)}" sheetId="1" r:id="rId1"/></sheets>
 </workbook>`,
     },
     {
@@ -471,4 +547,12 @@ export function buildProductImportTemplate(): Buffer {
     },
     { name: "xl/worksheets/sheet1.xml", content: worksheet },
   ]);
+}
+
+export function buildProductImportTemplate(): Buffer {
+  return buildProductWorkbook([]);
+}
+
+export function buildProductExportWorkbook(rows: ProductWorkbookRow[]): Buffer {
+  return buildProductWorkbook(rows, "Current Products");
 }
