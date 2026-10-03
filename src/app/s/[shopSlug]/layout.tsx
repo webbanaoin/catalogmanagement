@@ -13,10 +13,19 @@ export async function generateMetadata({
   };
 }
 
-export default function StorefrontLayout({
+export default async function StorefrontLayout({
   children,
+  params,
 }: Readonly<{
   children: ReactNode;
+  params: Promise<{ shopSlug: string }>;
 }>) {
-  return children;
+  const { shopSlug } = await params;
+
+  return (
+    <>
+      <link rel="manifest" href={`/s/${shopSlug}/manifest.webmanifest`} />
+      {children}
+    </>
+  );
 }
