@@ -9,6 +9,10 @@ import {
   parseFirstWorksheet,
   PRODUCT_IMPORT_MAX_FILE_BYTES,
 } from "@/server/import/xlsx";
+import {
+  getProductCapacity,
+  requireSubscriptionFeature,
+} from "@/server/subscriptions/access";
 
 const EXCEL_MIME_TYPES = new Set([
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -27,6 +31,16 @@ export async function POST(
       roles: ["OWNER", "MANAGER"],
       shopStatuses: ["APPROVED", "ACTIVE"],
     });
+    await requireSubscriptionFeature(shopId, "excelImportEnabled");
+    const capacity = await getProductCapacity(shopId);
+
+    if (capacity.remaining <= 0) {
+      throw new AppError({
+        code: "PRODUCT_LIMIT_REACHED",
+        message: `This plan allows up to ${capacity.limit} active products. Delete products or change the subscription plan before importing more.`,
+        status: 409,
+      });
+    }
 
     let formData: FormData;
     try {
@@ -151,6 +165,8 @@ export async function POST(
           readyRows: preview.successfulRows,
           duplicateRows: preview.duplicateRows,
           invalidRows: preview.invalidRows,
+          remainingProductSlots: capacity.remaining,
+          readyWithinPlan: Math.min(preview.successfulRows, capacity.remaining),
         },
       },
     });
