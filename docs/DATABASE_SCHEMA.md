@@ -20,6 +20,8 @@ id, shop_id, parent_id nullable, name, slug, image_storage_key nullable, display
 ## products
 id, shop_id, category_id, name, slug, sku, description, price, discount_price, price_type, availability_status, is_featured, is_new_arrival, is_offer, is_visible, created_at, updated_at, deleted_at.
 
+`sku` is the stored Product Code. Merchant input is optional, but current application flows auto-generate a `PRD-*` code when it is omitted and legacy blank values are backfilled. Product Code uniqueness is scoped per shop.
+
 ## product_images
 id, product_id, storage_key, thumbnail_key, display_order, is_primary, file_size, mime_type, created_at.
 
@@ -49,7 +51,9 @@ Initial action types: whatsapp, call, directions, share, pwa_install.
 id, shop_id, qr_type, target_url, created_at.
 
 ## import_jobs
-id, shop_id, file_name, total_rows, successful_rows, failed_rows, status, created_at.
+id, shop_id, file_name, total_rows, successful_rows, failed_rows, status, preview_data, error_summary, created_at, updated_at, completed_at.
+
+Import jobs are always shop-scoped. Preview data stores only import-ready normalized rows for confirmation, while error/duplicate summaries support the merchant preview/history flow.
 
 ## audit_logs
 id, actor_user_id nullable, shop_id nullable, action, entity_type, entity_id, metadata, created_at.

@@ -35,8 +35,17 @@ Product operations: add, edit, hide/show, soft-delete, restore, duplicate, searc
 Logo, cover, name, tagline/about, phone, WhatsApp, email, address, city/state/PIN, Google Maps URL, opening hours and optional social links.
 
 ## Excel import
-Download template -> upload -> validate -> preview -> confirm import.
-Initial columns: Product Name, SKU, Category, Price, Price Type, Discount Price, Description, Availability, Featured, New Arrival.
+Merchant flow: download blank template or current catalogue -> upload -> validate/preview -> confirm ready rows -> review import history.
+
+Columns: Product Name, SKU / Product Code (Optional), Category, Price, Price Type, Discount Price, Description, Availability, Featured, New Arrival.
+
+Product Code is optional for merchants. When it is blank, the backend generates a shop-scoped `PRD-*` code during confirmed import. Manual product creation and product duplication also generate a Product Code when none is supplied, and legacy blank codes are backfilled.
+
+Import preview classifies rows as Ready, Duplicate or Invalid. A supplied Product Code is checked for an existing shop-scoped conflict; when the code is blank, likely duplicates are detected from a normalized product fingerprint using name, category and pricing details. Duplicate and invalid rows are skipped, while valid Ready rows can still be imported in the same workbook.
+
+Current catalogue export includes saved/generated Product Codes so merchants can keep a backup/reference sheet without maintaining codes manually. Re-uploading an unchanged exported catalogue is duplicate-safe; Phase 1 import does not bulk-update existing products.
+
+Excel import/export is tenant-scoped. OWNER or MANAGER access is required for protected import actions, and one shop cannot preview, confirm, list or export another shop's catalogue/import jobs.
 
 ## QR
 Each shop gets a permanent QR pointing to the production branded /s/{slug} URL. Support download/share and QR-source tracking. Never encode a temporary Hostinger URL.
