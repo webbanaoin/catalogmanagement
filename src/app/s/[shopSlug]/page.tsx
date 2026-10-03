@@ -45,6 +45,12 @@ export async function generateMetadata({
       shop.description?.slice(0, 160) ??
       shop.tagline ??
       `Browse the latest catalogue from ${shop.name}.`,
+    manifest: `/s/${shopSlug}/manifest.webmanifest`,
+    appleWebApp: {
+      capable: true,
+      title: shop.name,
+      statusBarStyle: "default",
+    },
   };
 }
 
@@ -73,7 +79,7 @@ export default async function StorefrontPage({
   if (!data) notFound();
 
   return (
-    <StorefrontShell homeHref={`/s/${shopSlug}`} label={data.shop.name}>
+    <StorefrontShell homeHref={`/s/${shopSlug}`} label={data.shop.name} shopSlug={shopSlug}>
       <StorefrontAnalytics shopSlug={shopSlug} eventType="CATALOG_VISIT" />
       <StorefrontView
         data={data}

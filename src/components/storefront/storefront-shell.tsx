@@ -1,16 +1,19 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { PwaInstallPrompt } from "@/components/pwa/pwa-install-prompt";
 import { Container } from "@/components/ui";
 
 export function StorefrontShell({
   children,
   homeHref = "/",
   label = "Digital Showroom",
+  shopSlug,
 }: {
   children: ReactNode;
   homeHref?: string;
   label?: string;
+  shopSlug?: string;
 }) {
   return (
     <div className="min-h-screen bg-background">
@@ -28,6 +31,13 @@ export function StorefrontShell({
       <main>{children}</main>
       <footer className="border-t border-border bg-surface py-6">
         <Container>
+          {shopSlug ? (
+            <PwaInstallPrompt
+              mode="shop"
+              shopSlug={shopSlug}
+              className="mx-auto mb-5 max-w-2xl"
+            />
+          ) : null}
           <p className="text-center text-xs text-muted">
             Browse this shop&apos;s current Digital Showroom catalogue.
           </p>

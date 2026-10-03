@@ -42,19 +42,25 @@ const workspaces = [
     href: "/dashboard/qr",
     status: "Sprint 4",
   },
+  {
+    title: "Analytics",
+    description: "Review catalogue visits, product views, customer actions, QR traffic and top-performing catalogue content.",
+    href: "/dashboard/analytics",
+    status: "Sprint 5",
+  },
 ];
 
 export default function DashboardPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Sprint 4"
+        eyebrow="Sprint 5"
         title="Merchant dashboard"
-        description="Manage the shop catalogue and sharing surfaces built through Sprints 1–4."
+        description="Manage the catalogue, sharing and performance insights built through Sprints 1–5."
       />
 
-      <Alert title="Permanent public catalogue">
-        Sprint 4 adds safe Excel product import plus a permanent QR and sharing workspace without exposing tenant IDs or environment-specific secrets.
+      <Alert title="Measure and return">
+        Sprint 5 turns the existing storefront analytics events into merchant-readable insights and adds installable home-screen experiences for merchants and customers.
       </Alert>
 
       <section aria-labelledby="merchant-workspaces-heading">

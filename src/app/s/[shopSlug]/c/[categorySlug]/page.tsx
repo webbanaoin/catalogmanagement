@@ -38,6 +38,12 @@ export async function generateMetadata({
   return {
     title: `${category.name} | ${shop.name}`,
     description: `Browse ${category.name} from ${shop.name}.`,
+    manifest: `/s/${shopSlug}/manifest.webmanifest`,
+    appleWebApp: {
+      capable: true,
+      title: shop.name,
+      statusBarStyle: "default",
+    },
   };
 }
 
@@ -68,7 +74,7 @@ export default async function CategoryPage({
   if (!category || !data) notFound();
 
   return (
-    <StorefrontShell homeHref={`/s/${shopSlug}`} label={data.shop.name}>
+    <StorefrontShell homeHref={`/s/${shopSlug}`} label={data.shop.name} shopSlug={shopSlug}>
       <StorefrontView
         data={data}
         q={q}
