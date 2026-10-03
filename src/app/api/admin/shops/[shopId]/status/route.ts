@@ -30,6 +30,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ shopI
     if (!shop) throw new AppError({ code: "SHOP_NOT_FOUND", message: "Shop not found", status: 404 });
 
     if (shop.status === input.status) {
+      if (input.status === "APPROVED" || input.status === "ACTIVE") {
+        await prisma.$transaction((tx) =>
+          ensureDefaultTrialSubscription(tx, shop.id),
+        );
+      }
       return NextResponse.json({ data: shop });
     }
     if (!ALLOWED_TRANSITIONS[shop.status].includes(input.status)) {
