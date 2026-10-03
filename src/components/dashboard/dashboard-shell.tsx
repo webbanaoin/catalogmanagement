@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { PwaInstallPrompt } from "@/components/pwa/pwa-install-prompt";
 import { Badge, Container } from "@/components/ui";
 import { cn } from "@/lib/cn";
 
@@ -17,7 +18,7 @@ const navigationItems: DashboardNavigationItem[] = [
   { label: "Excel Import", href: "/dashboard/import", badge: "Sprint 4" },
   { label: "QR", href: "/dashboard/qr", badge: "Sprint 4" },
   { label: "Shop Profile", href: "/dashboard/shop", badge: "Connected" },
-  { label: "Analytics", badge: "Later sprint" },
+  { label: "Analytics", href: "/dashboard/analytics", badge: "Sprint 5" },
   { label: "Subscription", badge: "Later sprint" },
 ];
 
@@ -78,11 +79,15 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             <DashboardNavigation />
           </div>
           <div className="border-t border-border p-4 text-xs leading-5 text-muted">
-            Sprint 4 adds Excel import, permanent QR and sharing while preserving tenant-safe merchant boundaries.
+            Sprint 5 adds merchant analytics and installable dashboard/storefront experiences while preserving tenant-safe boundaries.
           </div>
         </aside>
 
         <main className="min-w-0 flex-1">
+          <PwaInstallPrompt
+            mode="merchant"
+            className="mx-4 mt-4 sm:mx-6 lg:mx-8"
+          />
           <div className="mx-auto w-full max-w-6xl p-4 sm:p-6 lg:p-8">{children}</div>
         </main>
       </div>
