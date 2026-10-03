@@ -32,19 +32,19 @@ import {
 
 function statusVariant(
   status: ProductImportJob["status"],
-): "success" | "warning" | "error" | "info" {
+): "success" | "warning" | "danger" | "info" {
   if (status === "COMPLETED") return "success";
   if (status === "PREVIEW_READY") return "info";
   if (status === "VALIDATION_FAILED") return "warning";
-  return "error";
+  return "danger";
 }
 
 function rowVariant(
   status: ProductImportPreviewRow["status"],
-): "success" | "warning" | "error" {
+): "success" | "warning" | "danger" {
   if (status === "READY") return "success";
   if (status === "DUPLICATE") return "warning";
-  return "error";
+  return "danger";
 }
 
 function rowLabel(status: ProductImportPreviewRow["status"]) {
