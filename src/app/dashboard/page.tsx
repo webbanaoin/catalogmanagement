@@ -31,6 +31,12 @@ const workspaces = [
     status: "Sprint 3",
   },
   {
+    title: "Excel import",
+    description: "Download the standard template, validate rows, review errors and confirm bulk product imports.",
+    href: "/dashboard/import",
+    status: "Sprint 4",
+  },
+  {
     title: "QR & sharing",
     description: "Open the permanent shop QR workspace to copy, download, print or share the public catalogue link.",
     href: "/dashboard/qr",
@@ -48,7 +54,7 @@ export default function DashboardPage() {
       />
 
       <Alert title="Permanent public catalogue">
-        Your shop slug remains the stable public catalogue route. Sprint 4 adds a permanent QR and sharing workspace without exposing tenant IDs or environment-specific secrets.
+        Sprint 4 adds safe Excel product import plus a permanent QR and sharing workspace without exposing tenant IDs or environment-specific secrets.
       </Alert>
 
       <section aria-labelledby="merchant-workspaces-heading">
