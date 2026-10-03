@@ -6,6 +6,8 @@ import { readJsonBody } from "@/server/http/json-body";
 import { errorResponse } from "@/server/http/error-response";
 import { AppError } from "@/server/http/app-error";
 import { productImageSchema } from "@/validation/catalog";
+import { withProductImageUrls } from "@/server/media/media-response";
+import { S3StorageService } from "@/services/storage/s3-storage";
 
 export async function POST(
   r: Request,
@@ -39,7 +41,10 @@ export async function POST(
     }
 
     const data = await prisma.$transaction(async (tx) => {
-      if (input.isPrimary) {
+      const existingCount = await tx.productImage.count({ where: { productId } });
+      const shouldBePrimary = input.isPrimary || existingCount === 0;
+
+      if (shouldBePrimary) {
         await tx.productImage.updateMany({
           where: { productId },
           data: { isPrimary: false },
@@ -47,11 +52,12 @@ export async function POST(
       }
 
       return tx.productImage.create({
-        data: { ...input, productId },
+        data: { ...input, isPrimary: shouldBePrimary, productId },
       });
     });
 
-    return NextResponse.json({ data }, { status: 201 });
+    const responseData = await withProductImageUrls(data, new S3StorageService());
+    return NextResponse.json({ data: responseData }, { status: 201 });
   } catch (e) {
     return errorResponse(e);
   }

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isValidIndianMobile, isValidIndianPhone, isValidIndianPincode } from "@/lib/validation";
+import { PRODUCT_IMAGE_MAX_BYTES, PRODUCT_IMAGE_MIME_TYPES } from "@/validation/media";
 
 const optionalTrimmed = (max: number) => z.string().trim().max(max).optional().nullable();
 const optionalValidated = (max:number, validator:(v:string)=>boolean, message:string) =>
@@ -61,5 +62,19 @@ export const productUpdateSchema = z.object(productFields).partial().superRefine
 export const productImageSchema = z.object({
   storageKey: z.string().trim().min(1).max(512), thumbnailKey: optionalTrimmed(512),
   displayOrder: z.number().int().min(0).default(0), isPrimary: z.boolean().default(false),
-  fileSize: z.number().int().positive().optional().nullable(), mimeType: optionalTrimmed(100),
+  fileSize: z.number().int().positive().max(PRODUCT_IMAGE_MAX_BYTES), mimeType: z.enum(PRODUCT_IMAGE_MIME_TYPES),
+});
+
+
+export const productImageUpdateSchema = z.object({
+  displayOrder: z.number().int().min(0).max(100000).optional(),
+  isPrimary: z.boolean().optional(),
+}).refine((value) => value.displayOrder !== undefined || value.isPrimary !== undefined, {
+  message: "At least one image field must be provided",
+});
+
+
+export const productDuplicateSchema = z.object({
+  name: z.string().trim().min(1).max(180).optional(),
+  sku: optionalTrimmed(100),
 });
