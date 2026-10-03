@@ -27,6 +27,26 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.__digitalShowroomInstallPrompt = null;
+              window.__digitalShowroomInstalled = false;
+              window.addEventListener("beforeinstallprompt", function (event) {
+                event.preventDefault();
+                window.__digitalShowroomInstallPrompt = event;
+                window.dispatchEvent(new Event("digital-showroom-install-prompt"));
+              });
+              window.addEventListener("appinstalled", function () {
+                window.__digitalShowroomInstallPrompt = null;
+                window.__digitalShowroomInstalled = true;
+                window.dispatchEvent(new Event("digital-showroom-app-installed"));
+              });
+            `,
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );
