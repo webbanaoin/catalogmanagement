@@ -13,13 +13,13 @@ interface DashboardNavigationItem {
 
 const navigationItems: DashboardNavigationItem[] = [
   { label: "Dashboard", href: "/dashboard" },
-  { label: "Products", badge: "Later sprint" },
-  { label: "Categories", href: "/dashboard/categories", badge: "Connected" },
+  { label: "Products", href: "/dashboard/products", badge: "Ready" },
+  { label: "Categories", href: "/dashboard/categories", badge: "Ready" },
   { label: "Excel Import", href: "/dashboard/import", badge: "Sprint 4" },
   { label: "QR", href: "/dashboard/qr", badge: "Sprint 4" },
-  { label: "Shop Profile", href: "/dashboard/shop", badge: "Connected" },
-  { label: "Analytics", href: "/dashboard/analytics", badge: "Sprint 5" },
-  { label: "Subscription", badge: "Later sprint" },
+  { label: "Shop Profile", href: "/dashboard/shop", badge: "Ready" },
+  { label: "Analytics", href: "/dashboard/analytics", badge: "Ready" },
+  { label: "Subscription", href: "/dashboard/subscription", badge: "Ready" },
 ];
 
 function DashboardNavigation({ compact = false }: { compact?: boolean }) {
@@ -79,7 +79,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             <DashboardNavigation />
           </div>
           <div className="border-t border-border p-4 text-xs leading-5 text-muted">
-            Sprint 5 adds merchant analytics and installable dashboard/storefront experiences while preserving tenant-safe boundaries.
+            Sprint 6 release candidate: merchant catalogue, sharing, analytics and subscription workflows are connected for final validation.
           </div>
         </aside>
 
