@@ -55,7 +55,7 @@ export async function GET(
   context: { params: Promise<{ shopId: string }> },
 ) {
   try {
-    const admin = await requirePlatformAdmin();
+    await requirePlatformAdmin();
     const { shopId } = await context.params;
     await requireShop(shopId);
 
