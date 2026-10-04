@@ -295,8 +295,6 @@ export function AdminShopManager() {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError(null);
 
     Promise.all([getAdminShops(status), getAdminPlans()])
       .then(([shopResponse, planResponse]) => {
@@ -317,6 +315,20 @@ export function AdminShopManager() {
     };
   }, [reloadKey, status]);
 
+  function changeFilter(next: AdminShopStatus) {
+    setLoading(true);
+    setError(null);
+    setShops([]);
+    setStatus(next);
+  }
+
+  function reload() {
+    setLoading(true);
+    setError(null);
+    setShops([]);
+    setReloadKey((value) => value + 1);
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Shop status filters">
@@ -326,7 +338,7 @@ export function AdminShopManager() {
             type="button"
             size="sm"
             variant={status === item ? "primary" : "secondary"}
-            onClick={() => setStatus(item)}
+            onClick={() => changeFilter(item)}
           >
             {titleCase(item)}
           </Button>
@@ -346,7 +358,7 @@ export function AdminShopManager() {
               key={shop.id}
               shop={shop}
               plans={plans}
-              onChanged={() => setReloadKey((value) => value + 1)}
+              onChanged={reload}
             />
           ))}
         </div>
