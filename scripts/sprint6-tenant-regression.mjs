@@ -428,11 +428,31 @@ async function main() {
     throw new Error("Expected admin shop-status audit row was not created");
   }
 
-  const suspendedStorefront = await request(`/s/${fixture.shopB.slug}`);
-  if (suspendedStorefront.status !== 404) {
+  const suspendedShop = await prisma.shop.findUnique({
+    where: { id: fixture.shopB.id },
+    select: { status: true },
+  });
+  if (suspendedShop?.status !== "SUSPENDED") {
     throw new Error(
-      `Suspended storefront expected HTTP 404, got ${suspendedStorefront.status}`,
+      `Admin suspension did not persist. Expected SUSPENDED, got ${suspendedShop?.status ?? "missing"}`,
     );
+  }
+
+  const suspendedStorefront = await request(`/s/${fixture.shopB.slug}`);
+  const suspendedHtml = await suspendedStorefront.text();
+
+  if (suspendedStorefront.status !== 404) {
+    const streamedNotFound =
+      suspendedStorefront.status === 200 &&
+      suspendedHtml.includes("This catalogue is not available") &&
+      !suspendedHtml.includes(fixture.shopB.name) &&
+      !suspendedHtml.includes(fixture.productB.name);
+
+    if (!streamedNotFound) {
+      throw new Error(
+        `Suspended storefront remained publicly accessible. Expected HTTP 404 or streamed not-found response, got ${suspendedStorefront.status}`,
+      );
+    }
   }
 
   process.stdout.write(
