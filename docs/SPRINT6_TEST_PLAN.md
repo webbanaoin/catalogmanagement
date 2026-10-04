@@ -29,6 +29,10 @@ Use development migration commands only on the local development database. Produ
 Start the app and run:
 - `npm run test:sprint6:smoke`
 
+For automated security and tenant regression tests on a disposable/local test database:
+- `set SPRINT6_TEST_CONFIRM=YES && npm run test:sprint6:security`
+- `set SPRINT6_TEST_CONFIRM=YES && npm run test:sprint6:tenant`
+
 Verify:
 - `/api/health` = 200 with database `ok`
 - security headers are present
