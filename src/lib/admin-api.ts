@@ -85,6 +85,24 @@ export interface AdminPlanPayload {
   status: "ACTIVE" | "INACTIVE";
 }
 
+export interface AdminBusinessCategory {
+  id: string;
+  name: string;
+  slug: string;
+  icon?: string | null;
+  status: "ACTIVE" | "INACTIVE";
+  displayOrder: number;
+  shopCount: number;
+}
+
+export interface AdminBusinessCategoryPayload {
+  name: string;
+  slug?: string;
+  icon?: string | null;
+  status: "ACTIVE" | "INACTIVE";
+  displayOrder: number;
+}
+
 interface ErrorEnvelope {
   error?: { code?: string; message?: string };
 }
@@ -177,6 +195,31 @@ export async function updateAdminSubscription(
 ) {
   return requestJson<{ data: AdminSubscription }>(
     "/api/admin/shops/" + encodeURIComponent(shopId) + "/subscription",
+    { method: "PATCH", body: JSON.stringify(payload) },
+  );
+}
+
+export async function getAdminBusinessCategories() {
+  return requestJson<{ items: AdminBusinessCategory[] }>(
+    "/api/admin/business-categories",
+  );
+}
+
+export async function createAdminBusinessCategory(
+  payload: AdminBusinessCategoryPayload,
+) {
+  return requestJson<{ data: Omit<AdminBusinessCategory, "shopCount"> }>(
+    "/api/admin/business-categories",
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+}
+
+export async function updateAdminBusinessCategory(
+  categoryId: string,
+  payload: Partial<AdminBusinessCategoryPayload>,
+) {
+  return requestJson<{ data: Omit<AdminBusinessCategory, "shopCount"> }>(
+    "/api/admin/business-categories/" + encodeURIComponent(categoryId),
     { method: "PATCH", body: JSON.stringify(payload) },
   );
 }
