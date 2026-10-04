@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       throw new AppError({ code: "SHOP_ACCESS_UNAVAILABLE", message: "Your shop is not currently available for merchant access", status: 403 });
     }
 
-    await setSessionCookie(user.id);
+    await setSessionCookie(user.id, user.sessionVersion);
     return NextResponse.json({
       data: {
         id: user.id,
