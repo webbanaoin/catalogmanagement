@@ -123,6 +123,8 @@ export interface ShopProfile {
   instagramUrl?: string | null;
   facebookUrl?: string | null;
   showProductPrices: boolean;
+  logoUrl?: string | null;
+  coverUrl?: string | null;
   businessCategory?: BusinessCategory | null;
 }
 
@@ -194,6 +196,86 @@ export async function updateShopProfile(shopId: string, payload: ShopProfilePayl
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+}
+
+
+export type ShopBrandingKind = "logo" | "cover";
+
+export async function uploadShopBranding(
+  shopId: string,
+  kind: ShopBrandingKind,
+  file: File,
+) {
+  const upload = await requestJson<{
+    data: {
+      url: string;
+      key: string;
+      expiresInSeconds: number;
+      headers: Record<string, string>;
+    };
+  }>(`/api/shops/${encodeURIComponent(shopId)}/branding/upload-url`, {
+    method: "POST",
+    body: JSON.stringify({
+      kind,
+      fileName: file.name,
+      mimeType: file.type,
+      fileSize: file.size,
+    }),
+  });
+
+  let put: Response;
+  try {
+    put = await fetch(upload.data.url, {
+      method: "PUT",
+      headers: upload.data.headers,
+      body: file,
+    });
+  } catch {
+    const origin =
+      typeof window === "undefined" ? "the current app origin" : window.location.origin;
+    throw new CatalogApiError({
+      code: "IMAGE_UPLOAD_NETWORK_ERROR",
+      message:
+        `The browser could not upload the ${kind} to object storage. Check that the storage bucket CORS allows PUT requests from ${origin}.`,
+      status: 0,
+    });
+  }
+
+  if (!put.ok) {
+    throw new CatalogApiError({
+      code: "IMAGE_UPLOAD_FAILED",
+      message:
+        `Object storage rejected the ${kind} upload (HTTP ${put.status}). Check bucket CORS, endpoint, region and credentials.`,
+      status: put.status,
+    });
+  }
+
+  return requestJson<{
+    data: {
+      kind: ShopBrandingKind;
+      storageKey: string;
+      url: string | null;
+    };
+  }>(`/api/shops/${encodeURIComponent(shopId)}/branding`, {
+    method: "POST",
+    body: JSON.stringify({
+      kind,
+      storageKey: upload.data.key,
+    }),
+  });
+}
+
+export async function removeShopBranding(
+  shopId: string,
+  kind: ShopBrandingKind,
+) {
+  return requestJson<{ data: { kind: ShopBrandingKind; removed: boolean } }>(
+    `/api/shops/${encodeURIComponent(shopId)}/branding`,
+    {
+      method: "DELETE",
+      body: JSON.stringify({ kind }),
+    },
+  );
 }
 
 export async function getShopCategories(shopId: string) {
