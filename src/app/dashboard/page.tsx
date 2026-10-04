@@ -59,8 +59,8 @@ export default function DashboardPage() {
         description="Manage your shop profile, catalogue, products, sharing, analytics and subscription from one workspace."
       />
 
-      <Alert title="Sprint 6 release candidate">
-        Core merchant workflows are connected end-to-end. Complete the final Golden Flow validation before promoting this release to staging.
+      <Alert title="Sprint 6 staging validation">
+        Core merchant workflows are connected end-to-end. Complete the final Golden Flow and staging validation before promoting this release to production.
       </Alert>
 
       <section aria-labelledby="merchant-workspaces-heading">
