@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { StorefrontAnalytics } from "@/components/storefront/storefront-analytics";
 import { StorefrontShell } from "@/components/storefront/storefront-shell";
 import { StorefrontView } from "@/components/storefront/storefront-view";
+import { getAppEnvironment } from "@/server/env";
 import {
   getPublicShop,
   getPublicStorefront,
@@ -39,12 +40,22 @@ export async function generateMetadata({
     return { title: "Shop not found" };
   }
 
+  const description =
+    shop.description?.slice(0, 160) ??
+    shop.tagline ??
+    `Browse the latest catalogue from ${shop.name}.`;
+  const canonical = new URL(`/s/${shopSlug}`, getAppEnvironment().APP_URL).toString();
+
   return {
     title: `${shop.name} | Digital Showroom`,
-    description:
-      shop.description?.slice(0, 160) ??
-      shop.tagline ??
-      `Browse the latest catalogue from ${shop.name}.`,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title: `${shop.name} | Digital Showroom`,
+      description,
+      url: canonical,
+      type: "website",
+    },
     manifest: `/s/${shopSlug}/manifest.webmanifest`,
     appleWebApp: {
       capable: true,
