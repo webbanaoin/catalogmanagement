@@ -183,6 +183,7 @@ export function ShopProfileForm() {
         googleMapsUrl: optional(rawValue(formData, "googleMapsUrl")),
         instagramUrl: optional(rawValue(formData, "instagramUrl")),
         facebookUrl: optional(rawValue(formData, "facebookUrl")),
+        showProductPrices: formData.get("showProductPrices") === "on",
       });
       setProfile((current) => ({ ...current, ...response.data } as ShopProfile));
       setFeedback({ variant: "success", message: "Shop profile saved successfully." });
@@ -266,6 +267,31 @@ export function ShopProfileForm() {
           <Field label="Google Maps URL" htmlFor="profile-maps-url" hint="Use a complete http:// or https:// link." error={fieldErrors.googleMapsUrl}>
             <Input id="profile-maps-url" name="googleMapsUrl" type="url" defaultValue={profile.googleMapsUrl ?? ""} maxLength={1024} />
           </Field>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Product price visibility</CardTitle>
+          <CardDescription>
+            Control the default price display for your storefront. Individual products can override this setting.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <label className="flex items-start gap-3 rounded-lg border border-border bg-background p-4 text-sm text-foreground">
+            <input
+              name="showProductPrices"
+              type="checkbox"
+              defaultChecked={profile.showProductPrices ?? true}
+              className="mt-1"
+            />
+            <span>
+              <span className="block font-medium">Show product prices by default</span>
+              <span className="mt-1 block leading-6 text-muted">
+                Turn this off for jewellery or enquiry-led catalogues. Products with an individual visibility override can still show or hide their price.
+              </span>
+            </span>
+          </label>
         </CardContent>
       </Card>
 
