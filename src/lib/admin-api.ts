@@ -12,6 +12,17 @@ export interface AdminShopOwner {
   mobile?: string | null;
 }
 
+export interface AdminShopSubscriptionSummary {
+  planId: string;
+  planName: string;
+  planSlug: string;
+  status: "TRIAL" | "ACTIVE" | "GRACE" | "EXPIRED" | "CANCELLED";
+  storedStatus: "TRIAL" | "ACTIVE" | "GRACE" | "EXPIRED" | "CANCELLED";
+  paymentStatus: "NOT_REQUIRED" | "PENDING" | "PAID" | "WAIVED";
+  endDate: string;
+  graceEndsAt?: string | null;
+}
+
 export interface AdminShop {
   id: string;
   name: string;
@@ -24,6 +35,7 @@ export interface AdminShop {
   createdAt: string;
   updatedAt: string;
   owners: AdminShopOwner[];
+  subscription?: AdminShopSubscriptionSummary | null;
 }
 
 export interface AdminPlan {
