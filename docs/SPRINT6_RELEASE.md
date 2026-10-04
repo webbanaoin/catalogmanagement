@@ -39,10 +39,11 @@ Storage credentials should be limited to the required bucket/prefix operations. 
 Before promoting staging:
 1. complete `docs/SPRINT6_TEST_PLAN.md`
 2. run `npm run release:check`
-3. verify `npx prisma migrate status`
-4. complete the Golden Flow
-5. create a fresh production database backup
-6. verify the current deployed commit/rollback target is known
+3. in the production environment run `npm run release:preflight`
+4. verify `npx prisma migrate status`
+5. complete the Golden Flow
+6. create a fresh production database backup
+7. verify the current deployed commit/rollback target is known
 
 ## Database deployment
 
