@@ -3,7 +3,7 @@
 This is the target logical model. Prisma migrations are the canonical implementation mechanism once the application is initialized.
 
 ## users
-id, name, email, mobile, password_hash, status, created_at, updated_at.\n\nSprint 1 status values: `ACTIVE`, `DISABLED`. Email is globally unique and normalized by the application before persistence.
+id, name, email, mobile, password_hash, status, platform_role, session_version, created_at, updated_at.\n\nSprint 1 status values: `ACTIVE`, `DISABLED`. Email is globally unique and normalized by the application before persistence. Sprint 6 uses `session_version` to revoke older session JWTs after a password reset without storing raw sessions server-side.
 
 ## shops
 id, business_category_id, name, slug, tagline, description, logo_storage_key, cover_storage_key, phone, whatsapp, email, address, city, state, pincode, google_maps_url, instagram_url, facebook_url, status, created_at, updated_at.\n\nSprint 1 lifecycle values: `PENDING`, `APPROVED`, `ACTIVE`, `SUSPENDED`, `REJECTED`. `business_category_id` remains a scalar until the Sprint 2 `business_categories` model owns that relation.
@@ -62,8 +62,12 @@ Import jobs are always shop-scoped. Preview data stores only import-ready normal
 ## audit_logs
 id, actor_user_id nullable, shop_id nullable, action, entity_type, entity_id, metadata, created_at.
 
+Sprint 6 persists audit rows for high-impact platform administration such as shop status, plan and subscription changes. Actor/shop foreign keys use `SET NULL` on deletion so the historical event can remain.
+
 ## Indexing principles
 Index foreign keys and common filters, especially shop_id, category_id, slug, sku, status and created_at. Composite unique/index choices must account for tenant scope; for example SKU/slug uniqueness may be scoped by shop where product requirements allow it.
+
+Sprint 6 adds `shops(status, created_at)` for admin queues, a password-reset cleanup index, and actor/shop/entity indexes on `audit_logs`.
 
 ## Data rules
 Use soft deletion for recoverable merchant catalogue records. Avoid category-specific product columns. Avoid fixed image columns. All tenant access is authorized server-side.
