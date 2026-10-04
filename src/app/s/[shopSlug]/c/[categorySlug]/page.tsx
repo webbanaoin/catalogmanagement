@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { StorefrontShell } from "@/components/storefront/storefront-shell";
 import { StorefrontView } from "@/components/storefront/storefront-view";
+import { getAppEnvironment } from "@/server/env";
 import {
   getPublicCategory,
   getPublicShop,
@@ -35,9 +36,22 @@ export async function generateMetadata({
 
   if (!shop || !category) return { title: "Category not found" };
 
+  const description = `Browse ${category.name} from ${shop.name}.`;
+  const canonical = new URL(
+    `/s/${shopSlug}/c/${categorySlug}`,
+    getAppEnvironment().APP_URL,
+  ).toString();
+
   return {
     title: `${category.name} | ${shop.name}`,
-    description: `Browse ${category.name} from ${shop.name}.`,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title: `${category.name} | ${shop.name}`,
+      description,
+      url: canonical,
+      type: "website",
+    },
     manifest: `/s/${shopSlug}/manifest.webmanifest`,
     appleWebApp: {
       capable: true,
