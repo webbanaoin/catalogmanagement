@@ -46,6 +46,7 @@ interface ProductDraft {
   price: string;
   discountPrice: string;
   priceType: ProductPriceType;
+  priceVisibility: "INHERIT" | "SHOW" | "HIDE";
   availabilityStatus: ProductAvailability;
   isFeatured: boolean;
   isNewArrival: boolean;
@@ -61,6 +62,7 @@ const emptyDraft: ProductDraft = {
   price: "",
   discountPrice: "",
   priceType: "FIXED",
+  priceVisibility: "INHERIT",
   availabilityStatus: "IN_STOCK",
   isFeatured: false,
   isNewArrival: false,
@@ -77,6 +79,8 @@ function toDraft(product: ShopProduct): ProductDraft {
     price: product.price == null ? "" : String(product.price),
     discountPrice: product.discountPrice == null ? "" : String(product.discountPrice),
     priceType: product.priceType,
+    priceVisibility:
+      product.showPrice == null ? "INHERIT" : product.showPrice ? "SHOW" : "HIDE",
     availabilityStatus: product.availabilityStatus,
     isFeatured: product.isFeatured,
     isNewArrival: product.isNewArrival,
@@ -177,6 +181,10 @@ export default function ProductsPage() {
       price: draft.price === "" ? null : Number(draft.price),
       discountPrice: draft.discountPrice === "" ? null : Number(draft.discountPrice),
       priceType: draft.priceType,
+      showPrice:
+        draft.priceVisibility === "INHERIT"
+          ? null
+          : draft.priceVisibility === "SHOW",
       availabilityStatus: draft.availabilityStatus,
       isFeatured: draft.isFeatured,
       isNewArrival: draft.isNewArrival,
@@ -382,6 +390,27 @@ export default function ProductsPage() {
             </Field>
 
             <Field
+              label="Price visibility"
+              htmlFor="product-price-visibility"
+              hint="Use shop setting by default, or override this product only."
+            >
+              <Select
+                id="product-price-visibility"
+                value={draft.priceVisibility}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    priceVisibility: event.target.value as ProductDraft["priceVisibility"],
+                  })
+                }
+              >
+                <option value="INHERIT">Use shop setting</option>
+                <option value="SHOW">Always show price</option>
+                <option value="HIDE">Always hide price</option>
+              </Select>
+            </Field>
+
+            <Field
               label="Price"
               htmlFor="product-price"
               required={draft.priceType !== "ASK_PRICE"}
@@ -489,6 +518,15 @@ export default function ProductsPage() {
                         {product.isFeatured ? <Badge variant="warning">Featured</Badge> : null}
                         {product.isNewArrival ? <Badge variant="info">New</Badge> : null}
                         {product.isOffer ? <Badge variant="warning">Offer</Badge> : null}
+                        <Badge variant="neutral">
+                          {product.priceType === "ASK_PRICE"
+                            ? "Price on request"
+                            : product.showPrice == null
+                              ? "Price: shop setting"
+                              : product.showPrice
+                                ? "Price shown"
+                                : "Price hidden"}
+                        </Badge>
                       </div>
                       <p className="text-sm text-muted">
                         {product.sku ?? "Auto code"} · {product.category?.name ?? "No category"} ·{" "}
