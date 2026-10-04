@@ -8,6 +8,7 @@ import {
   EmptyState,
   PageHeader,
 } from "@/components/ui";
+import { requirePlatformAdmin } from "@/server/auth/admin-access";
 import { prisma } from "@/server/database/prisma";
 
 function formatNumber(value: number) {
@@ -15,6 +16,7 @@ function formatNumber(value: number) {
 }
 
 export default async function PlatformAnalyticsPage() {
+  await requirePlatformAdmin();
   const now = new Date();
   const from = new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000);
 
