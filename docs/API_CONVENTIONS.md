@@ -129,3 +129,17 @@ Abuse-prone routes may return HTTP `429` with code `RATE_LIMITED`. Rate limiting
 API error responses use `Cache-Control: no-store`.
 
 `GET /api/health` is a readiness check that includes database connectivity. It returns HTTP 503 with a generic unavailable state if the database cannot be reached and never exposes database credentials or raw internal errors.
+
+
+## Sprint 6 platform-admin contracts
+
+Sprint 6 adds backend contracts required by the platform-admin UI:
+
+- GET/POST `/api/admin/business-categories`
+- PATCH `/api/admin/business-categories/{categoryId}`
+- GET `/api/admin/shops/{shopId}`
+- GET `/api/admin/analytics?from={ISO}&to={ISO}`
+
+Business-category administration supports create/update/activate/deactivate; Phase 1 does not require destructive category deletion. Admin mutations are audited.
+
+Platform analytics accepts the same maximum 366-day range used by merchant analytics and returns aggregate shop/user/product/activity/subscription metrics plus top shops by visits.
