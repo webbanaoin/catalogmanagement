@@ -13,6 +13,8 @@ export async function POST(request: Request) {
   try {
     enforceRateLimit("auth:login:" + getClientIp(request), 20, 15 * 60 * 1000);
     const input = loginSchema.parse(await readJsonBody(request));
+    enforceRateLimit("auth:login-account:" + input.email, 10, 15 * 60 * 1000);
+
     const user = await prisma.user.findUnique({
       where: { email: input.email },
       include: {
