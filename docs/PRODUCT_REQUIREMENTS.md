@@ -26,6 +26,21 @@ Product detail supports multiple images, name, SKU, price/discount, description,
 
 Price types: fixed, starting_from, ask_price.
 
+### Product price visibility
+Phase 1 supports enquiry-led catalogues such as jewellery, boutique and premium custom-product shops where merchants may not want to publish prices.
+
+Price visibility rules:
+- each shop has a `showProductPrices` default;
+- each product has an optional `showPrice` override;
+- `showPrice = null` inherits the shop default;
+- `showPrice = true` always shows that product price when the price type supports a displayed amount;
+- `showPrice = false` always hides that product price;
+- `ASK_PRICE` always behaves as price-on-request.
+
+When a price is hidden, the public storefront must not expose the numeric price/discount value in the public product response. Product cards and product detail show **Price on request** instead.
+
+On a hidden-price product detail, the primary WhatsApp action is **Request Price**. The prefilled message includes product name, SKU when available, category when available, availability and the public product link. The closing message adapts to availability: in-stock requests price/availability, out-of-stock asks when the item will be available, and on-request asks for expected availability/lead time.
+
 ## Merchant dashboard
 Mobile-first dashboard with catalogue/product views, WhatsApp/call/directions clicks, quick add product, products, categories, QR, shop profile, analytics and subscription.
 
