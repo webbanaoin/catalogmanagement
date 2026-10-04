@@ -55,7 +55,7 @@ export async function GET(
   context: { params: Promise<{ shopId: string }> },
 ) {
   try {
-    await requirePlatformAdmin();
+    const admin = await requirePlatformAdmin();
     const { shopId } = await context.params;
     await requireShop(shopId);
 
@@ -77,7 +77,7 @@ export async function POST(
   context: { params: Promise<{ shopId: string }> },
 ) {
   try {
-    await requirePlatformAdmin();
+    const admin = await requirePlatformAdmin();
     const { shopId } = await context.params;
     await requireShop(shopId);
 
@@ -111,16 +111,34 @@ export async function POST(
     const graceDays = input.graceDays ?? plan.graceDays;
     const graceEndsAt = graceDays > 0 ? datePlusDays(endDate, graceDays) : null;
 
-    await prisma.subscription.create({
-      data: {
-        shopId,
-        planId: plan.id,
-        startDate: now,
-        endDate,
-        graceEndsAt,
-        status: input.status,
-        paymentStatus: input.paymentStatus,
-      },
+    await prisma.$transaction(async (tx) => {
+      const subscription = await tx.subscription.create({
+        data: {
+          shopId,
+          planId: plan.id,
+          startDate: now,
+          endDate,
+          graceEndsAt,
+          status: input.status,
+          paymentStatus: input.paymentStatus,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorUserId: admin.id,
+          shopId,
+          action: "SUBSCRIPTION_ASSIGNED",
+          entityType: "Subscription",
+          entityId: subscription.id,
+          metadata: {
+            planId: plan.id,
+            status: input.status,
+            paymentStatus: input.paymentStatus,
+            endDate: endDate.toISOString(),
+          },
+        },
+      });
     });
 
     const access = await getShopSubscriptionAccess(shopId);
@@ -146,7 +164,7 @@ export async function PATCH(
   context: { params: Promise<{ shopId: string }> },
 ) {
   try {
-    await requirePlatformAdmin();
+    const admin = await requirePlatformAdmin();
     const { shopId } = await context.params;
     await requireShop(shopId);
 
@@ -193,17 +211,39 @@ export async function PATCH(
     const graceEndsAt =
       graceDays > 0 ? datePlusDays(endDate, graceDays) : null;
 
-    await prisma.subscription.update({
-      where: { shopId },
-      data: {
-        ...(input.planId ? { planId: plan.id } : {}),
-        ...(input.status ? { status: input.status } : {}),
-        ...(input.paymentStatus ? { paymentStatus: input.paymentStatus } : {}),
-        ...(input.extendDays !== undefined ? { endDate } : {}),
-        ...((input.extendDays !== undefined || input.graceDays !== undefined || input.planId)
-          ? { graceEndsAt }
-          : {}),
-      },
+    await prisma.$transaction(async (tx) => {
+      const subscription = await tx.subscription.update({
+        where: { shopId },
+        data: {
+          ...(input.planId ? { planId: plan.id } : {}),
+          ...(input.status ? { status: input.status } : {}),
+          ...(input.paymentStatus ? { paymentStatus: input.paymentStatus } : {}),
+          ...(input.extendDays !== undefined ? { endDate } : {}),
+          ...((input.extendDays !== undefined || input.graceDays !== undefined || input.planId)
+            ? { graceEndsAt }
+            : {}),
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorUserId: admin.id,
+          shopId,
+          action: "SUBSCRIPTION_UPDATED",
+          entityType: "Subscription",
+          entityId: subscription.id,
+          metadata: {
+            previousPlanId: current.planId,
+            planId: subscription.planId,
+            previousStatus: current.status,
+            status: subscription.status,
+            previousPaymentStatus: current.paymentStatus,
+            paymentStatus: subscription.paymentStatus,
+            previousEndDate: current.endDate.toISOString(),
+            endDate: subscription.endDate.toISOString(),
+          },
+        },
+      });
     });
 
     const access = await getShopSubscriptionAccess(shopId);
