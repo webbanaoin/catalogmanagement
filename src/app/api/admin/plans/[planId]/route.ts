@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { requirePlatformAdmin } from "@/server/auth/admin-access";
@@ -102,6 +103,19 @@ export async function PATCH(
 
     return NextResponse.json({ data: serializePlan(data) });
   } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return errorResponse(
+        new AppError({
+          code: "PLAN_SLUG_CONFLICT",
+          message: "A plan with this slug already exists",
+          status: 409,
+        }),
+      );
+    }
+
     return errorResponse(error);
   }
 }
