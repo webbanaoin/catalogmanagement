@@ -15,8 +15,8 @@ const navigationItems: DashboardNavigationItem[] = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Products", href: "/dashboard/products", badge: "Ready" },
   { label: "Categories", href: "/dashboard/categories", badge: "Ready" },
-  { label: "Excel Import", href: "/dashboard/import", badge: "Sprint 4" },
-  { label: "QR", href: "/dashboard/qr", badge: "Sprint 4" },
+  { label: "Excel Import", href: "/dashboard/import", badge: "Ready" },
+  { label: "QR", href: "/dashboard/qr", badge: "Ready" },
   { label: "Shop Profile", href: "/dashboard/shop", badge: "Ready" },
   { label: "Analytics", href: "/dashboard/analytics", badge: "Ready" },
   { label: "Subscription", href: "/dashboard/subscription", badge: "Ready" },
@@ -79,7 +79,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             <DashboardNavigation />
           </div>
           <div className="border-t border-border p-4 text-xs leading-5 text-muted">
-            Sprint 6 release candidate: merchant catalogue, sharing, analytics and subscription workflows are connected for final validation.
+            Sprint 6 staging validation: merchant catalogue, sharing, analytics and subscription workflows are connected for final production testing.
           </div>
         </aside>
 
