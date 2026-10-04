@@ -189,7 +189,6 @@ export function AdminPlanManager() {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
     getAdminPlans()
       .then((response) => {
         if (!active) return;
@@ -205,15 +204,21 @@ export function AdminPlanManager() {
     return () => { active = false; };
   }, [reloadKey]);
 
+  function refresh() {
+    setLoading(true);
+    setError(null);
+    setReloadKey((current) => current + 1);
+  }
+
   async function create(value: AdminPlanPayload) {
     await createAdminPlan(value);
-    setReloadKey((current) => current + 1);
+    refresh();
   }
 
   async function update(id: string, value: AdminPlanPayload) {
     await updateAdminPlan(id, value);
     setEditing(null);
-    setReloadKey((current) => current + 1);
+    refresh();
   }
 
   return (
