@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requirePlatformAdmin } from "@/server/auth/admin-access";
 import { prisma } from "@/server/database/prisma";
 import { errorResponse } from "@/server/http/error-response";
+import { effectiveSubscriptionStatus } from "@/server/subscriptions/access";
 import { adminShopListQuerySchema } from "@/validation/admin";
 
 export async function GET(request: Request) {
@@ -23,11 +24,38 @@ export async function GET(request: Request) {
         skip,
         take: query.pageSize,
         select: {
-          id: true, name: true, slug: true, status: true, email: true, phone: true,
-          city: true, state: true, createdAt: true, updatedAt: true,
+          id: true,
+          name: true,
+          slug: true,
+          status: true,
+          email: true,
+          phone: true,
+          city: true,
+          state: true,
+          createdAt: true,
+          updatedAt: true,
           shopUsers: {
             where: { role: "OWNER" },
-            select: { user: { select: { id: true, name: true, email: true, mobile: true } } },
+            select: {
+              user: {
+                select: { id: true, name: true, email: true, mobile: true },
+              },
+            },
+          },
+          subscription: {
+            select: {
+              status: true,
+              paymentStatus: true,
+              endDate: true,
+              graceEndsAt: true,
+              plan: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+            },
           },
         },
       }),
@@ -35,8 +63,28 @@ export async function GET(request: Request) {
     ]);
 
     return NextResponse.json({
-      items: items.map(({ shopUsers, ...shop }) => ({ ...shop, owners: shopUsers.map(({ user }) => user) })),
-      pagination: { page: query.page, pageSize: query.pageSize, total, totalPages: Math.ceil(total / query.pageSize) },
+      items: items.map(({ shopUsers, subscription, ...shop }) => ({
+        ...shop,
+        owners: shopUsers.map(({ user }) => user),
+        subscription: subscription
+          ? {
+              planId: subscription.plan.id,
+              planName: subscription.plan.name,
+              planSlug: subscription.plan.slug,
+              status: effectiveSubscriptionStatus(subscription),
+              storedStatus: subscription.status,
+              paymentStatus: subscription.paymentStatus,
+              endDate: subscription.endDate,
+              graceEndsAt: subscription.graceEndsAt,
+            }
+          : null,
+      })),
+      pagination: {
+        page: query.page,
+        pageSize: query.pageSize,
+        total,
+        totalPages: Math.ceil(total / query.pageSize),
+      },
     });
   } catch (error) {
     return errorResponse(error);
