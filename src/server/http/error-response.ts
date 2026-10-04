@@ -26,7 +26,7 @@ export function errorResponse(error: unknown): NextResponse {
           fields: zodFields(error),
         },
       },
-      { status: 400 },
+      { status: 400, headers: { "Cache-Control": "no-store" } },
     );
   }
 
@@ -39,7 +39,7 @@ export function errorResponse(error: unknown): NextResponse {
           fields: error.fields ?? {},
         },
       },
-      { status: error.status },
+      { status: error.status, headers: { "Cache-Control": "no-store" } },
     );
   }
 
@@ -51,6 +51,6 @@ export function errorResponse(error: unknown): NextResponse {
         fields: {},
       },
     },
-    { status: 500 },
+    { status: 500, headers: { "Cache-Control": "no-store" } },
   );
 }

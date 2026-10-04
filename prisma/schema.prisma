@@ -95,10 +95,12 @@ model User {
   passwordHash String @map("password_hash") @db.VarChar(255)
   status UserStatus @default(ACTIVE)
   platformRole PlatformRole @default(USER) @map("platform_role")
+  sessionVersion Int @default(0) @map("session_version")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   shopUsers ShopUser[]
   passwordResetTokens PasswordResetToken[]
+  auditLogs AuditLog[]
   @@index([status])
   @@index([platformRole])
   @@map("users")
@@ -136,10 +138,12 @@ model Shop {
   productViews ProductView[]
   customerActions CustomerAction[]
   subscription Subscription?
+  auditLogs AuditLog[]
   @@index([businessCategoryId])
   @@index([status])
   @@index([city])
   @@index([createdAt])
+  @@index([status, createdAt])
   @@map("shops")
 }
 
@@ -166,6 +170,7 @@ model PasswordResetToken {
   createdAt DateTime @default(now()) @map("created_at")
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([userId, createdAt])
+  @@index([userId, usedAt, expiresAt])
   @@index([expiresAt])
   @@map("password_reset_tokens")
 }
@@ -380,4 +385,23 @@ model CustomerAction {
   @@index([shopId, productId, createdAt])
   @@index([shopId, sessionId, createdAt])
   @@map("customer_actions")
+}
+
+
+model AuditLog {
+  id String @id @default(cuid())
+  actorUserId String? @map("actor_user_id")
+  shopId String? @map("shop_id")
+  action String @db.VarChar(120)
+  entityType String @map("entity_type") @db.VarChar(80)
+  entityId String? @map("entity_id") @db.VarChar(191)
+  metadata Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  actorUser User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  shop Shop? @relation(fields: [shopId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, createdAt])
+  @@index([shopId, createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@map("audit_logs")
 }

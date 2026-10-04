@@ -49,3 +49,14 @@ Staging and production use separate databases/configuration. Secrets stay in env
 ## Future migration
 Initial: Hostinger App + Hostinger MySQL + S3.
 Future: cloud application + managed MySQL + same S3, optionally CDN. Storage abstraction and DB storage keys should make media migration unnecessary.
+
+
+## Sprint 6 operational hardening
+
+The initial Hostinger pilot remains a single application process, so request throttling uses bounded process memory and introduces no Redis/KV recurring dependency. Horizontal scaling requires a shared atomic rate-limit store.
+
+Session JWTs remain stateless but include a persisted user session version. Password reset increments the database version so older JWTs stop authorizing future requests.
+
+Platform administration writes an indexed audit trail for shop status, plan and subscription mutations.
+
+The application readiness endpoint checks both application execution and MySQL connectivity. Production deployment/recovery guidance is documented in `docs/SPRINT6_RELEASE.md`.

@@ -5,6 +5,7 @@ import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
 import { previewProductImport } from "@/server/import/product-import";
+import { enforceRateLimit } from "@/server/security/rate-limit";
 import {
   parseFirstWorksheet,
   PRODUCT_IMPORT_MAX_FILE_BYTES,
@@ -27,10 +28,16 @@ export async function POST(
   try {
     const { shopId } = await context.params;
 
-    await requireShopAccess(shopId, {
+    const { user } = await requireShopAccess(shopId, {
       roles: ["OWNER", "MANAGER"],
       shopStatuses: ["APPROVED", "ACTIVE"],
     });
+    enforceRateLimit(
+      `imports:preview:${shopId}:${user.id}`,
+      10,
+      15 * 60 * 1000,
+    );
+
     await requireSubscriptionFeature(shopId, "excelImportEnabled");
     const capacity = await getProductCapacity(shopId);
 

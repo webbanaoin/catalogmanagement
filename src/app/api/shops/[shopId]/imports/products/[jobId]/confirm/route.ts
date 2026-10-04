@@ -7,6 +7,7 @@ import { generateProductCode } from "@/server/catalog/product-code";
 import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
+import { enforceRateLimit } from "@/server/security/rate-limit";
 import {
   productFingerprint,
   storedProductImportPreviewSchema,
@@ -40,10 +41,16 @@ export async function POST(
   try {
     const { shopId, jobId } = await context.params;
 
-    await requireShopAccess(shopId, {
+    const { user } = await requireShopAccess(shopId, {
       roles: ["OWNER", "MANAGER"],
       shopStatuses: ["APPROVED", "ACTIVE"],
     });
+    enforceRateLimit(
+      `imports:confirm:${shopId}:${user.id}`,
+      20,
+      15 * 60 * 1000,
+    );
+
     const subscriptionAccess = await requireSubscriptionFeature(
       shopId,
       "excelImportEnabled",

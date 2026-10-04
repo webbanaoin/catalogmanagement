@@ -25,7 +25,13 @@ export async function POST(request: Request) {
     const consumed = await prisma.$transaction(async (tx) => {
       const result = await tx.passwordResetToken.updateMany({ where: { id: record.id, usedAt: null, expiresAt: { gt: usedAt } }, data: { usedAt } });
       if (result.count !== 1) return false;
-      await tx.user.update({ where: { id: record.userId }, data: { passwordHash } });
+      await tx.user.update({
+        where: { id: record.userId },
+        data: {
+          passwordHash,
+          sessionVersion: { increment: 1 },
+        },
+      });
       await tx.passwordResetToken.updateMany({ where: { userId: record.userId, usedAt: null }, data: { usedAt } });
       return true;
     });

@@ -5,6 +5,7 @@ import { requireProductInShop } from "@/server/catalog/guards";
 import { errorResponse } from "@/server/http/error-response";
 import { readJsonBody } from "@/server/http/json-body";
 import { createProductImageStorageKey } from "@/server/media/product-image";
+import { enforceRateLimit } from "@/server/security/rate-limit";
 import { S3StorageService } from "@/services/storage/s3-storage";
 import { productImageUploadSchema } from "@/validation/media";
 import { requireImageCapacity } from "@/server/subscriptions/access";
@@ -16,10 +17,16 @@ export async function POST(
   try {
     const { shopId, productId } = await context.params;
 
-    await requireShopAccess(shopId, {
+    const { user } = await requireShopAccess(shopId, {
       roles: ["OWNER", "MANAGER"],
       shopStatuses: ["APPROVED", "ACTIVE"],
     });
+    enforceRateLimit(
+      `media:upload-url:${shopId}:${user.id}`,
+      60,
+      15 * 60 * 1000,
+    );
+
     await requireProductInShop(shopId, productId);
 
     const input = productImageUploadSchema.parse(await readJsonBody(request));

@@ -7,6 +7,7 @@ import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
 import { readJsonBody } from "@/server/http/json-body";
+import { enforceRateLimit, getClientIp } from "@/server/security/rate-limit";
 import { publicAnalyticsEventSchema } from "@/validation/analytics";
 
 const ACTION_TYPES: Record<
@@ -26,6 +27,12 @@ export async function POST(
 ) {
   try {
     const { shopSlug } = await context.params;
+    enforceRateLimit(
+      `public-analytics:${shopSlug}:${getClientIp(request)}`,
+      120,
+      60 * 1000,
+    );
+
     const input = publicAnalyticsEventSchema.parse(await readJsonBody(request));
 
     const shop = await prisma.shop.findFirst({

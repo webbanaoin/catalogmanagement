@@ -10,10 +10,21 @@ export async function requirePlatformAdmin() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { id: true, name: true, email: true, status: true, platformRole: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      status: true,
+      platformRole: true,
+      sessionVersion: true,
+    },
   });
 
-  if (!user || user.status !== "ACTIVE") {
+  if (
+    !user ||
+    user.status !== "ACTIVE" ||
+    user.sessionVersion !== session.sessionVersion
+  ) {
     throw new AppError({ code: "UNAUTHENTICATED", message: "Authentication required", status: 401 });
   }
   if (user.platformRole !== "ADMIN") {
