@@ -227,3 +227,210 @@ export async function deleteShopCategory(shopId: string, categoryId: string) {
     { method: "DELETE" },
   );
 }
+
+
+export type ProductPriceType = "FIXED" | "STARTING_FROM" | "ASK_PRICE";
+export type ProductAvailability = "IN_STOCK" | "OUT_OF_STOCK" | "ON_REQUEST";
+
+export interface ProductImage {
+  id: string;
+  storageKey: string;
+  thumbnailKey?: string | null;
+  displayOrder: number;
+  isPrimary: boolean;
+  fileSize: number;
+  mimeType: string;
+  url?: string | null;
+  thumbnailUrl?: string | null;
+}
+
+export interface ShopProduct {
+  id: string;
+  shopId: string;
+  categoryId?: string | null;
+  name: string;
+  slug: string;
+  sku?: string | null;
+  description?: string | null;
+  price?: string | number | null;
+  discountPrice?: string | number | null;
+  priceType: ProductPriceType;
+  availabilityStatus: ProductAvailability;
+  isFeatured: boolean;
+  isNewArrival: boolean;
+  isOffer: boolean;
+  isVisible: boolean;
+  deletedAt?: string | null;
+  category?: ShopCategory | null;
+  images: ProductImage[];
+}
+
+export interface ShopProductPayload {
+  name: string;
+  categoryId?: string | null;
+  sku?: string | null;
+  description?: string | null;
+  price?: number | null;
+  discountPrice?: number | null;
+  priceType: ProductPriceType;
+  availabilityStatus: ProductAvailability;
+  isFeatured: boolean;
+  isNewArrival: boolean;
+  isOffer: boolean;
+  isVisible: boolean;
+  attributes?: Array<{
+    attributeName: string;
+    attributeValue: string;
+    displayOrder: number;
+  }>;
+}
+
+export interface MerchantSubscription {
+  id: string;
+  status: "TRIAL" | "ACTIVE" | "GRACE" | "EXPIRED" | "CANCELLED";
+  storedStatus: "TRIAL" | "ACTIVE" | "GRACE" | "EXPIRED" | "CANCELLED";
+  paymentStatus: "NOT_REQUIRED" | "PENDING" | "PAID" | "WAIVED";
+  startDate: string;
+  endDate: string;
+  graceEndsAt?: string | null;
+  plan: {
+    id: string;
+    name: string;
+    slug: string;
+    description?: string | null;
+    monthlyPrice: string;
+    annualPrice: string;
+    productLimit: number;
+    imageLimitPerProduct: number;
+    analyticsEnabled: boolean;
+    excelImportEnabled: boolean;
+    customBrandingEnabled: boolean;
+    trialDays: number;
+    graceDays: number;
+    status: "ACTIVE" | "INACTIVE";
+  };
+  usage: {
+    products?: number;
+  };
+}
+
+export async function getShopProducts(shopId: string) {
+  return requestJson<{
+    items: ShopProduct[];
+    pagination: { page: number; pageSize: number; total: number; totalPages: number };
+  }>(`/api/shops/${encodeURIComponent(shopId)}/products?page=1&pageSize=100`);
+}
+
+export async function createShopProduct(shopId: string, payload: ShopProductPayload) {
+  return requestJson<{ data: ShopProduct }>(
+    `/api/shops/${encodeURIComponent(shopId)}/products`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function updateShopProduct(
+  shopId: string,
+  productId: string,
+  payload: Partial<ShopProductPayload>,
+) {
+  return requestJson<{ data: ShopProduct }>(
+    `/api/shops/${encodeURIComponent(shopId)}/products/${encodeURIComponent(productId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function deleteShopProduct(shopId: string, productId: string) {
+  return requestJson<{ data: { deleted: boolean } }>(
+    `/api/shops/${encodeURIComponent(shopId)}/products/${encodeURIComponent(productId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function duplicateShopProduct(shopId: string, productId: string) {
+  return requestJson<{ data: ShopProduct }>(
+    `/api/shops/${encodeURIComponent(shopId)}/products/${encodeURIComponent(productId)}/duplicate`,
+    {
+      method: "POST",
+      body: JSON.stringify({}),
+    },
+  );
+}
+
+export async function uploadProductImage(
+  shopId: string,
+  productId: string,
+  file: File,
+) {
+  const upload = await requestJson<{
+    data: {
+      url: string;
+      key: string;
+      expiresInSeconds: number;
+      headers: Record<string, string>;
+    };
+  }>(
+    `/api/shops/${encodeURIComponent(shopId)}/products/${encodeURIComponent(productId)}/images/upload-url`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        fileName: file.name,
+        mimeType: file.type,
+        fileSize: file.size,
+      }),
+    },
+  );
+
+  let put: Response;
+  try {
+    put = await fetch(upload.data.url, {
+      method: "PUT",
+      headers: upload.data.headers,
+      body: file,
+    });
+  } catch {
+    const origin =
+      typeof window === "undefined" ? "the current app origin" : window.location.origin;
+    throw new CatalogApiError({
+      code: "IMAGE_UPLOAD_NETWORK_ERROR",
+      message:
+        `The browser could not upload the image to object storage. Check that the storage bucket CORS allows PUT requests from ${origin}.`,
+      status: 0,
+    });
+  }
+
+  if (!put.ok) {
+    throw new CatalogApiError({
+      code: "IMAGE_UPLOAD_FAILED",
+      message:
+        `Object storage rejected the image upload (HTTP ${put.status}). Check bucket CORS, endpoint, region and credentials.`,
+      status: put.status,
+    });
+  }
+
+  return requestJson<{ data: ProductImage }>(
+    `/api/shops/${encodeURIComponent(shopId)}/products/${encodeURIComponent(productId)}/images`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        storageKey: upload.data.key,
+        thumbnailKey: null,
+        displayOrder: 0,
+        isPrimary: true,
+        fileSize: file.size,
+        mimeType: file.type,
+      }),
+    },
+  );
+}
+
+export async function getShopSubscription(shopId: string) {
+  return requestJson<{ data: MerchantSubscription | null }>(
+    `/api/shops/${encodeURIComponent(shopId)}/subscription`,
+  );
+}

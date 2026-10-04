@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { requirePlatformAdmin } from "@/server/auth/admin-access";
@@ -28,13 +29,26 @@ export async function GET() {
 
     return NextResponse.json({ items: items.map(serializePlan) });
   } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return errorResponse(
+        new AppError({
+          code: "PLAN_SLUG_CONFLICT",
+          message: "A plan with this slug already exists",
+          status: 409,
+        }),
+      );
+    }
+
     return errorResponse(error);
   }
 }
 
 export async function POST(request: Request) {
   try {
-    await requirePlatformAdmin();
+    const admin = await requirePlatformAdmin();
     const input = adminPlanCreateSchema.parse(await readJsonBody(request));
     const slug = toSlug(input.slug ?? input.name);
 
@@ -66,16 +80,45 @@ export async function POST(request: Request) {
         });
       }
 
-      return tx.plan.create({
+      const plan = await tx.plan.create({
         data: {
           ...input,
           slug,
         },
       });
+
+      await tx.auditLog.create({
+        data: {
+          actorUserId: admin.id,
+          action: "PLAN_CREATED",
+          entityType: "Plan",
+          entityId: plan.id,
+          metadata: {
+            slug: plan.slug,
+            status: plan.status,
+            isDefaultTrial: plan.isDefaultTrial,
+          },
+        },
+      });
+
+      return plan;
     });
 
     return NextResponse.json({ data: serializePlan(data) }, { status: 201 });
   } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return errorResponse(
+        new AppError({
+          code: "PLAN_SLUG_CONFLICT",
+          message: "A plan with this slug already exists",
+          status: 409,
+        }),
+      );
+    }
+
     return errorResponse(error);
   }
 }

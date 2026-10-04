@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { requirePlatformAdmin } from "@/server/auth/admin-access";
@@ -23,7 +24,7 @@ export async function PATCH(
   context: { params: Promise<{ planId: string }> },
 ) {
   try {
-    await requirePlatformAdmin();
+    const admin = await requirePlatformAdmin();
     const { planId } = await context.params;
     const input = adminPlanUpdateSchema.parse(await readJsonBody(request));
 
@@ -72,17 +73,49 @@ export async function PATCH(
         });
       }
 
-      return tx.plan.update({
+      const plan = await tx.plan.update({
         where: { id: planId },
         data: {
           ...input,
           ...(input.slug !== undefined ? { slug: nextSlug } : {}),
         },
       });
+
+      await tx.auditLog.create({
+        data: {
+          actorUserId: admin.id,
+          action: "PLAN_UPDATED",
+          entityType: "Plan",
+          entityId: plan.id,
+          metadata: {
+            previousSlug: current.slug,
+            slug: plan.slug,
+            previousStatus: current.status,
+            status: plan.status,
+            previousDefaultTrial: current.isDefaultTrial,
+            isDefaultTrial: plan.isDefaultTrial,
+          },
+        },
+      });
+
+      return plan;
     });
 
     return NextResponse.json({ data: serializePlan(data) });
   } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return errorResponse(
+        new AppError({
+          code: "PLAN_SLUG_CONFLICT",
+          message: "A plan with this slug already exists",
+          status: 409,
+        }),
+      );
+    }
+
     return errorResponse(error);
   }
 }

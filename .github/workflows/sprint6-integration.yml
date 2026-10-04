@@ -1,0 +1,102 @@
+name: Sprint 6 Integration
+
+on:
+  push:
+    branches:
+      - integration/sprint6-release
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: catalog_sprint6
+          MYSQL_USER: catalog
+          MYSQL_PASSWORD: catalog
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      DATABASE_URL: mysql://catalog:catalog@127.0.0.1:3306/catalog_sprint6
+      SHADOW_DATABASE_URL: mysql://catalog:catalog@127.0.0.1:3306/catalog_sprint6_shadow
+      APP_URL: https://catalog-sprint6.test
+      AUTH_SECRET: sprint6-ci-only-auth-secret-please-replace-1234567890
+      AWS_REGION: auto
+      AWS_S3_ENDPOINT: https://example.invalid
+      AWS_S3_BUCKET: sprint6-ci
+      AWS_ACCESS_KEY_ID: sprint6-ci
+      AWS_SECRET_ACCESS_KEY: sprint6-ci-secret
+      MEDIA_BASE_URL: https://media.example.invalid
+      BASE_URL: http://127.0.0.1:3000
+      SPRINT6_TEST_CONFIRM: YES
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.19.0"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create shadow database
+        run: |
+          docker exec ${{ job.services.mysql.id }} mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS catalog_sprint6_shadow; GRANT ALL PRIVILEGES ON catalog_sprint6_shadow.* TO 'catalog'@'%'; FLUSH PRIVILEGES;"
+
+      - name: Prisma validate and generate
+        run: |
+          npm run prisma:validate
+          npm run prisma:generate
+
+      - name: Apply migrations
+        run: npm run db:migrate:deploy
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Production build
+        run: npm run build
+
+      - name: Start application
+        run: |
+          npm start > /tmp/sprint6-app.log 2>&1 &
+          echo $! > /tmp/sprint6-app.pid
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000/api/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/sprint6-app.log
+          exit 1
+
+      - name: Sprint 6 smoke
+        run: npm run test:sprint6:smoke
+
+      - name: Sprint 6 security regression
+        run: npm run test:sprint6:security
+
+      - name: Sprint 6 tenant regression
+        run: npm run test:sprint6:tenant
+
+      - name: Application log on failure
+        if: failure()
+        run: cat /tmp/sprint6-app.log || true

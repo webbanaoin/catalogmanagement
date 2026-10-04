@@ -6,8 +6,8 @@ This file is the shared execution plan for Prashant and Parixit. It complements 
 ## Branch model
 - Production: `main`
 - Integration/testing: `staging`
-- Prashant current branch: `feature/prashant-sprint5-subscriptions`
-- Parixit current branch: `feature/parixit-sprint5-dashboard-pwa`
+- Prashant current branch: `feature/prashant-sprint6-production-hardening`
+- Parixit current branch: `feature/parixit-sprint6-admin-polish`
 
 Feature branches always start from latest `staging`. Normal flow:
 feature branch -> PR -> staging -> integration testing -> PR -> main.
@@ -190,7 +190,7 @@ Own:
 ## Sprint 6 — Admin, Hardening and Release
 
 ### Prashant
-Planned branch: `feature/prashant-production-hardening`
+Branch: `feature/prashant-sprint6-production-hardening`
 
 Own:
 - Security review and hardening.
@@ -202,7 +202,7 @@ Own:
 - Tenant-isolation regression tests.
 
 ### Parixit
-Planned branch: `feature/parixit-admin-polish`
+Branch: `feature/parixit-sprint6-admin-polish`
 
 Own:
 - Platform admin UI.
@@ -280,8 +280,16 @@ Do not add these unless requirements are explicitly updated:
 - [x] Merge validated Sprint 4 integration into `staging` via PR #15
 - [x] Sprint 5 branches created from latest `staging`
 - [x] Sprint 5 Prashant plans/subscriptions implementation prepared on feature branch
-- [ ] Sprint 5 Prashant migration, lint, typecheck, build and API/limit validation
-- [ ] Sprint 5 Parixit analytics-dashboard/PWA implementation
+- [x] Sprint 5 Prashant migration, lint, typecheck, build and API/limit validation
+- [x] Sprint 5 Parixit analytics-dashboard/PWA implementation
+- [x] Sprint 5 combined merchant/storefront PWA validation and merge to `staging` via PR #19
+- [x] Sprint 6 branches created from latest `staging`
+- [x] Sprint 6 Prashant production-hardening implementation prepared for combined validation
+- [x] Sprint 6 combined integration branch prepared: `integration/sprint6-release`
+- [x] Sprint 6 admin category management UI aligned with new backend category APIs
+- [x] Sprint 6 Parixit admin/polish implementation
+- [ ] Sprint 6 combined release validation and Golden Flow (pending laptop/local integration test)
+- [ ] Merge validated Sprint 6 integration into `staging` after laptop/local validation
 
 ## How ChatGPT/Codex should use this file
 At the beginning of a new development conversation, first read `AGENTS.md`, this file, and the relevant docs from `staging`. Confirm the developer's assigned branch and current task before proposing implementation. Do not rely on old chat history when repository documentation contains a newer decision.

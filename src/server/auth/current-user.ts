@@ -15,6 +15,7 @@ export async function requireCurrentUser() {
       email: true,
       mobile: true,
       status: true,
+      sessionVersion: true,
       createdAt: true,
       shopUsers: {
         select: {
@@ -26,7 +27,17 @@ export async function requireCurrentUser() {
       },
     },
   });
-  if (!user || user.status !== "ACTIVE") throw new AppError({ code: "UNAUTHENTICATED", message: "Authentication required", status: 401 });
+  if (
+    !user ||
+    user.status !== "ACTIVE" ||
+    user.sessionVersion !== session.sessionVersion
+  ) {
+    throw new AppError({
+      code: "UNAUTHENTICATED",
+      message: "Authentication required",
+      status: 401,
+    });
+  }
 
   return {
     id: user.id,

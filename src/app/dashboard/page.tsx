@@ -15,38 +15,38 @@ import {
 const workspaces = [
   {
     title: "Shop profile",
-    description: "Review the Sprint 2 profile fields and India-only validation without pretending that persistence exists.",
+    description: "Manage the customer-facing shop identity, contact details, location and business category.",
     href: "/dashboard/shop",
-    status: "Sprint 2",
   },
   {
     title: "Categories",
-    description: "Use the contract-safe category workspace while tenant-safe CRUD endpoints are finalized.",
+    description: "Create and organize tenant-safe catalogue categories for this shop.",
     href: "/dashboard/categories",
-    status: "Sprint 2",
   },
   {
     title: "Products",
-    description: "Manage the catalogue and product media through the Sprint 3 merchant workflow.",
-    status: "Sprint 3",
+    description: "Create, edit, duplicate, hide or remove products and upload product images.",
+    href: "/dashboard/products",
   },
   {
     title: "Excel import",
-    description: "Download the standard template, validate rows, review errors and confirm bulk product imports.",
+    description: "Download the template, validate rows, review errors and confirm bulk product imports.",
     href: "/dashboard/import",
-    status: "Sprint 4",
   },
   {
     title: "QR & sharing",
     description: "Open the permanent shop QR workspace to copy, download, print or share the public catalogue link.",
     href: "/dashboard/qr",
-    status: "Sprint 4",
   },
   {
     title: "Analytics",
-    description: "Review catalogue visits, product views, customer actions, QR traffic and top-performing catalogue content.",
+    description: "Review catalogue visits, product views, customer actions, QR traffic and top-performing content.",
     href: "/dashboard/analytics",
-    status: "Sprint 5",
+  },
+  {
+    title: "Subscription",
+    description: "Review the current plan, validity, product limits, image limits and enabled features.",
+    href: "/dashboard/subscription",
   },
 ];
 
@@ -54,13 +54,13 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Sprint 5"
+        eyebrow="Sprint 6"
         title="Merchant dashboard"
-        description="Manage the catalogue, sharing and performance insights built through Sprints 1–5."
+        description="Manage your shop profile, catalogue, products, sharing, analytics and subscription from one workspace."
       />
 
-      <Alert title="Measure and return">
-        Sprint 5 turns the existing storefront analytics events into merchant-readable insights and adds installable home-screen experiences for merchants and customers.
+      <Alert title="Sprint 6 release candidate">
+        Core merchant workflows are connected end-to-end. Complete the final Golden Flow validation before promoting this release to staging.
       </Alert>
 
       <section aria-labelledby="merchant-workspaces-heading">
@@ -73,22 +73,14 @@ export default function DashboardPage() {
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <CardTitle>{workspace.title}</CardTitle>
-                  <Badge variant={workspace.status.startsWith("Sprint") ? "info" : "neutral"}>
-                    {workspace.status}
-                  </Badge>
+                  <Badge variant="success">Ready</Badge>
                 </div>
                 <CardDescription>{workspace.description}</CardDescription>
               </CardHeader>
               <CardContent className="mt-auto">
-                {workspace.href ? (
-                  <Link href={workspace.href} className={buttonClassName("secondary", "sm")}>
-                    Open workspace
-                  </Link>
-                ) : (
-                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
-                    Reserved for later sprint
-                  </p>
-                )}
+                <Link href={workspace.href} className={buttonClassName("secondary", "sm")}>
+                  Open workspace
+                </Link>
               </CardContent>
             </Card>
           ))}
