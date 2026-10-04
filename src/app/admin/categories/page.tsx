@@ -9,9 +9,11 @@ import {
   EmptyState,
   PageHeader,
 } from "@/components/ui";
+import { requirePlatformAdmin } from "@/server/auth/admin-access";
 import { prisma } from "@/server/database/prisma";
 
 export default async function AdminBusinessCategoriesPage() {
+  await requirePlatformAdmin();
   const categories = await prisma.businessCategory.findMany({
     orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
   });
