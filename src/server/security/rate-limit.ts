@@ -23,10 +23,9 @@ function cleanExpiredBuckets(now: number): void {
   lastCleanupAt = now;
 
   if (buckets.size > MAX_BUCKETS) {
-    const overflow = buckets.size - MAX_BUCKETS;
     for (const key of buckets.keys()) {
       buckets.delete(key);
-      if (buckets.size <= MAX_BUCKETS - Math.min(overflow, MAX_BUCKETS)) break;
+      if (buckets.size <= MAX_BUCKETS) break;
     }
   }
 }
