@@ -18,6 +18,7 @@ export const shopProfileSchema = z.object({
   address: optionalTrimmed(500), city: optionalTrimmed(120), state: optionalTrimmed(120),
   pincode: optionalValidated(20,isValidIndianPincode,"Enter a valid 6-digit Indian PIN"),
   googleMapsUrl: httpUrl, instagramUrl: httpUrl, facebookUrl: httpUrl,
+  showProductPrices: z.boolean().optional(),
 });
 
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
@@ -44,6 +45,7 @@ const productFields = {
   priceType: z.enum(["FIXED","STARTING_FROM","ASK_PRICE"]),
   availabilityStatus: z.enum(["IN_STOCK","OUT_OF_STOCK","ON_REQUEST"]),
   isFeatured: z.boolean(), isNewArrival: z.boolean(), isOffer: z.boolean(), isVisible: z.boolean(),
+  showPrice: z.boolean().optional().nullable(),
   attributes: z.array(attributeSchema).max(50),
 };
 function productRules(v:{priceType?:string;price?:number|null;discountPrice?:number|null},ctx:z.RefinementCtx){

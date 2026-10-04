@@ -52,15 +52,17 @@ export async function generateMetadata({
 
 function ProductPrice({
   priceType,
+  priceVisible,
   price,
   discountPrice,
 }: {
   priceType: "FIXED" | "STARTING_FROM" | "ASK_PRICE";
+  priceVisible: boolean;
   price: number | null;
   discountPrice: number | null;
 }) {
-  if (priceType === "ASK_PRICE") {
-    return <p className="text-2xl font-semibold text-foreground">Ask for price</p>;
+  if (!priceVisible || priceType === "ASK_PRICE") {
+    return <p className="text-2xl font-semibold text-foreground">Price on request</p>;
   }
 
   if (price == null) {
@@ -99,7 +101,20 @@ export default async function ProductPage({
     `/s/${shopSlug}/p/${productSlug}`,
     getAppEnvironment().APP_URL,
   ).toString();
-  const whatsappMessage = `Hi, I'm interested in ${product.name} from ${shop.name}. ${productUrl}`;
+  const requestPriceMessage = [
+    `Hi ${shop.name}, I would like to know the price for this product.`,
+    `Product: ${product.name}`,
+    product.sku ? `SKU: ${product.sku}` : null,
+    product.category ? `Category: ${product.category.name}` : null,
+    `Availability: ${availabilityLabel(product.availabilityStatus)}`,
+    `Product link: ${productUrl}`,
+    "Please share the current price and availability.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const whatsappMessage = product.priceVisible
+    ? `Hi, I'm interested in ${product.name} from ${shop.name}. ${productUrl}`
+    : requestPriceMessage;
 
   return (
     <StorefrontShell homeHref={`/s/${shopSlug}`} label={shop.name} shopSlug={shopSlug}>
@@ -141,6 +156,7 @@ export default async function ProductPage({
 
             <ProductPrice
               priceType={product.priceType}
+              priceVisible={product.priceVisible}
               price={product.price}
               discountPrice={product.discountPrice}
             />
@@ -153,6 +169,7 @@ export default async function ProductPage({
               whatsapp={shop.whatsapp}
               directionsUrl={shop.googleMapsUrl}
               whatsappMessage={whatsappMessage}
+              whatsappLabel={product.priceVisible ? "WhatsApp" : "Request Price"}
             />
 
             {product.description ? (

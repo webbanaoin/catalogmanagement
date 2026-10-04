@@ -75,6 +75,7 @@ export async function POST(
         price: source.price,
         discountPrice: source.discountPrice,
         priceType: source.priceType,
+        showPrice: source.showPrice,
         availabilityStatus: source.availabilityStatus,
         isFeatured: false,
         isNewArrival: false,

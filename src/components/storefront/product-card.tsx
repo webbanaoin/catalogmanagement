@@ -6,8 +6,8 @@ import type { PublicProductSummary } from "@/server/storefront/storefront-data";
 import { StorefrontMedia } from "@/components/storefront/storefront-media";
 
 function Price({ product }: { product: PublicProductSummary }) {
-  if (product.priceType === "ASK_PRICE") {
-    return <p className="text-sm font-semibold text-foreground">Ask for price</p>;
+  if (!product.priceVisible || product.priceType === "ASK_PRICE") {
+    return <p className="text-sm font-semibold text-foreground">Price on request</p>;
   }
 
   if (product.price == null) {

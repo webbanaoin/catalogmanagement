@@ -122,6 +122,7 @@ export interface ShopProfile {
   googleMapsUrl?: string | null;
   instagramUrl?: string | null;
   facebookUrl?: string | null;
+  showProductPrices: boolean;
   businessCategory?: BusinessCategory | null;
 }
 
@@ -140,6 +141,7 @@ export interface ShopProfilePayload {
   googleMapsUrl?: string | null;
   instagramUrl?: string | null;
   facebookUrl?: string | null;
+  showProductPrices?: boolean;
 }
 
 export interface ShopCategory {
@@ -260,6 +262,7 @@ export interface ShopProduct {
   isNewArrival: boolean;
   isOffer: boolean;
   isVisible: boolean;
+  showPrice?: boolean | null;
   deletedAt?: string | null;
   category?: ShopCategory | null;
   images: ProductImage[];
@@ -278,6 +281,7 @@ export interface ShopProductPayload {
   isNewArrival: boolean;
   isOffer: boolean;
   isVisible: boolean;
+  showPrice?: boolean | null;
   attributes?: Array<{
     attributeName: string;
     attributeValue: string;

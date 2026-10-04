@@ -23,6 +23,7 @@ export interface PublicShop {
   city: string | null;
   state: string | null;
   googleMapsUrl: string | null;
+  showProductPrices: boolean;
   businessCategoryName: string | null;
   logoUrl: string | null;
   coverUrl: string | null;
@@ -43,6 +44,7 @@ export interface PublicProductSummary {
   price: number | null;
   discountPrice: number | null;
   priceType: "FIXED" | "STARTING_FROM" | "ASK_PRICE";
+  priceVisible: boolean;
   availabilityStatus: "IN_STOCK" | "OUT_OF_STOCK" | "ON_REQUEST";
   isFeatured: boolean;
   isNewArrival: boolean;
@@ -87,6 +89,7 @@ const productSummarySelect = {
   price: true,
   discountPrice: true,
   priceType: true,
+  showPrice: true,
   availabilityStatus: true,
   isFeatured: true,
   isNewArrival: true,
@@ -142,6 +145,7 @@ async function mapShop(shop: {
   city: string | null;
   state: string | null;
   googleMapsUrl: string | null;
+  showProductPrices: boolean;
   logoStorageKey: string | null;
   coverStorageKey: string | null;
   businessCategory: { name: string } | null;
@@ -163,6 +167,7 @@ async function mapShop(shop: {
     city: shop.city,
     state: shop.state,
     googleMapsUrl: shop.googleMapsUrl,
+    showProductPrices: shop.showProductPrices,
     businessCategoryName: shop.businessCategory?.name ?? null,
     logoUrl,
     coverUrl,
@@ -170,15 +175,23 @@ async function mapShop(shop: {
   };
 }
 
-async function mapProduct(row: ProductSummaryRow): Promise<PublicProductSummary> {
+async function mapProduct(
+  row: ProductSummaryRow,
+  shopShowProductPrices: boolean,
+): Promise<PublicProductSummary> {
+  const priceVisible =
+    row.priceType !== "ASK_PRICE" && (row.showPrice ?? shopShowProductPrices);
+
   return {
     slug: row.slug,
     name: row.name,
     sku: row.sku,
     description: row.description,
-    price: row.price == null ? null : Number(row.price),
-    discountPrice: row.discountPrice == null ? null : Number(row.discountPrice),
+    price: priceVisible && row.price != null ? Number(row.price) : null,
+    discountPrice:
+      priceVisible && row.discountPrice != null ? Number(row.discountPrice) : null,
     priceType: row.priceType,
+    priceVisible,
     availabilityStatus: row.availabilityStatus,
     isFeatured: row.isFeatured,
     isNewArrival: row.isNewArrival,
@@ -209,6 +222,7 @@ async function getActiveShopRecord(shopSlug: string) {
       city: true,
       state: true,
       googleMapsUrl: true,
+      showProductPrices: true,
       logoStorageKey: true,
       coverStorageKey: true,
       businessCategory: {
@@ -343,10 +357,10 @@ export async function getPublicStorefront(
           imageUrl: await mediaUrl(category.imageStorageKey),
         })),
       ),
-      Promise.all(products.map(mapProduct)),
-      Promise.all((featured as ProductSummaryRow[]).map(mapProduct)),
-      Promise.all((newArrivals as ProductSummaryRow[]).map(mapProduct)),
-      Promise.all((offers as ProductSummaryRow[]).map(mapProduct)),
+      Promise.all(products.map((product) => mapProduct(product, shopRecord.showProductPrices))),
+      Promise.all((featured as ProductSummaryRow[]).map((product) => mapProduct(product, shopRecord.showProductPrices))),
+      Promise.all((newArrivals as ProductSummaryRow[]).map((product) => mapProduct(product, shopRecord.showProductPrices))),
+      Promise.all((offers as ProductSummaryRow[]).map((product) => mapProduct(product, shopRecord.showProductPrices))),
     ]);
 
   return {
@@ -456,7 +470,7 @@ export async function getPublicProduct(
   return {
     shop,
     product: {
-      ...(await mapProduct(summary)),
+      ...(await mapProduct(summary, shopRecord.showProductPrices)),
       imageUrl: visibleImages[0]?.url ?? null,
       images: visibleImages,
       attributes: product.attributes.map((attribute) => ({
