@@ -13,6 +13,8 @@ export async function POST(request: Request) {
   try {
     enforceRateLimit("auth:forgot-password:" + getClientIp(request), 5, 15 * 60 * 1000);
     const input = forgotPasswordSchema.parse(await readJsonBody(request));
+    enforceRateLimit("auth:forgot-password-account:" + input.email, 5, 15 * 60 * 1000);
+
     const user = await prisma.user.findUnique({ where: { email: input.email }, select: { id: true, status: true } });
 
     if (user?.status === "ACTIVE") {
