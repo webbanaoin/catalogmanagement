@@ -19,7 +19,7 @@ const ALLOWED_TRANSITIONS: Record<ShopStatus, readonly ShopStatus[]> = {
 
 export async function PATCH(request: Request, context: { params: Promise<{ shopId: string }> }) {
   try {
-    await requirePlatformAdmin();
+    const admin = await requirePlatformAdmin();
     const { shopId } = await context.params;
     const input = adminShopStatusSchema.parse(await readJsonBody(request));
 
@@ -55,6 +55,20 @@ export async function PATCH(request: Request, context: { params: Promise<{ shopI
       if (input.status === "APPROVED" || input.status === "ACTIVE") {
         await ensureDefaultTrialSubscription(tx, shop.id);
       }
+
+      await tx.auditLog.create({
+        data: {
+          actorUserId: admin.id,
+          shopId: shop.id,
+          action: "SHOP_STATUS_CHANGED",
+          entityType: "Shop",
+          entityId: shop.id,
+          metadata: {
+            fromStatus: shop.status,
+            toStatus: input.status,
+          },
+        },
+      });
 
       return nextShop;
     });
