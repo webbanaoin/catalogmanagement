@@ -20,7 +20,7 @@ function serializePlan<T extends { monthlyPrice: { toString(): string }; annualP
 
 export async function GET() {
   try {
-    const admin = await requirePlatformAdmin();
+    await requirePlatformAdmin();
 
     const items = await prisma.plan.findMany({
       orderBy: [{ status: "asc" }, { monthlyPrice: "asc" }, { name: "asc" }],
@@ -34,7 +34,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    await requirePlatformAdmin();
+    const admin = await requirePlatformAdmin();
     const input = adminPlanCreateSchema.parse(await readJsonBody(request));
     const slug = toSlug(input.slug ?? input.name);
 
