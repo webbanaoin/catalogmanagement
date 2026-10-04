@@ -16,7 +16,8 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:migrate:status": "prisma migrate status",
     "db:studio": "prisma studio",
-    "admin:grant": "node scripts/grant-platform-admin.mjs"
+    "admin:grant": "node scripts/grant-platform-admin.mjs",
+    "security:cleanup-reset-tokens": "node scripts/cleanup-password-reset-tokens.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.922.0",
