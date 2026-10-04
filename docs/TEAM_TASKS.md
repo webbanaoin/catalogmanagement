@@ -6,8 +6,9 @@ This file is the shared execution plan for Prashant and Parixit. It complements 
 ## Branch model
 - Production: `main`
 - Integration/testing: `staging`
-- Prashant current branch: `feature/prashant-sprint6-production-hardening`
-- Parixit current branch: `feature/parixit-sprint6-admin-polish`
+- Current integration/release validation branch: `staging`
+- Documentation/testing update branch: `docs/sprint6-e2e-testing`
+- New feature work should continue from latest `staging` using a dedicated feature branch.
 
 Feature branches always start from latest `staging`. Normal flow:
 feature branch -> PR -> staging -> integration testing -> PR -> main.
@@ -288,8 +289,16 @@ Do not add these unless requirements are explicitly updated:
 - [x] Sprint 6 combined integration branch prepared: `integration/sprint6-release`
 - [x] Sprint 6 admin category management UI aligned with new backend category APIs
 - [x] Sprint 6 Parixit admin/polish implementation
-- [ ] Sprint 6 combined release validation and Golden Flow (pending laptop/local integration test)
-- [ ] Merge validated Sprint 6 integration into `staging` after laptop/local validation
+- [x] Sprint 6 combined integration automated validation: Prisma, lint/typecheck/build, smoke, security and tenant regression
+- [x] Sprint 6 combined release integrated into `staging` via PR #22
+- [x] Merchant Products and Subscription workspaces connected to production APIs
+- [x] Cloudflare R2 product image upload validated locally
+- [x] Admin shop subscription summary/payment-status UX integrated
+- [x] Shop-wide and per-product price visibility implemented and integrated via PR #23
+- [x] Hidden-price Request Price WhatsApp flow implemented with availability-aware copy via PR #24
+- [ ] Full persona-by-persona staging manual validation using `docs/END_TO_END_TESTING.md`
+- [ ] Final Golden Flow sign-off by Prashant and Parixit
+- [ ] Promote validated `staging` to `main` only after final release gate passes
 
 ## How ChatGPT/Codex should use this file
 At the beginning of a new development conversation, first read `AGENTS.md`, this file, and the relevant docs from `staging`. Confirm the developer's assigned branch and current task before proposing implementation. Do not rely on old chat history when repository documentation contains a newer decision.
