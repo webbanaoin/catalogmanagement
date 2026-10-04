@@ -118,3 +118,14 @@ Merchant entitlement checks never trust a client-supplied plan, limit or subscri
 Plan-gated operations return explicit 403/409 errors rather than silently truncating manual mutations. Confirmed Excel imports may partially succeed within the remaining product capacity and report overflow rows as skipped.
 
 Subscription expiry preserves merchant data. It does not implicitly delete products or change shop status.
+
+
+## Sprint 6 hardening conventions
+
+JSON APIs using the shared request parser reject bodies larger than 64 KiB with HTTP `413` and code `PAYLOAD_TOO_LARGE`. Large file imports continue through their dedicated multipart/file validation.
+
+Abuse-prone routes may return HTTP `429` with code `RATE_LIMITED`. Rate limiting is intentionally process-local for the initial single-process pilot and must move to shared storage before horizontally scaling the application.
+
+API error responses use `Cache-Control: no-store`.
+
+`GET /api/health` is a readiness check that includes database connectivity. It returns HTTP 503 with a generic unavailable state if the database cannot be reached and never exposes database credentials or raw internal errors.
