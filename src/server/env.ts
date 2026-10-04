@@ -37,13 +37,19 @@ const databaseEnvironmentSchema = z.object({
   DATABASE_URL: z.string().startsWith("mysql://", "DATABASE_URL must use MySQL"),
 });
 
+const optionalUrlEnvironmentValue = z.preprocess(
+  (value) =>
+    typeof value === "string" && value.trim() === "" ? undefined : value,
+  z.url().optional(),
+);
+
 const storageEnvironmentSchema = z.object({
-  AWS_REGION: z.string().min(1),
-  AWS_S3_BUCKET: z.string().min(3),
-  AWS_S3_ENDPOINT: z.url().optional(),
-  AWS_ACCESS_KEY_ID: z.string().min(1),
-  AWS_SECRET_ACCESS_KEY: z.string().min(1),
-  MEDIA_BASE_URL: z.url().optional(),
+  AWS_REGION: z.string().trim().min(1),
+  AWS_S3_BUCKET: z.string().trim().min(3),
+  AWS_S3_ENDPOINT: optionalUrlEnvironmentValue,
+  AWS_ACCESS_KEY_ID: z.string().trim().min(1),
+  AWS_SECRET_ACCESS_KEY: z.string().trim().min(1),
+  MEDIA_BASE_URL: optionalUrlEnvironmentValue,
 });
 
 export type AppEnvironment = z.infer<typeof appEnvironmentSchema>;
