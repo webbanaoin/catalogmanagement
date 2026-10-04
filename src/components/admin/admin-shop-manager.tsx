@@ -74,6 +74,8 @@ function SubscriptionInspector({
   const [message, setMessage] = useState<string | null>(null);
   const [planId, setPlanId] = useState("");
   const [status, setStatus] = useState<AdminSubscription["storedStatus"]>("TRIAL");
+  const [paymentStatus, setPaymentStatus] =
+    useState<AdminSubscription["paymentStatus"]>("NOT_REQUIRED");
   const [extendDays, setExtendDays] = useState("");
 
   async function load() {
@@ -86,6 +88,7 @@ function SubscriptionInspector({
       if (response.data) {
         setPlanId(response.data.plan.id);
         setStatus(response.data.storedStatus);
+        setPaymentStatus(response.data.paymentStatus);
       }
     } catch (error) {
       setMessage(error instanceof AdminApiError ? error.message : "Unable to load subscription.");
@@ -108,6 +111,7 @@ function SubscriptionInspector({
       const response = await updateAdminSubscription(shop.id, {
         planId,
         status,
+        paymentStatus,
         ...(extendDays ? { extendDays: Number(extendDays) } : {}),
       });
       setSubscription(response.data);
@@ -159,7 +163,7 @@ function SubscriptionInspector({
                 </div>
               </dl>
 
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <label className="text-sm font-medium text-foreground">
                   Plan
                   <select
@@ -181,6 +185,23 @@ function SubscriptionInspector({
                     onChange={(event) => setStatus(event.target.value as AdminSubscription["storedStatus"])}
                   >
                     {["TRIAL", "ACTIVE", "GRACE", "EXPIRED", "CANCELLED"].map((value) => (
+                      <option key={value} value={value}>{titleCase(value)}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="text-sm font-medium text-foreground">
+                  Payment status
+                  <select
+                    className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3"
+                    value={paymentStatus}
+                    onChange={(event) =>
+                      setPaymentStatus(
+                        event.target.value as AdminSubscription["paymentStatus"],
+                      )
+                    }
+                  >
+                    {["NOT_REQUIRED", "PENDING", "PAID", "WAIVED"].map((value) => (
                       <option key={value} value={value}>{titleCase(value)}</option>
                     ))}
                   </select>
@@ -260,6 +281,48 @@ function ShopCard({
           <div><dt className="text-muted">Shop contact</dt><dd className="mt-1 text-foreground">{shop.phone ?? shop.email ?? "—"}</dd></div>
           <div><dt className="text-muted">Registered</dt><dd className="mt-1 text-foreground">{formatDate(shop.createdAt)}</dd></div>
         </dl>
+
+        <div className="rounded-xl border border-border bg-surface-muted/40 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+                Subscription
+              </p>
+              {shop.subscription ? (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="font-semibold text-foreground">
+                    {shop.subscription.planName}
+                  </span>
+                  <Badge
+                    variant={
+                      shop.subscription.status === "ACTIVE" ||
+                      shop.subscription.status === "TRIAL"
+                        ? "success"
+                        : shop.subscription.status === "GRACE"
+                          ? "warning"
+                          : "danger"
+                    }
+                  >
+                    {titleCase(shop.subscription.status)}
+                  </Badge>
+                  <Badge variant="info">
+                    Payment: {titleCase(shop.subscription.paymentStatus)}
+                  </Badge>
+                </div>
+              ) : (
+                <p className="mt-2 text-sm font-medium text-muted">
+                  No subscription assigned
+                </p>
+              )}
+            </div>
+            <div className="text-sm sm:text-right">
+              <p className="text-muted">Valid until</p>
+              <p className="mt-1 font-medium text-foreground">
+                {shop.subscription ? formatDate(shop.subscription.endDate) : "—"}
+              </p>
+            </div>
+          </div>
+        </div>
 
         {transitions[shop.status].length ? (
           <div className="flex flex-wrap gap-2">
