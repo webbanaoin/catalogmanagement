@@ -20,7 +20,7 @@ function serializePlan<T extends { monthlyPrice: { toString(): string }; annualP
 
 export async function GET() {
   try {
-    await requirePlatformAdmin();
+    const admin = await requirePlatformAdmin();
 
     const items = await prisma.plan.findMany({
       orderBy: [{ status: "asc" }, { monthlyPrice: "asc" }, { name: "asc" }],
@@ -66,12 +66,28 @@ export async function POST(request: Request) {
         });
       }
 
-      return tx.plan.create({
+      const plan = await tx.plan.create({
         data: {
           ...input,
           slug,
         },
       });
+
+      await tx.auditLog.create({
+        data: {
+          actorUserId: admin.id,
+          action: "PLAN_CREATED",
+          entityType: "Plan",
+          entityId: plan.id,
+          metadata: {
+            slug: plan.slug,
+            status: plan.status,
+            isDefaultTrial: plan.isDefaultTrial,
+          },
+        },
+      });
+
+      return plan;
     });
 
     return NextResponse.json({ data: serializePlan(data) }, { status: 201 });
