@@ -37,7 +37,7 @@ Storage credentials should be limited to the required bucket/prefix operations. 
 ## Pre-deployment gate
 
 Before promoting staging:
-1. complete `docs/SPRINT6_TEST_PLAN.md`
+1. complete `docs/END_TO_END_TESTING.md` and `docs/SPRINT6_TEST_PLAN.md`
 2. run `npm run release:check`
 3. in the production environment run `npm run release:preflight`
 4. verify `npx prisma migrate status`
@@ -53,12 +53,19 @@ Use:
 
 Do not use `prisma migrate dev` against staging or production.
 
-The Sprint 6 migration is additive:
+Sprint 6 migrations are additive and currently include:
 - session version column
-- indexes
+- security/performance indexes
 - audit log table
+- shop-level `show_product_prices` default
+- product-level nullable `show_price` override
 
-It does not intentionally remove catalogue or subscription data.
+The price-visibility migration preserves existing behaviour:
+- existing shops default to showing prices;
+- existing products inherit the shop default because `show_price` is nullable;
+- stored numeric product prices are not deleted when a merchant hides prices.
+
+These migrations do not intentionally remove catalogue or subscription data.
 
 ## Application deployment
 
