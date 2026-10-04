@@ -17,6 +17,7 @@ export function StorefrontActions({
   whatsapp,
   directionsUrl,
   whatsappMessage,
+  whatsappLabel = "WhatsApp",
 }: {
   title: string;
   shopSlug: string;
@@ -25,6 +26,7 @@ export function StorefrontActions({
   whatsapp: string | null;
   directionsUrl: string | null;
   whatsappMessage?: string;
+  whatsappLabel?: string;
 }) {
   const whatsAppLink = whatsapp ? whatsappHref(whatsapp, whatsappMessage) : null;
   const callLink = phone ? telephoneHref(phone) : null;
@@ -48,7 +50,7 @@ export function StorefrontActions({
           className={buttonClassName("primary", "sm")}
           onClick={() => track("WHATSAPP")}
         >
-          WhatsApp
+          {whatsappLabel}
         </a>
       ) : null}
       {callLink ? (
