@@ -23,11 +23,24 @@ export async function generateMetadata({
 
   if (!result) return { title: "Product not found" };
 
+  const description =
+    result.product.description?.slice(0, 160) ??
+    `View ${result.product.name} from ${result.shop.name}.`;
+  const canonical = new URL(
+    `/s/${shopSlug}/p/${productSlug}`,
+    getAppEnvironment().APP_URL,
+  ).toString();
+
   return {
     title: `${result.product.name} | ${result.shop.name}`,
-    description:
-      result.product.description?.slice(0, 160) ??
-      `View ${result.product.name} from ${result.shop.name}.`,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title: `${result.product.name} | ${result.shop.name}`,
+      description,
+      url: canonical,
+      type: "website",
+    },
     manifest: `/s/${shopSlug}/manifest.webmanifest`,
     appleWebApp: {
       capable: true,
