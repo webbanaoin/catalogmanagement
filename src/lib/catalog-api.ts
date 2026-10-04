@@ -386,16 +386,29 @@ export async function uploadProductImage(
     },
   );
 
-  const put = await fetch(upload.data.url, {
-    method: "PUT",
-    headers: upload.data.headers,
-    body: file,
-  });
+  let put: Response;
+  try {
+    put = await fetch(upload.data.url, {
+      method: "PUT",
+      headers: upload.data.headers,
+      body: file,
+    });
+  } catch {
+    const origin =
+      typeof window === "undefined" ? "the current app origin" : window.location.origin;
+    throw new CatalogApiError({
+      code: "IMAGE_UPLOAD_NETWORK_ERROR",
+      message:
+        `The browser could not upload the image to object storage. Check that the storage bucket CORS allows PUT requests from ${origin}.`,
+      status: 0,
+    });
+  }
 
   if (!put.ok) {
     throw new CatalogApiError({
       code: "IMAGE_UPLOAD_FAILED",
-      message: "Image upload failed. Please try again.",
+      message:
+        `Object storage rejected the image upload (HTTP ${put.status}). Check bucket CORS, endpoint, region and credentials.`,
       status: put.status,
     });
   }
