@@ -17,6 +17,12 @@ export function StorefrontShell({
 }) {
   return (
     <div className="min-h-screen bg-background">
+      <a
+        href="#storefront-main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-lg"
+      >
+        Skip to catalogue
+      </a>
       <header className="border-b border-border bg-surface">
         <Container className="flex min-h-14 items-center justify-between gap-4">
           <Link
@@ -28,7 +34,7 @@ export function StorefrontShell({
           <p className="text-xs text-muted">Public catalogue</p>
         </Container>
       </header>
-      <main>{children}</main>
+      <main id="storefront-main">{children}</main>
       <footer className="border-t border-border bg-surface py-6">
         <Container>
           {shopSlug ? (
