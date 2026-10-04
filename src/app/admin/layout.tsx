@@ -11,10 +11,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function AdminLayout({ children }: { children: ReactNode }) {
+async function getPlatformAdminForLayout() {
   try {
-    const admin = await requirePlatformAdmin();
-    return <AdminShell adminName={admin.name}>{children}</AdminShell>;
+    return await requirePlatformAdmin();
   } catch (error) {
     if (error instanceof AppError) {
       if (error.code === "UNAUTHENTICATED") redirect("/login");
@@ -22,4 +21,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     }
     throw error;
   }
+}
+
+export default async function AdminLayout({ children }: { children: ReactNode }) {
+  const admin = await getPlatformAdminForLayout();
+
+  return <AdminShell adminName={admin.name}>{children}</AdminShell>;
 }
