@@ -285,9 +285,11 @@ Do not add these unless requirements are explicitly updated:
 - [x] Sprint 5 combined merchant/storefront PWA validation and merge to `staging` via PR #19
 - [x] Sprint 6 branches created from latest `staging`
 - [x] Sprint 6 Prashant production-hardening implementation prepared for combined validation
-- [ ] Sprint 6 Parixit admin/polish implementation
-- [ ] Sprint 6 combined release validation and Golden Flow
-- [ ] Merge validated Sprint 6 integration into `staging`
+- [x] Sprint 6 combined integration branch prepared: `integration/sprint6-release`
+- [x] Sprint 6 admin category management UI aligned with new backend category APIs
+- [x] Sprint 6 Parixit admin/polish implementation
+- [ ] Sprint 6 combined release validation and Golden Flow (pending laptop/local integration test)
+- [ ] Merge validated Sprint 6 integration into `staging` after laptop/local validation
 
 ## How ChatGPT/Codex should use this file
 At the beginning of a new development conversation, first read `AGENTS.md`, this file, and the relevant docs from `staging`. Confirm the developer's assigned branch and current task before proposing implementation. Do not rely on old chat history when repository documentation contains a newer decision.
