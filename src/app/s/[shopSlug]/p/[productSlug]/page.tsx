@@ -101,14 +101,21 @@ export default async function ProductPage({
     `/s/${shopSlug}/p/${productSlug}`,
     getAppEnvironment().APP_URL,
   ).toString();
+  const availabilityRequest =
+    product.availabilityStatus === "OUT_OF_STOCK"
+      ? "Please share the current price and let me know when it will be available."
+      : product.availabilityStatus === "ON_REQUEST"
+        ? "Please share the current price and expected availability or lead time."
+        : "Please share the current price and availability.";
+
   const requestPriceMessage = [
-    `Hi ${shop.name}, I would like to know the price for this product.`,
+    `Hi ${shop.name}, I'm interested in this product and would like to know its current price.`,
     `Product: ${product.name}`,
     product.sku ? `SKU: ${product.sku}` : null,
     product.category ? `Category: ${product.category.name}` : null,
     `Availability: ${availabilityLabel(product.availabilityStatus)}`,
     `Product link: ${productUrl}`,
-    "Please share the current price and availability.",
+    availabilityRequest,
   ]
     .filter(Boolean)
     .join("\n");
