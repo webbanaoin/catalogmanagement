@@ -23,7 +23,9 @@
     "test:sprint6:smoke": "node scripts/sprint6-smoke.mjs",
     "test:sprint6:tenant": "node scripts/sprint6-tenant-regression.mjs",
     "test:sprint6:security": "node scripts/sprint6-security-regression.mjs",
-    "release:preflight": "node scripts/production-preflight.mjs"
+    "release:preflight": "node scripts/production-preflight.mjs",
+    "security:audit": "npm audit --omit=dev",
+    "test:sprint6:runtime": "npm run test:sprint6:smoke && npm run test:sprint6:security && npm run test:sprint6:tenant"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.922.0",
