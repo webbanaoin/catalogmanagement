@@ -31,6 +31,7 @@ const adminPassword = `Sprint6-Dd9!${randomUUID().slice(0, 12)}`;
 const created = {
   userIds: [],
   shopIds: [],
+  businessCategoryIds: [],
 };
 
 async function request(path, options = {}, cookie) {
@@ -228,6 +229,11 @@ async function cleanup() {
     if (created.shopIds.length) {
       await prisma.shop.deleteMany({ where: { id: { in: created.shopIds } } });
     }
+    if (created.businessCategoryIds.length) {
+      await prisma.businessCategory.deleteMany({
+        where: { id: { in: created.businessCategoryIds } },
+      });
+    }
     if (created.userIds.length) {
       await prisma.user.deleteMany({ where: { id: { in: created.userIds } } });
     }
@@ -278,11 +284,17 @@ async function main() {
     403,
   );
 
-  await expectStatus(
-    "merchant blocked from platform admin",
-    await request("/api/admin/shops?status=ACTIVE", {}, cookieA),
-    403,
-  );
+  for (const [label, path] of [
+    ["merchant blocked from admin shops", "/api/admin/shops?status=ACTIVE"],
+    ["merchant blocked from admin plans", "/api/admin/plans"],
+    [
+      "merchant blocked from admin business categories",
+      "/api/admin/business-categories",
+    ],
+    ["merchant blocked from platform analytics", "/api/admin/analytics"],
+  ]) {
+    await expectStatus(label, await request(path, {}, cookieA), 403);
+  }
 
   await prisma.shopUser.update({
     where: { id: fixture.membershipA.id },
@@ -349,6 +361,48 @@ async function main() {
   }
 
   const adminCookie = await login(fixture.admin.email, adminPassword);
+
+  await expectStatus(
+    "admin shop detail",
+    await request(`/api/admin/shops/${fixture.shopB.id}`, {}, adminCookie),
+    200,
+  );
+  await expectStatus(
+    "admin platform analytics",
+    await request("/api/admin/analytics", {}, adminCookie),
+    200,
+  );
+
+  const businessCategoryCreate = await jsonRequest(
+    "/api/admin/business-categories",
+    "POST",
+    {
+      name: `Sprint 6 Admin Category ${suffix}`,
+      slug: `sprint6-admin-category-${suffix}`,
+      status: "ACTIVE",
+      displayOrder: 9999,
+    },
+    adminCookie,
+  );
+  await expectStatus("admin business category create", businessCategoryCreate, 201);
+  const businessCategoryPayload = await businessCategoryCreate.json();
+  const businessCategoryId = businessCategoryPayload?.data?.id;
+  if (!businessCategoryId) {
+    throw new Error("Admin business category create did not return an id");
+  }
+  created.businessCategoryIds.push(businessCategoryId);
+
+  await expectStatus(
+    "admin business category update",
+    await jsonRequest(
+      `/api/admin/business-categories/${businessCategoryId}`,
+      "PATCH",
+      { status: "INACTIVE", displayOrder: 10000 },
+      adminCookie,
+    ),
+    200,
+  );
+
   await expectStatus(
     "admin shop suspension",
     await jsonRequest(
