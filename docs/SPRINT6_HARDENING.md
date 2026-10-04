@@ -1,28 +1,34 @@
 # Sprint 6 Production Hardening
 
-## Stage 1 — Security and rate limiting
+## Scope
 
-Sprint 6 keeps the Phase 1 architecture unchanged while hardening abuse-prone entry points.
+Sprint 6 prepares the Phase 1 Digital Showroom SaaS for staging release and the initial pilot while preserving the existing architecture and avoiding new recurring infrastructure costs.
 
-### Baseline HTTP hardening
+## Security hardening implemented
 
-Next.js responses use these baseline headers:
+### HTTP and browser protections
+
+Application responses include:
 - `X-Content-Type-Options: nosniff`
 - `X-Frame-Options: DENY`
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
-- production-only HSTS for HTTPS deployments
-- the `X-Powered-By` header is disabled
+- production-only HSTS
+- disabled `X-Powered-By`
 
-A strict Content Security Policy is intentionally not introduced in this stage because it must be validated against the existing Next.js/PWA runtime before enforcement.
+A strict CSP is intentionally deferred until it can be validated against the production Next.js/PWA runtime and any final analytics/media origins.
 
-### JSON request size
+### JSON payload limits
 
-Shared JSON body parsing rejects payloads above 64 KiB with `413 PAYLOAD_TOO_LARGE`. Current JSON APIs use small structured payloads; Excel uploads continue to use their separate multipart/file-size validation.
+Shared JSON parsing rejects payloads over 64 KiB with:
+- HTTP `413`
+- code `PAYLOAD_TOO_LARGE`
 
-### Rate limits
+Excel import keeps its separate multipart and 5 MiB workbook validation.
 
-Current process-local limits:
+### Rate limiting
+
+Process-local limits are applied to abuse-prone endpoints:
 
 | Surface | Limit |
 | --- | --- |
@@ -37,28 +43,122 @@ Current process-local limits:
 | Excel preview by shop + authenticated user | 10 / 15 minutes |
 | Excel confirm by shop + authenticated user | 20 / 15 minutes |
 
-Rate-limit violations use the existing API error envelope with HTTP 429 and code `RATE_LIMITED`.
+Rate-limit violations return HTTP `429` with code `RATE_LIMITED`.
+
+The limiter remains process-local for the initial single-process Hostinger pilot. Before multiple app instances are introduced, move the same logical keys/limits to a shared atomic backend such as Redis/KV.
 
 ### Client IP handling
 
-The server accepts the first syntactically valid IP from the hosting/proxy headers in this order:
+The server chooses the first syntactically valid address from:
 1. `CF-Connecting-IP`
 2. `X-Real-IP`
 3. `X-Forwarded-For`
 
-Production deployment must ensure the edge/reverse proxy overwrites these headers rather than forwarding arbitrary client-provided values.
+The production edge/reverse proxy must overwrite these headers and must not pass arbitrary client-supplied forwarding headers unchanged.
 
-### Phase 1 limiter storage
+### Session revocation
 
-The limiter remains in application memory to avoid adding Redis or another recurring-cost dependency during the small pilot. This is effective for a single application process, but it is not a global distributed limit.
+Users now have a persisted `session_version`. Session JWTs carry that version.
 
-Before scaling to multiple application instances, replace the bucket store with a shared atomic backend such as Redis/KV while preserving the same route-level keys and limits.
+Existing pre-Sprint-6 sessions are treated as version 0 so the deployment does not force an immediate logout for every pilot user. Password reset atomically increments the user's persisted version, invalidating all older sessions on their next authenticated request.
 
-## Remaining Sprint 6 work
+Inactive users continue to be rejected even if a JWT is otherwise valid.
 
-- authentication/session hardening review
-- database/index/performance review
-- tenant-isolation regression tests
-- staging/production environment review
-- backup/recovery documentation
-- deployment/release readiness and Golden Flow validation
+### Password-reset hygiene
+
+Reset tokens are:
+- cryptographically random
+- stored only as SHA-256 hashes
+- single-use
+- 30-minute expiry
+- invalidated when a newer reset token is issued
+
+`npm run security:cleanup-reset-tokens` removes expired reset tokens and old used tokens. Schedule it daily or weekly in production.
+
+### Admin audit trail
+
+Sprint 6 adds `audit_logs` for high-impact platform administration:
+- shop status changes
+- plan creation
+- plan changes
+- subscription assignment
+- subscription changes
+
+Audit writes are part of the same database transaction as the administrative mutation whenever possible.
+
+### Error caching
+
+API error responses use `Cache-Control: no-store` so authentication, authorization and validation failures are not cached by intermediaries.
+
+## Database and performance hardening
+
+The Sprint 6 migration adds:
+- `users.session_version`
+- composite `shops(status, created_at)` index for admin queues
+- composite password-reset lookup/cleanup index
+- indexed `audit_logs`
+
+Existing tenant/catalogue/analytics indexes were reviewed. The current indexes are appropriate for the small Phase 1 pilot. Product free-text `contains` search remains a MySQL scan within one tenant; full-text/external search is deferred until scale requires it.
+
+The analytics API already caps query ranges to 366 days. No destructive analytics-retention policy is introduced in Sprint 6.
+
+## Tenant isolation review
+
+Protected merchant routes were reviewed for:
+- mandatory authenticated shop membership
+- OWNER/MANAGER checks on mutations
+- APPROVED/ACTIVE shop-state checks where required
+- child resource lookup scoped through shop/product/category ownership
+- import jobs scoped by both `jobId` and `shopId`
+- subscription and analytics reads scoped to the authorized shop
+
+Functional cross-tenant regression testing remains a release gate and is documented in `docs/SPRINT6_TEST_PLAN.md`.
+
+## Health/readiness
+
+`GET /api/health` now verifies database connectivity.
+
+Healthy:
+- HTTP 200
+- application status `ok`
+- database status `ok`
+
+Database unavailable:
+- HTTP 503
+- generic unavailable status
+- no database credentials or internal error details returned
+
+## Production environment hardening
+
+Production application configuration rejects:
+- non-HTTPS `APP_URL`
+- known example placeholders for `AUTH_SECRET`
+
+Use a unique high-entropy `AUTH_SECRET` per environment and never reuse staging credentials in production.
+
+## Release commands
+
+Development/integration validation:
+
+`npm run release:check`
+
+Production migration:
+
+`npm run db:migrate:deploy`
+
+Post-start smoke validation:
+
+`npm run test:sprint6:smoke`
+
+For another target:
+
+`set BASE_URL=https://your-domain.example && npm run test:sprint6:smoke`
+
+## Known Phase 1 operational limits
+
+- Rate limiting is process-local and is intended for the initial single-process pilot.
+- Plan capacity checks are application-level. Very high concurrent writes are outside the pilot load profile; re-evaluate with distributed traffic.
+- Public analytics are deliberately anonymous and do not require customer accounts.
+- No payment gateway is included.
+- No automatic destructive analytics retention is enabled.
+- CSP enforcement is deferred until final deployment origins are frozen.
