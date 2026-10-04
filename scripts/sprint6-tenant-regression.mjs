@@ -35,6 +35,7 @@ const created = {
 
 async function request(path, options = {}, cookie) {
   const headers = new Headers(options.headers || {});
+  headers.set("X-Real-IP", "203.0.113.20");
   if (cookie) headers.set("Cookie", cookie);
 
   return fetch(baseUrl + path, {
