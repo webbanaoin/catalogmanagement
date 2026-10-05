@@ -503,6 +503,7 @@ export async function uploadProductImage(
   shopId: string,
   productId: string,
   file: File,
+  options?: { isPrimary?: boolean; displayOrder?: number },
 ) {
   const upload = await requestJson<{
     data: {
@@ -557,8 +558,8 @@ export async function uploadProductImage(
       body: JSON.stringify({
         storageKey: upload.data.key,
         thumbnailKey: null,
-        displayOrder: 0,
-        isPrimary: true,
+        displayOrder: options?.displayOrder ?? 0,
+        isPrimary: options?.isPrimary ?? false,
         fileSize: file.size,
         mimeType: file.type,
       }),
