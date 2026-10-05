@@ -86,16 +86,18 @@ export interface MerchantShop {
   role: string;
 }
 
+export interface CurrentUser {
+  id: string;
+  name: string;
+  email: string;
+  mobile?: string | null;
+  status: string;
+  createdAt: string;
+  shops?: MerchantShop[];
+}
+
 export interface CurrentUserResponse {
-  data: {
-    id: string;
-    name: string;
-    email: string;
-    mobile?: string | null;
-    status: string;
-    createdAt: string;
-    shops?: MerchantShop[];
-  };
+  data: CurrentUser;
 }
 
 export interface BusinessCategory {
@@ -166,8 +168,24 @@ export interface ShopCategoryPayload {
   status?: "ACTIVE" | "INACTIVE";
 }
 
+export async function getCurrentUser() {
+  return requestJson<CurrentUserResponse>("/api/auth/me");
+}
+
+export async function updateCurrentUser(payload: {
+  name: string;
+  mobile?: string | null;
+}) {
+  return requestJson<{
+    data: Omit<CurrentUser, "shops">;
+  }>("/api/auth/me", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function getCurrentMerchantShop(): Promise<MerchantShop> {
-  const response = await requestJson<CurrentUserResponse>("/api/auth/me");
+  const response = await getCurrentUser();
   const shop = response.data.shops?.find(
     (item) => item.status === "APPROVED" || item.status === "ACTIVE",
   );
