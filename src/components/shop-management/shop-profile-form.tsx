@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 
+import { ShopBrandingMedia } from "@/components/shop-management/shop-branding-media";
 import {
   Alert,
   Button,
@@ -207,6 +208,17 @@ export function ShopProfileForm() {
     return <Alert variant="error">{feedback?.message ?? "Shop profile is unavailable."}</Alert>;
   }
 
+  function handleBrandingChange(kind: "logo" | "cover", url: string | null) {
+    setProfile((current) =>
+      current
+        ? {
+            ...current,
+            ...(kind === "logo" ? { logoUrl: url } : { coverUrl: url }),
+          }
+        : current,
+    );
+  }
+
   return (
     <form className="space-y-6" onSubmit={handleSubmit} noValidate>
       {feedback ? <Alert variant={feedback.variant}>{feedback.message}</Alert> : null}
@@ -237,6 +249,13 @@ export function ShopProfileForm() {
           </Field>
         </CardContent>
       </Card>
+
+      <ShopBrandingMedia
+        shopId={shopId}
+        logoUrl={profile.logoUrl}
+        coverUrl={profile.coverUrl}
+        onChange={handleBrandingChange}
+      />
 
       <Card>
         <CardHeader><CardTitle>Contact</CardTitle><CardDescription>Phase 1 uses India-specific phone and WhatsApp validation.</CardDescription></CardHeader>
