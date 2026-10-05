@@ -363,22 +363,24 @@ async function main() {
     throw new Error("Product without price did not return an id and slug");
   }
 
-  await expectStatus(
-    "edit product without price",
-    await jsonRequest(
-      `/api/shops/${fixture.shopA.id}/products/${noPriceId}`,
-      "PATCH",
-      {
-        name: `Sprint6 No Price Product Updated ${suffix}`,
-        availabilityStatus: "ON_REQUEST",
-        price: null,
-        discountPrice: null,
-        priceType: "FIXED",
-      },
-      cookieA,
-    ),
-    200,
+  const noPriceUpdate = await jsonRequest(
+    `/api/shops/${fixture.shopA.id}/products/${noPriceId}`,
+    "PATCH",
+    {
+      name: `Sprint6 No Price Product Updated ${suffix}`,
+      availabilityStatus: "ON_REQUEST",
+      price: null,
+      discountPrice: null,
+      priceType: "FIXED",
+    },
+    cookieA,
   );
+  await expectStatus("edit product without price", noPriceUpdate, 200);
+  const noPriceUpdatePayload = await noPriceUpdate.json();
+  const updatedNoPriceSlug = noPriceUpdatePayload?.data?.slug;
+  if (!updatedNoPriceSlug) {
+    throw new Error("Edited no-price product did not return the updated slug");
+  }
 
   const noPriceDuplicate = await jsonRequest(
     `/api/shops/${fixture.shopA.id}/products/${noPriceId}/duplicate`,
@@ -396,7 +398,7 @@ async function main() {
   }
 
   const noPricePublic = await request(
-    `/s/${fixture.shopA.slug}/p/${noPriceSlug}`,
+    `/s/${fixture.shopA.slug}/p/${updatedNoPriceSlug}`,
   );
   await expectStatus("public no-price product", noPricePublic, 200);
   const noPriceHtml = await noPricePublic.text();
