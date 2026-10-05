@@ -180,7 +180,9 @@ async function mapProduct(
   shopShowProductPrices: boolean,
 ): Promise<PublicProductSummary> {
   const priceVisible =
-    row.priceType !== "ASK_PRICE" && (row.showPrice ?? shopShowProductPrices);
+    row.price != null &&
+    row.priceType !== "ASK_PRICE" &&
+    (row.showPrice ?? shopShowProductPrices);
 
   return {
     slug: row.slug,
