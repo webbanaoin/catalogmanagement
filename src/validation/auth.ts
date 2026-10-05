@@ -79,3 +79,21 @@ export const resetPasswordSchema = z.object({
   token: z.string().min(32).max(256),
   password,
 });
+
+
+export const accountProfileSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name must contain at least 2 characters")
+    .max(120, "Name must contain at most 120 characters"),
+  mobile: z
+    .string()
+    .trim()
+    .refine(
+      (value) => !value || isValidIndianMobile(value),
+      "Enter a valid 10-digit Indian mobile number",
+    )
+    .optional()
+    .nullable(),
+});
