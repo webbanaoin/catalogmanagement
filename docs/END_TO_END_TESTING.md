@@ -7,7 +7,7 @@ This document is the shared manual and automated validation checklist for Prasha
 It covers the complete Phase 1 system from four viewpoints:
 
 - **Registered user/account** — authentication, password reset, session and role behaviour.
-- **Shop owner / merchant** — profile, catalogue, products, images, Excel, QR, analytics and subscription.
+- **Shop owner / merchant** — profile, logo/cover branding, catalogue, products, images, Excel, QR, analytics and subscription.
 - **Customer** — public storefront browsing and enquiry actions without login.
 - **Platform admin** — shop lifecycle, plans, subscriptions, business categories and platform analytics.
 
@@ -463,6 +463,49 @@ Verify:
 - saved values persist after refresh;
 - public storefront reflects customer-facing fields where implemented.
 
+## MERCHANT-02A Shop logo and hero/cover branding
+
+From **Dashboard -> Shop Profile -> Logo and cover** test both branding assets.
+
+Use JPG, PNG and WebP files under 8 MB.
+
+### Logo
+
+Verify:
+
+- upload succeeds through the Cloudflare R2 presigned PUT flow;
+- merchant preview appears immediately after upload;
+- public storefront replaces the logo `No image` placeholder;
+- replacing the logo updates the public storefront;
+- removing the logo returns the storefront to the safe placeholder state.
+
+### Hero / cover image
+
+Verify:
+
+- wide cover upload succeeds;
+- merchant preview appears;
+- public storefront hero replaces the cover `No image` placeholder;
+- replacing the cover updates the public storefront;
+- removing the cover returns to the safe placeholder state.
+
+### Branding security / failure cases
+
+Verify:
+
+- unsupported file type is rejected;
+- file over 8 MB is rejected;
+- bad R2 CORS/storage configuration produces an actionable error;
+- OWNER/MANAGER can manage branding;
+- another shop cannot confirm a storage key outside its own `shops/{shopId}/branding/` prefix;
+- replacing/removing branding does not modify product images or another shop's media.
+
+Recommended visual guidance:
+
+- logo: square/near-square asset;
+- cover: wide landscape asset, approximately 16:6 / 8:3;
+- verify desktop and mobile cropping after upload.
+
 ## MERCHANT-03 Shop-wide price visibility
 
 In Shop Profile test:
@@ -681,6 +724,9 @@ Open:
 Verify:
 
 - active shop loads;
+- uploaded logo displays correctly;
+- uploaded hero/cover image displays correctly;
+- logo/cover fall back safely when absent;
 - name/tagline/location/contact details;
 - categories;
 - products;
@@ -874,6 +920,8 @@ After feature tests:
 - duplicate product does not alter source;
 - Shop A actions do not change Shop B;
 - image DB keys still resolve to R2 objects;
+- logo and cover DB keys still resolve to the current R2 objects;
+- replacing/removing shop branding does not damage product media;
 - imported product count matches successful import rows.
 
 ---
@@ -889,6 +937,9 @@ Register merchant
 -> Default trial/subscription assigned
 -> Merchant logs in
 -> Complete Shop Profile
+-> Upload Shop Logo
+-> Upload Hero/Cover Image
+-> Verify branding on Public Store
 -> Configure price visibility
 -> Create Category
 -> Create Product
@@ -948,7 +999,10 @@ Before `staging -> main`:
 - [ ] admin flow pass
 - [ ] merchant flow pass
 - [ ] customer/public flow pass
-- [ ] R2 image upload/display pass
+- [ ] R2 product image upload/display pass
+- [ ] shop logo upload/replace/remove pass
+- [ ] shop hero/cover upload/replace/remove pass
+- [ ] public storefront branding display pass on desktop/mobile
 - [ ] Excel import/export pass
 - [ ] QR pass
 - [ ] analytics pass
