@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { verifyPassword } from "@/server/auth/password";
-import { setSessionCookie } from "@/server/auth/session";
+import { clearSessionCookie, setSessionCookie } from "@/server/auth/session";
 import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
@@ -32,8 +32,10 @@ export async function POST(request: Request) {
     if (user.shopUsers.length > 0 && usableMemberships.length === 0) {
       const statuses = new Set(user.shopUsers.map(({ shop }) => shop.status));
       if (statuses.has("PENDING")) {
+        await clearSessionCookie();
         throw new AppError({ code: "SHOP_PENDING_APPROVAL", message: "Your shop is pending admin approval", status: 403 });
       }
+      await clearSessionCookie();
       throw new AppError({ code: "SHOP_ACCESS_UNAVAILABLE", message: "Your shop is not currently available for merchant access", status: 403 });
     }
 
