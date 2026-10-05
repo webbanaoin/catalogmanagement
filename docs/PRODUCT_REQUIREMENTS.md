@@ -49,6 +49,8 @@ Product operations: add, edit, hide/show, soft-delete, restore, duplicate, searc
 ## Shop profile
 Logo, cover, name, tagline/about, phone, WhatsApp, email, address, city/state/PIN, Google Maps URL, opening hours and optional social links.
 
+Logo and cover/hero images are merchant-managed through the authenticated Shop Profile. Browser uploads use presigned Cloudflare R2/S3-compatible URLs so storage credentials never reach the browser. Supported branding formats are JPG, PNG and WebP up to 8 MB. The storefront resolves the stored `logoStorageKey` and `coverStorageKey` to display media; missing branding falls back safely to the existing placeholder UI. Merchants can upload, replace and remove branding without affecting catalogue product images.
+
 ## Excel import
 Merchant flow: download blank template or current catalogue -> upload -> validate/preview -> confirm ready rows -> review import history.
 
