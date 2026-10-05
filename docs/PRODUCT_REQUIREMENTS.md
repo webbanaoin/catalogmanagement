@@ -26,6 +26,21 @@ Product detail supports multiple images, name, SKU, price/discount, description,
 
 Price types: fixed, starting_from, ask_price.
 
+### Product price visibility
+Phase 1 supports enquiry-led catalogues such as jewellery, boutique and premium custom-product shops where merchants may not want to publish prices.
+
+Price visibility rules:
+- each shop has a `showProductPrices` default;
+- each product has an optional `showPrice` override;
+- `showPrice = null` inherits the shop default;
+- `showPrice = true` always shows that product price when the price type supports a displayed amount;
+- `showPrice = false` always hides that product price;
+- `ASK_PRICE` always behaves as price-on-request.
+
+When a price is hidden, the public storefront must not expose the numeric price/discount value in the public product response. Product cards and product detail show **Price on request** instead.
+
+On a hidden-price product detail, the primary WhatsApp action is **Request Price**. The prefilled message includes product name, SKU when available, category when available, availability and the public product link. The closing message adapts to availability: in-stock requests price/availability, out-of-stock asks when the item will be available, and on-request asks for expected availability/lead time.
+
 ## Merchant dashboard
 Mobile-first dashboard with catalogue/product views, WhatsApp/call/directions clicks, quick add product, products, categories, QR, shop profile, analytics and subscription.
 
@@ -33,6 +48,8 @@ Product operations: add, edit, hide/show, soft-delete, restore, duplicate, searc
 
 ## Shop profile
 Logo, cover, name, tagline/about, phone, WhatsApp, email, address, city/state/PIN, Google Maps URL, opening hours and optional social links.
+
+Logo and cover/hero images are merchant-managed through the authenticated Shop Profile. Browser uploads use presigned Cloudflare R2/S3-compatible URLs so storage credentials never reach the browser. Supported branding formats are JPG, PNG and WebP up to 8 MB. The storefront resolves the stored `logoStorageKey` and `coverStorageKey` to display media; missing branding falls back safely to the existing placeholder UI. Merchants can upload, replace and remove branding without affecting catalogue product images.
 
 ## Excel import
 Merchant flow: download blank template or current catalogue -> upload -> validate/preview -> confirm ready rows -> review import history.

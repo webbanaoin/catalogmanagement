@@ -1,6 +1,6 @@
 # Sprint 6 Validation Plan
 
-Run this after the complete Sprint 6 implementation is pulled locally.
+Run this after the complete Sprint 6 implementation is pulled locally. For the full persona-by-persona manual checklist, local prerequisites, test data setup and release sign-off, use `docs/END_TO_END_TESTING.md`.
 
 ## 1. Static/build gate
 
@@ -131,10 +131,18 @@ Verify:
 - analytics dashboard
 - Excel preview/import/export
 - product image flow
+- shop logo upload/replace/remove through Cloudflare R2
+- shop hero/cover upload/replace/remove through Cloudflare R2
+- public storefront renders uploaded logo and cover correctly
 - merchant PWA install
 - storefront PWA install
 - QR open/source tracking
 - WhatsApp/call/directions/share actions
+- shop-level product price visibility default
+- per-product price visibility override
+- hidden prices are not exposed publicly
+- hidden-price product uses Request Price WhatsApp flow
+- request-price message adapts to IN_STOCK, OUT_OF_STOCK and ON_REQUEST availability
 
 ## 12. Golden Flow
 
@@ -152,4 +160,4 @@ Register
 -> WhatsApp/Call/Directions/Share
 -> Analytics Event
 
-Only after this passes should Sprint 6 be merged to staging/released further.
+Only after this passes should Sprint 6 be promoted from staging to production/main. Sprint 6 is already integrated into staging; staging remains the validation environment until the full checklist is signed off.
