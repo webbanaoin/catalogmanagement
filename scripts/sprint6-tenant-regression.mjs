@@ -275,6 +275,41 @@ async function main() {
   const fixture = await createFixture();
   let cookieA = await login(fixture.userA.email, passwordA);
 
+  const onboarding = await request("/onboarding", {}, cookieA);
+  if (![303, 307, 308].includes(onboarding.status)) {
+    throw new Error(
+      `Approved merchant onboarding should redirect to persisted shop profile, got HTTP ${onboarding.status}`,
+    );
+  }
+  const onboardingLocation = onboarding.headers.get("location") || "";
+  if (!onboardingLocation.endsWith("/dashboard/shop")) {
+    throw new Error(
+      `Approved merchant onboarding redirected to an unexpected location: ${onboardingLocation}`,
+    );
+  }
+
+  await expectStatus(
+    "merchant account profile update",
+    await jsonRequest(
+      "/api/auth/me",
+      "PATCH",
+      { name: "Sprint 6 Tenant A Updated", mobile: "9876543210" },
+      cookieA,
+    ),
+    200,
+  );
+
+  const updatedAccount = await prisma.user.findUnique({
+    where: { id: fixture.userA.id },
+    select: { name: true, mobile: true },
+  });
+  if (
+    updatedAccount?.name !== "Sprint 6 Tenant A Updated" ||
+    updatedAccount.mobile !== "9876543210"
+  ) {
+    throw new Error("Merchant account profile update did not persist");
+  }
+
   const pendingLogin = await jsonRequest(
     "/api/auth/login",
     "POST",
