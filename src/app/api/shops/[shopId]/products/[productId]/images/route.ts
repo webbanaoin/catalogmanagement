@@ -43,8 +43,19 @@ export async function POST(
     }
 
     const data = await prisma.$transaction(async (tx) => {
-      const existingCount = await tx.productImage.count({ where: { productId } });
+      const [existingCount, lastImage] = await Promise.all([
+        tx.productImage.count({ where: { productId } }),
+        tx.productImage.findFirst({
+          where: { productId },
+          orderBy: [{ displayOrder: "desc" }, { createdAt: "desc" }],
+          select: { displayOrder: true },
+        }),
+      ]);
       const shouldBePrimary = input.isPrimary || existingCount === 0;
+      const displayOrder =
+        existingCount === 0
+          ? 0
+          : Math.max(input.displayOrder, (lastImage?.displayOrder ?? -1) + 1);
 
       if (shouldBePrimary) {
         await tx.productImage.updateMany({
@@ -54,7 +65,7 @@ export async function POST(
       }
 
       return tx.productImage.create({
-        data: { ...input, isPrimary: shouldBePrimary, productId },
+        data: { ...input, displayOrder, isPrimary: shouldBePrimary, productId },
       });
     });
 
