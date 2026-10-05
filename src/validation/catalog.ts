@@ -49,7 +49,7 @@ const productFields = {
   attributes: z.array(attributeSchema).max(50),
 };
 function productRules(v:{priceType?:string;price?:number|null;discountPrice?:number|null},ctx:z.RefinementCtx){
-  if (v.priceType && v.priceType !== "ASK_PRICE" && v.price == null) ctx.addIssue({code:"custom",path:["price"],message:"Price is required for fixed and starting-from pricing"});
+  if (v.price == null && v.discountPrice != null) ctx.addIssue({code:"custom",path:["discountPrice"],message:"Discount price requires a base price"});
   if (v.price != null && v.discountPrice != null && v.discountPrice > v.price) ctx.addIssue({code:"custom",path:["discountPrice"],message:"Discount price cannot exceed price"});
 }
 export const productCreateSchema = z.object({
