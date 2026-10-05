@@ -131,6 +131,9 @@ Verify:
 - analytics dashboard
 - Excel preview/import/export
 - product image flow
+- shop logo upload/replace/remove through Cloudflare R2
+- shop hero/cover upload/replace/remove through Cloudflare R2
+- public storefront renders uploaded logo and cover correctly
 - merchant PWA install
 - storefront PWA install
 - QR open/source tracking
