@@ -482,10 +482,6 @@ export default function ProductsPage() {
         </CardContent>
       </Card>
 
-      <Alert variant="info" title="Product image quality">
-        For a sharp full-screen jewellery viewer, upload product photos at least 1600×1600 px. Around 2000×2000 px is recommended for detailed gold, silver and jewellery images. The original uploaded image is used for customer zoom; low-resolution images are not artificially enlarged.
-      </Alert>
-
       {products.length === 0 ? (
         <EmptyState
           title="No products yet"
