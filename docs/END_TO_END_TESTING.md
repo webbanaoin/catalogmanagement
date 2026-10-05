@@ -578,11 +578,13 @@ Verify public result updates without affecting another shop.
 
 Verify:
 
-- Fixed requires a price;
-- Starting from requires a price;
-- Ask price can work without a displayed price;
+- Price is optional for Fixed, Starting From and Ask Price products;
+- a product with no stored price behaves publicly as **Price on request**;
+- leaving Price blank preserves the product for fast-changing jewellery/gold/silver pricing;
+- Discount Price cannot be entered without a base Price;
 - discount cannot exceed base price;
-- invalid negative/out-of-range values fail.
+- invalid negative/out-of-range values fail;
+- the same optional-price rule applies to individual product entry and Excel import.
 
 ## MERCHANT-08 Per-product price visibility
 
@@ -754,6 +756,7 @@ Open:
 Verify:
 
 - image/gallery;
+- image zoom in, zoom out and reset controls on uploaded product images;
 - product name;
 - category;
 - SKU;
@@ -1010,6 +1013,10 @@ Before `staging -> main`:
 - [ ] shop-wide price visibility pass
 - [ ] individual price override pass
 - [ ] Request Price WhatsApp message pass
+- [ ] individual product with blank Price saves and shows Price on request
+- [ ] Excel row with blank Price imports successfully
+- [ ] Discount Price without base Price is rejected
+- [ ] product image zoom in/out/reset pass on desktop/mobile
 - [ ] cross-tenant negative checks pass
 - [ ] mobile/PWA check pass
 - [ ] browser console free of release-blocking errors
