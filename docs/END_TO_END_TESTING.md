@@ -1016,7 +1016,7 @@ Before `staging -> main`:
 - [ ] individual product with blank Price saves and shows Price on request
 - [ ] Excel row with blank Price imports successfully
 - [ ] Discount Price without base Price is rejected
-- [ ] advanced product image viewer pass: zoom, reset, drag/pan, double-click, full-screen, prev/next, keyboard and mobile pinch
+- [ ] advanced product image viewer pass: zoom, reset, drag/pan, double-click, full-screen, prev/next, keyboard and mobile pinch\n- [ ] multiple product images can be selected/uploaded together, plan image limits are enforced, primary image remains stable, and all uploaded images appear in the public gallery
 - [ ] cross-tenant negative checks pass
 - [ ] mobile/PWA check pass
 - [ ] browser console free of release-blocking errors
