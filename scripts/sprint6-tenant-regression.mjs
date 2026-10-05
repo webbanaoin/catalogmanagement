@@ -379,6 +379,26 @@ async function main() {
     await expectStatus(label, await request(path, {}, cookieA), 403);
   }
 
+
+  const adminPageAsMerchant = await request("/admin", {}, cookieA);
+  if (![303, 307, 308].includes(adminPageAsMerchant.status)) {
+    throw new Error(
+      `merchant admin page should redirect to access denied, got HTTP ${adminPageAsMerchant.status}`,
+    );
+  }
+  const merchantAdminLocation = adminPageAsMerchant.headers.get("location") || "";
+  if (!merchantAdminLocation.includes("/access-denied")) {
+    throw new Error(
+      `merchant admin page redirected to an unexpected location: ${merchantAdminLocation}`,
+    );
+  }
+
+  await expectStatus(
+    "merchant session remains valid after blocked admin page",
+    await request("/api/auth/me", {}, cookieA),
+    200,
+  );
+
   await prisma.shopUser.update({
     where: { id: fixture.membershipA.id },
     data: { role: "STAFF" },
