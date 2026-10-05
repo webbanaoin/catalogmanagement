@@ -756,7 +756,7 @@ Open:
 Verify:
 
 - image/gallery;
-- premium product viewer: zoom in/out/reset, double-click zoom, drag/pan while zoomed, full-screen lightbox, previous/next image controls, keyboard navigation, and pinch-to-zoom on touch devices;
+- premium product viewer: zoom in/out/reset, double-click zoom, drag/pan while zoomed, full-screen lightbox, previous/next image controls, keyboard navigation, pinch-to-zoom on touch devices, and native-resolution full-screen rendering that does not stretch low-resolution source photos;
 - product name;
 - category;
 - SKU;
@@ -1016,7 +1016,7 @@ Before `staging -> main`:
 - [ ] individual product with blank Price saves and shows Price on request
 - [ ] Excel row with blank Price imports successfully
 - [ ] Discount Price without base Price is rejected
-- [ ] advanced product image viewer pass: zoom, reset, drag/pan, double-click, full-screen, prev/next, keyboard and mobile pinch
+- [ ] advanced product image viewer pass: zoom, reset, drag/pan, double-click, full-screen, prev/next, keyboard, mobile pinch, and low-resolution images are not stretched in full-screen
 - [ ] cross-tenant negative checks pass
 - [ ] mobile/PWA check pass
 - [ ] browser console free of release-blocking errors
