@@ -7,13 +7,11 @@ export function StorefrontMedia({
   alt,
   className,
   eager = false,
-  fit = "cover",
 }: {
   src: string | null;
   alt: string;
   className?: string;
   eager?: boolean;
-  fit?: "cover" | "contain" | "native";
 }) {
   if (!src) {
     return (
@@ -30,18 +28,11 @@ export function StorefrontMedia({
     );
   }
 
-  const fitClass =
-    fit === "native"
-      ? "max-h-full max-w-full object-contain"
-      : fit === "contain"
-        ? "object-contain"
-        : "object-cover";
-
   return (
     <img
       src={src}
       alt={alt}
-      className={cn(fitClass, className)}
+      className={cn("object-cover", className)}
       loading={eager ? "eager" : "lazy"}
       decoding="async"
       referrerPolicy="no-referrer"
