@@ -357,9 +357,42 @@ async function main() {
   );
   await expectStatus("create product without price", noPriceCreate, 201);
   const noPricePayload = await noPriceCreate.json();
+  const noPriceId = noPricePayload?.data?.id;
   const noPriceSlug = noPricePayload?.data?.slug;
-  if (!noPriceSlug) {
-    throw new Error("Product without price did not return a slug");
+  if (!noPriceId || !noPriceSlug) {
+    throw new Error("Product without price did not return an id and slug");
+  }
+
+  await expectStatus(
+    "edit product without price",
+    await jsonRequest(
+      `/api/shops/${fixture.shopA.id}/products/${noPriceId}`,
+      "PATCH",
+      {
+        name: `Sprint6 No Price Product Updated ${suffix}`,
+        availabilityStatus: "ON_REQUEST",
+        price: null,
+        discountPrice: null,
+        priceType: "FIXED",
+      },
+      cookieA,
+    ),
+    200,
+  );
+
+  const noPriceDuplicate = await jsonRequest(
+    `/api/shops/${fixture.shopA.id}/products/${noPriceId}/duplicate`,
+    "POST",
+    {},
+    cookieA,
+  );
+  await expectStatus("duplicate product without price", noPriceDuplicate, 201);
+  const duplicatePayload = await noPriceDuplicate.json();
+  if (duplicatePayload?.data?.isVisible !== false) {
+    throw new Error("Duplicated no-price product was not hidden by default");
+  }
+  if (duplicatePayload?.data?.price != null) {
+    throw new Error("Duplicated no-price product unexpectedly gained a price");
   }
 
   const noPricePublic = await request(
