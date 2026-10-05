@@ -1,9 +1,9 @@
 import { AdminBusinessCategoryManager } from "@/components/admin/admin-business-category-manager";
 import { PageHeader } from "@/components/ui";
-import { requirePlatformAdmin } from "@/server/auth/admin-access";
+import { requirePlatformAdminPageAccess } from "@/server/auth/admin-page-access";
 
 export default async function AdminBusinessCategoriesPage() {
-  await requirePlatformAdmin();
+  await requirePlatformAdminPageAccess();
 
   return (
     <div className="space-y-6 sm:space-y-8">
