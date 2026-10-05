@@ -296,6 +296,8 @@ Do not add these unless requirements are explicitly updated:
 - [x] Admin shop subscription summary/payment-status UX integrated
 - [x] Shop-wide and per-product price visibility implemented and integrated via PR #23
 - [x] Hidden-price Request Price WhatsApp flow implemented with availability-aware copy via PR #24
+- [x] Merchant shop logo and storefront hero/cover uploads integrated via PR #26
+- [x] Shop branding uses Cloudflare R2 presigned uploads with replace/remove and storefront rendering
 - [ ] Full persona-by-persona staging manual validation using `docs/END_TO_END_TESTING.md`
 - [ ] Final Golden Flow sign-off by Prashant and Parixit
 - [ ] Promote validated `staging` to `main` only after final release gate passes
