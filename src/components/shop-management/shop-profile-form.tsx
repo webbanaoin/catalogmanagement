@@ -20,10 +20,12 @@ import {
 import {
   CatalogApiError,
   getBusinessCategories,
-  getCurrentMerchantShop,
+  getCurrentUser,
   getShopProfile,
+  updateCurrentUser,
   updateShopProfile,
   type BusinessCategory,
+  type CurrentUser,
   type ShopProfile,
 } from "@/lib/catalog-api";
 import {
@@ -50,6 +52,14 @@ function optionalTextError(formData: FormData, field: string, label: string, max
 
 function validateProfile(formData: FormData): FieldErrors {
   const errors: FieldErrors = {};
+  const ownerName = rawValue(formData, "ownerName").trim();
+  if (ownerName.length < 2) errors.ownerName = ownerName ? "Owner name must contain at least 2 characters." : "Owner name is required.";
+  else if (ownerName.length > 120) errors.ownerName = "Owner name must contain at most 120 characters.";
+
+  const ownerMobile = rawValue(formData, "ownerMobile");
+  if (ownerMobile && !ownerMobile.trim()) errors.ownerMobile = "Owner mobile cannot contain only spaces.";
+  else if (ownerMobile.trim() && !isValidIndianMobile(ownerMobile)) errors.ownerMobile = "Enter a valid 10-digit Indian mobile number.";
+
   const shopName = rawValue(formData, "shopName").trim();
 
   if (shopName.length < 2) errors.shopName = shopName ? "Shop name must contain at least 2 characters." : "Shop name is required.";
@@ -110,6 +120,7 @@ function optional(value: string) {
 export function ShopProfileForm() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [profile, setProfile] = useState<ShopProfile | null>(null);
+  const [account, setAccount] = useState<CurrentUser | null>(null);
   const [businessCategories, setBusinessCategories] = useState<BusinessCategory[]>([]);
   const [shopId, setShopId] = useState("");
   const [feedback, setFeedback] = useState<{ variant: "success" | "error"; message: string } | null>(null);
@@ -121,13 +132,25 @@ export function ShopProfileForm() {
 
     async function load() {
       try {
-        const [shop, categoryResponse] = await Promise.all([
-          getCurrentMerchantShop(),
+        const [userResponse, categoryResponse] = await Promise.all([
+          getCurrentUser(),
           getBusinessCategories(),
         ]);
+        const shop = userResponse.data.shops?.find(
+          (item) => item.status === "APPROVED" || item.status === "ACTIVE",
+        );
+        if (!shop) {
+          throw new CatalogApiError({
+            code: "SHOP_ACCESS_UNAVAILABLE",
+            message: "No approved shop is available for this account.",
+            status: 403,
+          });
+        }
+
         const profileResponse = await getShopProfile(shop.id);
         if (!active) return;
         setShopId(shop.id);
+        setAccount(userResponse.data);
         setBusinessCategories(categoryResponse.items);
         setProfile(profileResponse.data);
       } catch (error) {
@@ -169,25 +192,32 @@ export function ShopProfileForm() {
     setSaving(true);
 
     try {
-      const response = await updateShopProfile(shopId, {
-        name: rawValue(formData, "shopName").trim(),
-        businessCategoryId: optional(rawValue(formData, "businessCategoryId")),
-        tagline: optional(rawValue(formData, "tagline")),
-        description: optional(rawValue(formData, "description")),
-        phone: optional(rawValue(formData, "phone")),
-        whatsapp: optional(rawValue(formData, "whatsapp")),
-        email: optional(rawValue(formData, "email")),
-        address: optional(rawValue(formData, "address")),
-        city: optional(rawValue(formData, "city")),
-        state: optional(rawValue(formData, "state")),
-        pincode: optional(rawValue(formData, "pincode")),
-        googleMapsUrl: optional(rawValue(formData, "googleMapsUrl")),
-        instagramUrl: optional(rawValue(formData, "instagramUrl")),
-        facebookUrl: optional(rawValue(formData, "facebookUrl")),
-        showProductPrices: formData.get("showProductPrices") === "on",
-      });
-      setProfile((current) => ({ ...current, ...response.data } as ShopProfile));
-      setFeedback({ variant: "success", message: "Shop profile saved successfully." });
+      const [accountResponse, profileResponse] = await Promise.all([
+        updateCurrentUser({
+          name: rawValue(formData, "ownerName").trim(),
+          mobile: optional(rawValue(formData, "ownerMobile")),
+        }),
+        updateShopProfile(shopId, {
+          name: rawValue(formData, "shopName").trim(),
+          businessCategoryId: optional(rawValue(formData, "businessCategoryId")),
+          tagline: optional(rawValue(formData, "tagline")),
+          description: optional(rawValue(formData, "description")),
+          phone: optional(rawValue(formData, "phone")),
+          whatsapp: optional(rawValue(formData, "whatsapp")),
+          email: optional(rawValue(formData, "email")),
+          address: optional(rawValue(formData, "address")),
+          city: optional(rawValue(formData, "city")),
+          state: optional(rawValue(formData, "state")),
+          pincode: optional(rawValue(formData, "pincode")),
+          googleMapsUrl: optional(rawValue(formData, "googleMapsUrl")),
+          instagramUrl: optional(rawValue(formData, "instagramUrl")),
+          facebookUrl: optional(rawValue(formData, "facebookUrl")),
+          showProductPrices: formData.get("showProductPrices") === "on",
+        }),
+      ]);
+      setAccount((current) => ({ ...current, ...accountResponse.data } as CurrentUser));
+      setProfile((current) => ({ ...current, ...profileResponse.data } as ShopProfile));
+      setFeedback({ variant: "success", message: "Account and shop profile saved successfully." });
     } catch (error) {
       if (error instanceof CatalogApiError) {
         setFieldErrors(error.fields);
@@ -204,7 +234,7 @@ export function ShopProfileForm() {
     return <LoadingState title="Loading shop profile" description="Fetching your tenant-safe merchant profile." />;
   }
 
-  if (!profile) {
+  if (!profile || !account) {
     return <Alert variant="error">{feedback?.message ?? "Shop profile is unavailable."}</Alert>;
   }
 
@@ -222,6 +252,47 @@ export function ShopProfileForm() {
   return (
     <form className="space-y-6" onSubmit={handleSubmit} noValidate>
       {feedback ? <Alert variant={feedback.variant}>{feedback.message}</Alert> : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Account owner</CardTitle>
+          <CardDescription>
+            Registration details are pre-filled automatically. Update the owner name or mobile only if they have changed.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-5 sm:grid-cols-2">
+          <Field label="Owner name" htmlFor="profile-owner-name" error={fieldErrors.ownerName} required>
+            <Input
+              id="profile-owner-name"
+              name="ownerName"
+              defaultValue={account.name}
+              autoComplete="name"
+              minLength={2}
+              maxLength={120}
+              required
+            />
+          </Field>
+          <Field label="Owner mobile" htmlFor="profile-owner-mobile" hint="10-digit Indian mobile number." error={fieldErrors.ownerMobile}>
+            <Input
+              id="profile-owner-mobile"
+              name="ownerMobile"
+              type="tel"
+              inputMode="tel"
+              defaultValue={account.mobile ?? ""}
+              maxLength={18}
+            />
+          </Field>
+          <Field label="Login email" htmlFor="profile-login-email" hint="Login email cannot be changed from Shop Profile." className="sm:col-span-2">
+            <Input
+              id="profile-login-email"
+              value={account.email}
+              type="email"
+              readOnly
+              disabled
+            />
+          </Field>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
