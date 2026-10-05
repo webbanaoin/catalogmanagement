@@ -51,6 +51,19 @@ async function main() {
     throw new Error(`Public plans endpoint returned HTTP ${plans.status}`);
   }
 
+  const dashboard = await request("/dashboard");
+  if (![303, 307, 308].includes(dashboard.status)) {
+    throw new Error(
+      `Unauthenticated merchant dashboard should redirect to login, got HTTP ${dashboard.status}`,
+    );
+  }
+  const dashboardLocation = dashboard.headers.get("location") || "";
+  if (!dashboardLocation.endsWith("/login")) {
+    throw new Error(
+      `Unauthenticated merchant dashboard redirected to an unexpected location: ${dashboardLocation}`,
+    );
+  }
+
   process.stdout.write(
     `Sprint 6 smoke checks passed for ${baseUrl}.\n`,
   );
