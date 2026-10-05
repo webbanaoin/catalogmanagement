@@ -217,6 +217,39 @@ export async function updateShopProfile(shopId: string, payload: ShopProfilePayl
 }
 
 
+export interface ShopHour {
+  id?: string;
+  shopId?: string;
+  dayOfWeek: number;
+  isClosed: boolean;
+  openTime?: string | null;
+  closeTime?: string | null;
+}
+
+export async function getShopHours(shopId: string) {
+  return requestJson<{ items: ShopHour[] }>(
+    `/api/shops/${encodeURIComponent(shopId)}/hours`,
+  );
+}
+
+export async function updateShopHours(shopId: string, hours: ShopHour[]) {
+  return requestJson<{ items: ShopHour[] }>(
+    `/api/shops/${encodeURIComponent(shopId)}/hours`,
+    {
+      method: "PUT",
+      body: JSON.stringify({
+        hours: hours.map(({ dayOfWeek, isClosed, openTime, closeTime }) => ({
+          dayOfWeek,
+          isClosed,
+          openTime: isClosed ? null : openTime,
+          closeTime: isClosed ? null : closeTime,
+        })),
+      }),
+    },
+  );
+}
+
+
 export type ShopBrandingKind = "logo" | "cover";
 
 export async function uploadShopBranding(
