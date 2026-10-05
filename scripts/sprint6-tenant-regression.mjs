@@ -333,6 +333,44 @@ async function main() {
     200,
   );
 
+
+  const noPriceCreate = await jsonRequest(
+    `/api/shops/${fixture.shopA.id}/products`,
+    "POST",
+    {
+      name: `Sprint6 No Price Product ${suffix}`,
+      categoryId: null,
+      sku: null,
+      description: "Regression product with intentionally blank price",
+      price: null,
+      discountPrice: null,
+      priceType: "FIXED",
+      availabilityStatus: "IN_STOCK",
+      isFeatured: false,
+      isNewArrival: false,
+      isOffer: false,
+      isVisible: true,
+      showPrice: null,
+      attributes: [],
+    },
+    cookieA,
+  );
+  await expectStatus("create product without price", noPriceCreate, 201);
+  const noPricePayload = await noPriceCreate.json();
+  const noPriceSlug = noPricePayload?.data?.slug;
+  if (!noPriceSlug) {
+    throw new Error("Product without price did not return a slug");
+  }
+
+  const noPricePublic = await request(
+    `/s/${fixture.shopA.slug}/p/${noPriceSlug}`,
+  );
+  await expectStatus("public no-price product", noPricePublic, 200);
+  const noPriceHtml = await noPricePublic.text();
+  if (!noPriceHtml.includes("Price on request")) {
+    throw new Error("Product without price did not render as Price on request");
+  }
+
   const crossTenantChecks = [
     ["cross-tenant profile", `/api/shops/${fixture.shopB.id}/profile`],
     ["cross-tenant categories", `/api/shops/${fixture.shopB.id}/categories`],
