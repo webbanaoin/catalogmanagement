@@ -438,11 +438,11 @@ export function previewProductImport(options: {
       errors,
     );
 
-    if (type !== "ASK_PRICE" && price === null) {
+    if (price === null && discountPrice !== null) {
       errors.push({
         rowNumber: row.rowNumber,
-        field: "Price",
-        message: "Price is required for Fixed and Starting From price types",
+        field: "Discount Price",
+        message: "Discount Price requires a base Price",
       });
     }
 
