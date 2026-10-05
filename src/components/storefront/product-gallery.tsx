@@ -39,7 +39,6 @@ function ZoomSurface({
   onZoomChange,
   onPanChange,
   className = "",
-  preserveNativeSize = false,
 }: {
   src: string;
   alt: string;
@@ -48,7 +47,6 @@ function ZoomSurface({
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: Point) => void;
   className?: string;
-  preserveNativeSize?: boolean;
 }) {
   const pointers = useRef(new Map<number, Point>());
   const dragStart = useRef<{ pointer: Point; pan: Point } | null>(null);
@@ -155,7 +153,7 @@ function ZoomSurface({
       aria-label="Zoomable product image"
     >
       <div
-        className="flex h-full w-full items-center justify-center transition-transform duration-150 ease-out"
+        className="h-full w-full transition-transform duration-150 ease-out"
         style={{
           transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
           transformOrigin: "center",
@@ -164,8 +162,7 @@ function ZoomSurface({
         <StorefrontMedia
           src={src}
           alt={alt}
-          fit={preserveNativeSize ? "native" : "contain"}
-          className={preserveNativeSize ? undefined : "h-full w-full"}
+          className="h-full w-full object-contain"
           eager
         />
       </div>
@@ -446,7 +443,6 @@ export function ProductGallery({
               pan={pan}
               onZoomChange={applyZoom}
               onPanChange={setPan}
-              preserveNativeSize
             />
 
             {images.length > 1 ? (
@@ -482,7 +478,7 @@ export function ProductGallery({
           </div>
 
           <p className="pt-3 text-center text-xs text-white/70">
-            Full-screen keeps the original image at its native resolution instead of stretching low-resolution photos · drag to inspect details · pinch on mobile · Esc closes · arrow keys change images
+            Drag to inspect details while zoomed · pinch on mobile · Esc closes · arrow keys change images
           </p>
         </div>
       ) : null}
