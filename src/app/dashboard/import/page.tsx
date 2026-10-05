@@ -239,7 +239,7 @@ export default function ProductImportPage() {
       <PageHeader
         eyebrow="Sprint 4"
         title="Easy Excel product import"
-        description="Product Code is optional. Leave it blank and the system will generate one automatically. Existing or likely duplicate products are detected and skipped."
+        description="Product Code and Price are optional. Leave Product Code blank for automatic generation, and leave Price blank for enquiry-led products. Existing or likely duplicate products are detected and skipped."
         actions={<Badge variant="success">API connected</Badge>}
       />
 
@@ -274,7 +274,7 @@ export default function ProductImportPage() {
         <CardHeader>
           <CardTitle>2. Upload and check</CardTitle>
           <CardDescription>
-            The system checks price rules, categories, product codes and likely duplicates before creating anything. Good rows can still be imported even when other rows need attention.
+            The system checks optional price/discount rules, categories, product codes and likely duplicates before creating anything. A blank Price is valid; a Discount Price requires a base Price. Good rows can still be imported even when other rows need attention.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
