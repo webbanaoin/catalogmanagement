@@ -413,7 +413,7 @@ export default function ProductsPage() {
             <Field
               label="Price"
               htmlFor="product-price"
-              required={draft.priceType !== "ASK_PRICE"}
+              hint="Optional. Leave blank when the current price should be shared only on request."
             >
               <Input
                 id="product-price"
@@ -422,7 +422,6 @@ export default function ProductsPage() {
                 step="0.01"
                 value={draft.price}
                 onChange={(event) => setDraft({ ...draft, price: event.target.value })}
-                required={draft.priceType !== "ASK_PRICE"}
               />
             </Field>
 
