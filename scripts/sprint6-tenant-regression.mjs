@@ -27,6 +27,7 @@ const passwordA = `Sprint6-Aa9!${randomUUID().slice(0, 12)}`;
 const passwordANext = `Sprint6-Bb9!${randomUUID().slice(0, 12)}`;
 const passwordB = `Sprint6-Cc9!${randomUUID().slice(0, 12)}`;
 const adminPassword = `Sprint6-Dd9!${randomUUID().slice(0, 12)}`;
+const pendingPassword = `Sprint6-Ee9!${randomUUID().slice(0, 12)}`;
 
 const created = {
   userIds: [],
@@ -80,10 +81,11 @@ async function login(email, password) {
 }
 
 async function createFixture() {
-  const [hashA, hashB, hashAdmin] = await Promise.all([
+  const [hashA, hashB, hashAdmin, hashPending] = await Promise.all([
     hash(passwordA, 12),
     hash(passwordB, 12),
     hash(adminPassword, 12),
+    hash(pendingPassword, 12),
   ]);
 
   const userA = await prisma.user.create({
@@ -114,6 +116,15 @@ async function createFixture() {
   });
   created.userIds.push(admin.id);
 
+  const pendingUser = await prisma.user.create({
+    data: {
+      name: "Sprint 6 Pending Merchant",
+      email: `sprint6-pending-${suffix}@example.test`,
+      passwordHash: hashPending,
+    },
+  });
+  created.userIds.push(pendingUser.id);
+
   const shopA = await prisma.shop.create({
     data: {
       name: "Sprint 6 Shop A",
@@ -133,6 +144,24 @@ async function createFixture() {
     },
   });
   created.shopIds.push(shopB.id);
+
+  const pendingShop = await prisma.shop.create({
+    data: {
+      name: "Sprint 6 Pending Shop",
+      slug: `sprint6-pending-shop-${suffix}`,
+      email: pendingUser.email,
+      status: "PENDING",
+    },
+  });
+  created.shopIds.push(pendingShop.id);
+
+  await prisma.shopUser.create({
+    data: {
+      userId: pendingUser.id,
+      shopId: pendingShop.id,
+      role: "OWNER",
+    },
+  });
 
   const [membershipA] = await Promise.all([
     prisma.shopUser.create({
@@ -201,6 +230,8 @@ async function createFixture() {
     userA,
     userB,
     admin,
+    pendingUser,
+    pendingShop,
     shopA,
     shopB,
     membershipA,
@@ -243,6 +274,23 @@ async function cleanup() {
 async function main() {
   const fixture = await createFixture();
   let cookieA = await login(fixture.userA.email, passwordA);
+
+  const pendingLogin = await jsonRequest(
+    "/api/auth/login",
+    "POST",
+    { email: fixture.pendingUser.email, password: pendingPassword },
+    cookieA,
+  );
+  await expectStatus("pending merchant login", pendingLogin, 403);
+  const pendingSetCookie = pendingLogin.headers.get("set-cookie") || "";
+  if (
+    !pendingSetCookie.includes("catalog_session=") ||
+    !/Max-Age=0|Expires=/i.test(pendingSetCookie)
+  ) {
+    throw new Error(
+      "Pending merchant login did not clear a pre-existing merchant session cookie",
+    );
+  }
 
   await expectStatus(
     "own shop profile",
