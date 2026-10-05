@@ -263,31 +263,65 @@ export default function ProductsPage() {
     }
   }
 
-  async function uploadImage(product: ShopProduct, event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+  async function uploadImages(product: ShopProduct, event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
     event.target.value = "";
-    if (!shop || !file) return;
+    if (!shop || files.length === 0) return;
 
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      setFeedback({ variant: "error", message: "Use a JPG, PNG or WebP image." });
+    const invalidType = files.find(
+      (file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type),
+    );
+    if (invalidType) {
+      setFeedback({
+        variant: "error",
+        message: `${invalidType.name}: use JPG, PNG or WebP images only.`,
+      });
       return;
     }
-    if (file.size > 8 * 1024 * 1024) {
-      setFeedback({ variant: "error", message: "Product image must be 8 MB or smaller." });
+
+    const oversized = files.find((file) => file.size > 8 * 1024 * 1024);
+    if (oversized) {
+      setFeedback({
+        variant: "error",
+        message: `${oversized.name}: each product image must be 8 MB or smaller.`,
+      });
       return;
     }
 
     setBusyId(product.id);
-    setFeedback(null);
+    setFeedback({
+      variant: "info",
+      message: `Uploading ${files.length} image${files.length === 1 ? "" : "s"} for ${product.name}…`,
+    });
+
+    let uploaded = 0;
     try {
-      await uploadProductImage(shop.id, product.id, file);
-      setFeedback({ variant: "success", message: `Image uploaded for ${product.name}.` });
+      for (const [index, file] of files.entries()) {
+        await uploadProductImage(shop.id, product.id, file, {
+          isPrimary: false,
+          displayOrder: (product.images?.length ?? 0) + index,
+        });
+        uploaded += 1;
+      }
+
+      setFeedback({
+        variant: "success",
+        message: `${uploaded} image${uploaded === 1 ? "" : "s"} uploaded for ${product.name}. The existing primary image is preserved; the first image becomes primary automatically when the product had no images.`,
+      });
       await refreshProducts(shop.id);
     } catch (error) {
+      const message =
+        error instanceof CatalogApiError
+          ? error.message
+          : "Unable to upload product images.";
       setFeedback({
-        variant: "error",
-        message: error instanceof CatalogApiError ? error.message : "Unable to upload product image.",
+        variant: uploaded > 0 ? "warning" : "error",
+        message:
+          uploaded > 0
+            ? `${uploaded} image${uploaded === 1 ? "" : "s"} uploaded before the next upload stopped: ${message}`
+            : message,
       });
+      await refreshProducts(shop.id);
     } finally {
       setBusyId(null);
     }
@@ -307,7 +341,7 @@ export default function ProductsPage() {
       <PageHeader
         eyebrow="Sprint 6"
         title="Products"
-        description="Create, edit, duplicate, hide or remove products and upload product images from one merchant workspace."
+        description="Create, edit, duplicate, hide or remove products and upload one or multiple product images from one merchant workspace."
         actions={<Badge variant="success">Ready</Badge>}
       />
 
@@ -568,13 +602,14 @@ export default function ProductsPage() {
                         </Link>
                       ) : null}
                       <label className={buttonClassName("secondary", "sm", busyId === product.id ? "pointer-events-none opacity-50" : "cursor-pointer")}>
-                        {busyId === product.id ? "Working…" : "Upload image"}
+                        {busyId === product.id ? "Uploading…" : "Upload images"}
                         <input
                           type="file"
                           accept="image/jpeg,image/png,image/webp"
+                          multiple
                           className="sr-only"
                           disabled={busyId === product.id}
-                          onChange={(event) => void uploadImage(product, event)}
+                          onChange={(event) => void uploadImages(product, event)}
                         />
                       </label>
                       <Button
