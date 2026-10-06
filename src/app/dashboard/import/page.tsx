@@ -239,7 +239,7 @@ export default function ProductImportPage() {
       <PageHeader
         eyebrow="Sprint 4"
         title="Easy Excel product import"
-        description="Product Code and Price are optional. Leave Product Code blank for automatic generation, and leave Price blank for enquiry-led products. Existing or likely duplicate products are detected and skipped."
+        description="Product Code and Price are optional. Product Group / Type keeps Gold/Silver/Diamond, Men/Women/Kids or departments separate. Existing or likely duplicate products are detected and skipped."
         actions={<Badge variant="success">API connected</Badge>}
       />
 
@@ -328,6 +328,7 @@ export default function ProductImportPage() {
                     <th className="px-3 py-3">Product</th>
                     <th className="px-3 py-3">Product code</th>
                     <th className="px-3 py-3">Category</th>
+                    <th className="px-3 py-3">Product group</th>
                     <th className="px-3 py-3">Price type</th>
                     <th className="px-3 py-3">Availability</th>
                     <th className="px-3 py-3">Result</th>
@@ -345,6 +346,7 @@ export default function ProductImportPage() {
                         {row.values.SKU || (row.autoSku ? "Auto-generate" : "—")}
                       </td>
                       <td className="px-3 py-3">{row.values.Category || "—"}</td>
+                      <td className="px-3 py-3">{row.values["Product Group"] || "—"}</td>
                       <td className="px-3 py-3">{row.values["Price Type"] || "—"}</td>
                       <td className="px-3 py-3">{row.values.Availability || "—"}</td>
                       <td className="px-3 py-3">
