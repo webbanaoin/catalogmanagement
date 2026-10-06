@@ -141,6 +141,7 @@ export async function POST(
         productFingerprint({
           name: product.name,
           categoryId: product.categoryId,
+          catalogGroup: product.catalogGroup,
           priceType: product.priceType,
           price: product.price == null ? null : product.price.toString(),
           discountPrice:
