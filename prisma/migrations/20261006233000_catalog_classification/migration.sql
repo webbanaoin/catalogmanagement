@@ -6,3 +6,6 @@ ALTER TABLE `products`
 
 CREATE INDEX `products_shop_id_catalog_group_deleted_at_idx`
   ON `products`(`shop_id`, `catalog_group`, `deleted_at`);
+
+CREATE INDEX `product_attributes_attribute_name_attribute_value_idx`
+  ON `product_attributes`(`attribute_name`, `attribute_value`);
