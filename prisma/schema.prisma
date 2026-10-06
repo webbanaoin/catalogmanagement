@@ -269,6 +269,7 @@ model ProductAttribute {
   displayOrder Int @default(0) @map("display_order")
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   @@index([productId, displayOrder])
+  @@index([attributeName, attributeValue])
   @@map("product_attributes")
 }
 
