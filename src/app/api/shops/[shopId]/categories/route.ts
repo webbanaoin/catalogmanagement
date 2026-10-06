@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { requireShopAccess } from "@/server/auth/tenant-access";
+import { assertUniqueCategoryName } from "@/server/catalog/category-name";
 import { ensureDefaultShopCategories } from "@/server/catalog/default-categories";
 import { requireCategoryInShop } from "@/server/catalog/guards";
 import { toSlug } from "@/server/catalog/slug";
@@ -106,6 +107,11 @@ export async function POST(
     if (input.parentId) {
       await requireCategoryInShop(shopId, input.parentId);
     }
+
+    await assertUniqueCategoryName(prisma, {
+      shopId,
+      name: input.name,
+    });
 
     const data = await prisma.shopCategory.create({
       data: {
