@@ -115,6 +115,7 @@ export async function POST(
           name: true,
           sku: true,
           categoryId: true,
+          catalogGroup: true,
           price: true,
           discountPrice: true,
           priceType: true,
@@ -230,6 +231,7 @@ export async function POST(
             data: {
               shopId,
               categoryId: product.categoryId,
+              catalogGroup: product.catalogGroup ?? null,
               name: product.name,
               slug: nextSlug(product.name, usedSlugs),
               sku: product.resolvedSku,
