@@ -59,6 +59,7 @@ export function ProductCard({
         />
         <div className="space-y-2 p-3 sm:p-4">
           <div className="flex flex-wrap gap-1.5">
+            {product.catalogGroup ? <Badge variant="info">{product.catalogGroup}</Badge> : null}
             {product.isNewArrival ? <Badge variant="info">New</Badge> : null}
             {product.isOffer ? <Badge variant="warning">Offer</Badge> : null}
             {product.isFeatured ? <Badge>Featured</Badge> : null}
