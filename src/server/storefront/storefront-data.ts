@@ -430,12 +430,34 @@ export async function getPublicStorefront(
       Promise.all((offers as ProductSummaryRow[]).map((product) => mapProduct(product, shopRecord.showProductPrices))),
     ]);
 
+  const groupOrder = new Map(
+    preset.groups.map((value, index) => [value.toLowerCase(), index]),
+  );
   const catalogGroups = groupRows
     .map((row) => row.catalogGroup?.trim())
-    .filter((value): value is string => Boolean(value));
+    .filter((value): value is string => Boolean(value))
+    .sort((left, right) => {
+      const leftOrder = groupOrder.get(left.toLowerCase()) ?? Number.MAX_SAFE_INTEGER;
+      const rightOrder = groupOrder.get(right.toLowerCase()) ?? Number.MAX_SAFE_INTEGER;
+      return leftOrder - rightOrder || left.localeCompare(right);
+    });
+
+  const primaryPreset = primaryAttributeName
+    ? preset.attributes.find((attribute) => attribute.name === primaryAttributeName)
+    : undefined;
+  const primaryValueOrder = new Map(
+    (primaryPreset?.options ?? []).map((value, index) => [value.toLowerCase(), index]),
+  );
   const primaryFilterValues = attributeRows
     .map((row) => row.attributeValue.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .sort((left, right) => {
+      const leftOrder =
+        primaryValueOrder.get(left.toLowerCase()) ?? Number.MAX_SAFE_INTEGER;
+      const rightOrder =
+        primaryValueOrder.get(right.toLowerCase()) ?? Number.MAX_SAFE_INTEGER;
+      return leftOrder - rightOrder || left.localeCompare(right);
+    });
 
   return {
     shop,
@@ -445,9 +467,7 @@ export async function getPublicStorefront(
       primaryAttributeName && primaryFilterValues.length > 0
         ? {
             name: primaryAttributeName,
-            label:
-              preset.attributes.find((attribute) => attribute.name === primaryAttributeName)
-                ?.label ?? primaryAttributeName,
+            label: primaryPreset?.label ?? primaryAttributeName,
             values: primaryFilterValues,
           }
         : null,
