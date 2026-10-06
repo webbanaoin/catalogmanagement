@@ -105,6 +105,7 @@ export async function POST(
           name: true,
           sku: true,
           categoryId: true,
+          catalogGroup: true,
           price: true,
           discountPrice: true,
           priceType: true,
@@ -122,6 +123,7 @@ export async function POST(
         name: product.name,
         sku: product.sku,
         categoryId: product.categoryId,
+        catalogGroup: product.catalogGroup,
         price: product.price == null ? null : product.price.toString(),
         discountPrice: product.discountPrice == null ? null : product.discountPrice.toString(),
         priceType: product.priceType,
@@ -139,7 +141,7 @@ export async function POST(
         failedRows: preview.failedRows,
         status,
         previewData: {
-          version: 2,
+          version: 3,
           products: preview.products,
         },
         ...(preview.failedRows > 0
