@@ -68,6 +68,7 @@ export async function POST(
       data: {
         shopId,
         categoryId: source.categoryId,
+        catalogGroup: source.catalogGroup,
         name,
         slug: await uniqueSlug(shopId, name),
         sku,
