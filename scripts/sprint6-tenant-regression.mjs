@@ -460,6 +460,41 @@ async function main() {
     throw new Error("Existing Ring category was duplicated by automatic category seeding");
   }
 
+  const duplicateCategoryCreate = await jsonRequest(
+    `/api/shops/${fixture.shopA.id}/categories`,
+    "POST",
+    {
+      name: "  rInG  ",
+      displayOrder: 999,
+      status: "ACTIVE",
+    },
+    cookieA,
+  );
+  await expectStatus(
+    "case-insensitive duplicate category create blocked",
+    duplicateCategoryCreate,
+    409,
+  );
+
+  const earringCategory = seededCategories.find(
+    (category) => category.name === "Earring",
+  );
+  if (!earringCategory?.id) {
+    throw new Error("Seeded Earring category was not available for duplicate edit test");
+  }
+
+  const duplicateCategoryEdit = await jsonRequest(
+    `/api/shops/${fixture.shopA.id}/categories/${earringCategory.id}`,
+    "PATCH",
+    { name: "RING" },
+    cookieA,
+  );
+  await expectStatus(
+    "case-insensitive duplicate category edit blocked",
+    duplicateCategoryEdit,
+    409,
+  );
+
   const removableDefault = seededCategories.find(
     (category) => category.name === "Gift Articles",
   );
