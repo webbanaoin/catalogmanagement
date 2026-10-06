@@ -3,6 +3,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 
 import { getDefaultCategoryPreset } from "@/lib/default-category-presets";
+import { normalizeCategoryName } from "@/server/catalog/category-name";
 import { toSlug } from "@/server/catalog/slug";
 
 const ACTION = "DEFAULT_CATEGORIES_SEEDED";
@@ -12,10 +13,6 @@ type BusinessCategoryInput = {
   name?: string | null;
   slug?: string | null;
 };
-
-function normalizedName(value: string) {
-  return value.trim().toLowerCase().replace(/\s+/g, " ");
-}
 
 export async function ensureDefaultShopCategories(
   tx: Prisma.TransactionClient,
@@ -65,7 +62,7 @@ export async function ensureDefaultShopCategories(
     select: { name: true, slug: true },
   });
 
-  const existingNames = new Set(existing.map((item) => normalizedName(item.name)));
+  const existingNames = new Set(existing.map((item) => normalizeCategoryName(item.name)));
   const existingSlugs = new Set(existing.map((item) => item.slug.toLowerCase()));
 
   const rows = preset.categories
@@ -76,7 +73,7 @@ export async function ensureDefaultShopCategories(
     }))
     .filter(
       (item) =>
-        !existingNames.has(normalizedName(item.name)) &&
+        !existingNames.has(normalizeCategoryName(item.name)) &&
         !existingSlugs.has(item.slug.toLowerCase()),
     )
     .map((item) => ({
