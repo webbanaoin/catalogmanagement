@@ -82,6 +82,7 @@ export interface RegisterPayload {
   mobile?: string;
   password: string;
   shopName: string;
+  businessCategoryId?: string;
   phone?: string;
   whatsapp?: string;
   city?: string;

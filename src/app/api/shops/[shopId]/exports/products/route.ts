@@ -23,6 +23,7 @@ export async function GET(
       select: {
         name: true,
         sku: true,
+        catalogGroup: true,
         price: true,
         discountPrice: true,
         priceType: true,
@@ -43,6 +44,7 @@ export async function GET(
         name: product.name,
         sku: product.sku,
         category: product.category?.name ?? null,
+        catalogGroup: product.catalogGroup,
         price: product.price == null ? null : product.price.toString(),
         priceType: product.priceType,
         discountPrice:

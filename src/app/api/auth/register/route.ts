@@ -36,6 +36,21 @@ export async function POST(request: Request) {
         throw new AppError({ code: "EMAIL_IN_USE", message: "An account with this email already exists", status: 409 });
       }
 
+      if (input.businessCategoryId) {
+        const businessCategory = await tx.businessCategory.findFirst({
+          where: { id: input.businessCategoryId, status: "ACTIVE" },
+          select: { id: true },
+        });
+        if (!businessCategory) {
+          throw new AppError({
+            code: "BUSINESS_CATEGORY_NOT_FOUND",
+            message: "Selected business type is not available",
+            status: 400,
+            fields: { businessCategoryId: ["Select an active business type"] },
+          });
+        }
+      }
+
       const user = await tx.user.create({
         data: { name: input.name, email: input.email, mobile: input.mobile || null, passwordHash },
         select: { id: true, name: true, email: true, mobile: true, status: true, createdAt: true },
@@ -45,6 +60,7 @@ export async function POST(request: Request) {
         data: {
           name: input.shopName,
           slug: await createUniqueShopSlug(tx, input.shopName),
+          businessCategoryId: input.businessCategoryId ?? null,
           phone: input.phone || input.mobile || null,
           whatsapp: input.whatsapp || input.phone || input.mobile || null,
           email: input.email,

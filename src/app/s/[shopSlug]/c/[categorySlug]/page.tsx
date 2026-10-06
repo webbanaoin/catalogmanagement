@@ -70,6 +70,8 @@ export default async function CategoryPage({
 }) {
   const [{ shopSlug, categorySlug }, rawSearchParams] = await Promise.all([params, searchParams]);
   const q = value(rawSearchParams.q)?.trim().slice(0, 120) || undefined;
+  const catalogGroup = value(rawSearchParams.group)?.trim().slice(0, 120) || undefined;
+  const attributeValue = value(rawSearchParams.spec)?.trim().slice(0, 500) || undefined;
   const availabilityFilter = availability(value(rawSearchParams.availability));
   const pageValue = Number(value(rawSearchParams.page));
   const page = Number.isInteger(pageValue) && pageValue > 0 ? Math.min(pageValue, 10000) : 1;
@@ -79,6 +81,8 @@ export default async function CategoryPage({
     getPublicStorefront(shopSlug, {
       q,
       categorySlug,
+      catalogGroup,
+      attributeValue,
       availability: availabilityFilter,
       page,
       includeHighlights: false,
@@ -93,6 +97,8 @@ export default async function CategoryPage({
         data={data}
         q={q}
         categorySlug={categorySlug}
+        catalogGroup={catalogGroup}
+        attributeValue={attributeValue}
         availability={availabilityFilter}
         basePath={`/s/${shopSlug}/c/${categorySlug}`}
         collectionTitle={category.name}

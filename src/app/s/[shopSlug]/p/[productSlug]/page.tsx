@@ -112,6 +112,7 @@ export default async function ProductPage({
     `Hi ${shop.name}, I'm interested in this product and would like to know its current price.`,
     `Product: ${product.name}`,
     product.sku ? `SKU: ${product.sku}` : null,
+    product.catalogGroup ? `${shop.catalogGroupLabel}: ${product.catalogGroup}` : null,
     product.category ? `Category: ${product.category.name}` : null,
     `Availability: ${availabilityLabel(product.availabilityStatus)}`,
     `Product link: ${productUrl}`,
@@ -144,6 +145,15 @@ export default async function ProductPage({
           <div className="space-y-5">
             <div>
               <div className="flex flex-wrap gap-2">
+                {product.catalogGroup ? (
+                  <Link
+                    href={`/s/${shopSlug}?group=${encodeURIComponent(product.catalogGroup)}`}
+                  >
+                    <Badge variant="info">
+                      {shop.catalogGroupLabel}: {product.catalogGroup}
+                    </Badge>
+                  </Link>
+                ) : null}
                 {product.category ? (
                   <Link href={`/s/${shopSlug}/c/${product.category.slug}`}>
                     <Badge variant="info">{product.category.name}</Badge>

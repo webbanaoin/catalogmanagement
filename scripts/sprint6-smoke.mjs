@@ -64,6 +64,19 @@ async function main() {
     );
   }
 
+  const admin = await request("/admin");
+  if (![303, 307, 308].includes(admin.status)) {
+    throw new Error(
+      `Unauthenticated admin page should redirect to login, got HTTP ${admin.status}`,
+    );
+  }
+  const adminLocation = admin.headers.get("location") || "";
+  if (!adminLocation.endsWith("/login")) {
+    throw new Error(
+      `Unauthenticated admin page redirected to an unexpected location: ${adminLocation}`,
+    );
+  }
+
   process.stdout.write(
     `Sprint 6 smoke checks passed for ${baseUrl}.\n`,
   );

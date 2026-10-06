@@ -10,11 +10,11 @@ import {
   PageHeader,
   buttonClassName,
 } from "@/components/ui";
-import { requirePlatformAdmin } from "@/server/auth/admin-access";
+import { requirePlatformAdminPageAccess } from "@/server/auth/admin-page-access";
 import { prisma } from "@/server/database/prisma";
 
 export default async function AdminOverviewPage() {
-  await requirePlatformAdmin();
+  await requirePlatformAdminPageAccess();
   const [pending, active, suspended, plans, categories] = await Promise.all([
     prisma.shop.count({ where: { status: "PENDING" } }),
     prisma.shop.count({ where: { status: "ACTIVE" } }),

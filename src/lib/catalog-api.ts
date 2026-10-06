@@ -217,6 +217,39 @@ export async function updateShopProfile(shopId: string, payload: ShopProfilePayl
 }
 
 
+export interface ShopHour {
+  id?: string;
+  shopId?: string;
+  dayOfWeek: number;
+  isClosed: boolean;
+  openTime?: string | null;
+  closeTime?: string | null;
+}
+
+export async function getShopHours(shopId: string) {
+  return requestJson<{ items: ShopHour[] }>(
+    `/api/shops/${encodeURIComponent(shopId)}/hours`,
+  );
+}
+
+export async function updateShopHours(shopId: string, hours: ShopHour[]) {
+  return requestJson<{ items: ShopHour[] }>(
+    `/api/shops/${encodeURIComponent(shopId)}/hours`,
+    {
+      method: "PUT",
+      body: JSON.stringify({
+        hours: hours.map(({ dayOfWeek, isClosed, openTime, closeTime }) => ({
+          dayOfWeek,
+          isClosed,
+          openTime: isClosed ? null : openTime,
+          closeTime: isClosed ? null : closeTime,
+        })),
+      }),
+    },
+  );
+}
+
+
 export type ShopBrandingKind = "logo" | "cover";
 
 export async function uploadShopBranding(
@@ -350,6 +383,7 @@ export interface ShopProduct {
   id: string;
   shopId: string;
   categoryId?: string | null;
+  catalogGroup?: string | null;
   name: string;
   slug: string;
   sku?: string | null;
@@ -365,12 +399,19 @@ export interface ShopProduct {
   showPrice?: boolean | null;
   deletedAt?: string | null;
   category?: ShopCategory | null;
+  attributes?: Array<{
+    id?: string;
+    attributeName: string;
+    attributeValue: string;
+    displayOrder: number;
+  }>;
   images: ProductImage[];
 }
 
 export interface ShopProductPayload {
   name: string;
   categoryId?: string | null;
+  catalogGroup?: string | null;
   sku?: string | null;
   description?: string | null;
   price?: number | null;
@@ -470,6 +511,7 @@ export async function uploadProductImage(
   shopId: string,
   productId: string,
   file: File,
+  options?: { isPrimary?: boolean; displayOrder?: number },
 ) {
   const upload = await requestJson<{
     data: {
@@ -524,8 +566,8 @@ export async function uploadProductImage(
       body: JSON.stringify({
         storageKey: upload.data.key,
         thumbnailKey: null,
-        displayOrder: 0,
-        isPrimary: true,
+        displayOrder: options?.displayOrder ?? 0,
+        isPrimary: options?.isPrimary ?? false,
         fileSize: file.size,
         mimeType: file.type,
       }),

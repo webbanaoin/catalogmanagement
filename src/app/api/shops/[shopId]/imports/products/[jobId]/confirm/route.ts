@@ -115,6 +115,7 @@ export async function POST(
           name: true,
           sku: true,
           categoryId: true,
+          catalogGroup: true,
           price: true,
           discountPrice: true,
           priceType: true,
@@ -140,6 +141,7 @@ export async function POST(
         productFingerprint({
           name: product.name,
           categoryId: product.categoryId,
+          catalogGroup: product.catalogGroup,
           priceType: product.priceType,
           price: product.price == null ? null : product.price.toString(),
           discountPrice:
@@ -230,6 +232,7 @@ export async function POST(
             data: {
               shopId,
               categoryId: product.categoryId,
+              catalogGroup: product.catalogGroup ?? null,
               name: product.name,
               slug: nextSlug(product.name, usedSlugs),
               sku: product.resolvedSku,

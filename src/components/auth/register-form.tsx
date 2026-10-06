@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
-import { Alert, Button, Field, Input } from "@/components/ui";
+import { Alert, Button, Field, Input, Select } from "@/components/ui";
 import { AuthApiError, registerMerchant } from "@/lib/auth-api";
+import { getBusinessCategories, type BusinessCategory } from "@/lib/catalog-api";
 import {
   isValidEmail,
   isValidIndianMobile,
@@ -120,6 +121,22 @@ export function RegisterForm() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [businessCategories, setBusinessCategories] = useState<BusinessCategory[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    void getBusinessCategories()
+      .then((response) => {
+        if (active) setBusinessCategories(response.items);
+      })
+      .catch(() => {
+        // Registration remains available with the generic catalogue model.
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -145,6 +162,7 @@ export function RegisterForm() {
         mobile: optionalValue(formData, "mobile"),
         password: rawValue(formData, "password"),
         shopName: rawValue(formData, "shopName").trim(),
+        businessCategoryId: optionalValue(formData, "businessCategoryId"),
         phone: optionalValue(formData, "phone"),
         whatsapp: optionalValue(formData, "whatsapp"),
         city: optionalValue(formData, "city"),
@@ -229,6 +247,30 @@ export function RegisterForm() {
           aria-describedby={describedBy("shopName", fieldErrors.shopName)}
         />
       </Field>
+
+      {businessCategories.length > 0 ? (
+        <Field
+          label="Business type"
+          htmlFor="businessCategoryId"
+          hint="Recommended. This lets the catalogue suggest the right product groups and details for your shop."
+          error={fieldErrors.businessCategoryId}
+        >
+          <Select
+            id="businessCategoryId"
+            name="businessCategoryId"
+            defaultValue=""
+            aria-invalid={Boolean(fieldErrors.businessCategoryId)}
+            aria-describedby={describedBy("businessCategoryId", fieldErrors.businessCategoryId, true)}
+          >
+            <option value="">Select business type</option>
+            {businessCategories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      ) : null}
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field

@@ -58,6 +58,7 @@ export const registerSchema = z.object({
     .trim()
     .min(2, "Shop name must contain at least 2 characters")
     .max(160, "Shop name must contain at most 160 characters"),
+  businessCategoryId: z.string().trim().min(1).optional(),
   phone: optionalIndianPhone,
   whatsapp: optionalIndianMobile("WhatsApp number"),
   city: optionalNonBlankText("City", 120),

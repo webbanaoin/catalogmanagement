@@ -33,6 +33,7 @@ const created = {
   userIds: [],
   shopIds: [],
   businessCategoryIds: [],
+  planIds: [],
 };
 
 async function request(path, options = {}, cookie) {
@@ -125,15 +126,57 @@ async function createFixture() {
   });
   created.userIds.push(pendingUser.id);
 
+  const testPlan = await prisma.plan.create({
+    data: {
+      name: `Sprint 6 Regression Plan ${suffix}`,
+      slug: `sprint6-regression-plan-${suffix}`,
+      description: "Disposable CI plan for Sprint 6 tenant regression",
+      monthlyPrice: "0.00",
+      annualPrice: "0.00",
+      productLimit: 100,
+      imageLimitPerProduct: 10,
+      analyticsEnabled: true,
+      excelImportEnabled: true,
+      customBrandingEnabled: true,
+      trialDays: 30,
+      graceDays: 7,
+      status: "ACTIVE",
+    },
+  });
+  created.planIds.push(testPlan.id);
+
+  const jewelleryBusinessCategory = await prisma.businessCategory.create({
+    data: {
+      name: `Jewellery Sprint 6 ${suffix}`,
+      slug: `jewellery-sprint6-${suffix}`,
+      status: "ACTIVE",
+      displayOrder: 9998,
+    },
+  });
+  created.businessCategoryIds.push(jewelleryBusinessCategory.id);
+
   const shopA = await prisma.shop.create({
     data: {
       name: "Sprint 6 Shop A",
       slug: `sprint6-shop-a-${suffix}`,
       email: userA.email,
       status: "ACTIVE",
+      businessCategoryId: jewelleryBusinessCategory.id,
     },
   });
   created.shopIds.push(shopA.id);
+
+  await prisma.subscription.create({
+    data: {
+      shopId: shopA.id,
+      planId: testPlan.id,
+      startDate: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      graceEndsAt: new Date(Date.now() + 37 * 24 * 60 * 60 * 1000),
+      status: "ACTIVE",
+      paymentStatus: "WAIVED",
+    },
+  });
 
   const shopB = await prisma.shop.create({
     data: {
@@ -265,6 +308,11 @@ async function cleanup() {
         where: { id: { in: created.businessCategoryIds } },
       });
     }
+    if (created.planIds.length) {
+      await prisma.plan.deleteMany({
+        where: { id: { in: created.planIds } },
+      });
+    }
     if (created.userIds.length) {
       await prisma.user.deleteMany({ where: { id: { in: created.userIds } } });
     }
@@ -333,6 +381,132 @@ async function main() {
     200,
   );
 
+
+  const noPriceCreate = await jsonRequest(
+    `/api/shops/${fixture.shopA.id}/products`,
+    "POST",
+    {
+      name: `Sprint6 No Price Product ${suffix}`,
+      categoryId: null,
+      catalogGroup: "Gold",
+      sku: null,
+      description: "Regression product with intentionally blank price",
+      price: null,
+      discountPrice: null,
+      priceType: "FIXED",
+      availabilityStatus: "IN_STOCK",
+      isFeatured: false,
+      isNewArrival: false,
+      isOffer: false,
+      isVisible: true,
+      showPrice: null,
+      attributes: [
+        { attributeName: "Purity", attributeValue: "22K", displayOrder: 0 },
+        { attributeName: "Weight", attributeValue: "6.4 g", displayOrder: 1 },
+      ],
+    },
+    cookieA,
+  );
+  await expectStatus("create product without price", noPriceCreate, 201);
+  const noPricePayload = await noPriceCreate.json();
+  const noPriceId = noPricePayload?.data?.id;
+  const noPriceSlug = noPricePayload?.data?.slug;
+  if (!noPriceId || !noPriceSlug) {
+    throw new Error("Product without price did not return an id and slug");
+  }
+
+  const noPriceUpdate = await jsonRequest(
+    `/api/shops/${fixture.shopA.id}/products/${noPriceId}`,
+    "PATCH",
+    {
+      name: `Sprint6 No Price Product Updated ${suffix}`,
+      availabilityStatus: "ON_REQUEST",
+      price: null,
+      discountPrice: null,
+      priceType: "FIXED",
+    },
+    cookieA,
+  );
+  await expectStatus("edit product without price", noPriceUpdate, 200);
+  const noPriceUpdatePayload = await noPriceUpdate.json();
+  const updatedNoPriceSlug = noPriceUpdatePayload?.data?.slug;
+  if (!updatedNoPriceSlug) {
+    throw new Error("Edited no-price product did not return the updated slug");
+  }
+
+  const noPriceDuplicate = await jsonRequest(
+    `/api/shops/${fixture.shopA.id}/products/${noPriceId}/duplicate`,
+    "POST",
+    {},
+    cookieA,
+  );
+  await expectStatus("duplicate product without price", noPriceDuplicate, 201);
+  const duplicatePayload = await noPriceDuplicate.json();
+  if (duplicatePayload?.data?.isVisible !== false) {
+    throw new Error("Duplicated no-price product was not hidden by default");
+  }
+  if (duplicatePayload?.data?.price != null) {
+    throw new Error("Duplicated no-price product unexpectedly gained a price");
+  }
+  if (duplicatePayload?.data?.catalogGroup !== "Gold") {
+    throw new Error("Duplicated product did not preserve its catalog group");
+  }
+  if (
+    !duplicatePayload?.data?.attributes?.some(
+      (attribute) =>
+        attribute.attributeName === "Purity" && attribute.attributeValue === "22K",
+    )
+  ) {
+    throw new Error("Duplicated product did not preserve its vertical attributes");
+  }
+
+  const noPricePublic = await request(
+    `/s/${fixture.shopA.slug}/p/${updatedNoPriceSlug}`,
+  );
+  await expectStatus("public no-price product", noPricePublic, 200);
+  const noPriceHtml = await noPricePublic.text();
+  if (!noPriceHtml.includes("Price on request")) {
+    throw new Error("Product without price did not render as Price on request");
+  }
+  if (!noPriceHtml.includes("Jewellery Type: Gold")) {
+    throw new Error("Product detail did not render the Jewellery Type classification");
+  }
+  if (!noPriceHtml.includes("22K")) {
+    throw new Error("Product detail did not render the Purity attribute");
+  }
+
+  const goldStorefront = await request(
+    `/s/${fixture.shopA.slug}?group=${encodeURIComponent("Gold")}`,
+  );
+  await expectStatus("Gold catalog group filter", goldStorefront, 200);
+  if (!(await goldStorefront.text()).includes(`Sprint6 No Price Product Updated ${suffix}`)) {
+    throw new Error("Gold catalog group filter did not include the Gold product");
+  }
+
+  const silverStorefront = await request(
+    `/s/${fixture.shopA.slug}?group=${encodeURIComponent("Silver")}`,
+  );
+  await expectStatus("Silver catalog group filter", silverStorefront, 200);
+  if ((await silverStorefront.text()).includes(`Sprint6 No Price Product Updated ${suffix}`)) {
+    throw new Error("Gold product leaked into the Silver catalog group filter");
+  }
+
+  const purityStorefront = await request(
+    `/s/${fixture.shopA.slug}?group=${encodeURIComponent("Gold")}&spec=${encodeURIComponent("22K")}`,
+  );
+  await expectStatus("Jewellery purity filter", purityStorefront, 200);
+  if (!(await purityStorefront.text()).includes(`Sprint6 No Price Product Updated ${suffix}`)) {
+    throw new Error("22K purity filter did not include the matching Gold product");
+  }
+
+  const wrongPurityStorefront = await request(
+    `/s/${fixture.shopA.slug}?group=${encodeURIComponent("Gold")}&spec=${encodeURIComponent("18K")}`,
+  );
+  await expectStatus("non-matching jewellery purity filter", wrongPurityStorefront, 200);
+  if ((await wrongPurityStorefront.text()).includes(`Sprint6 No Price Product Updated ${suffix}`)) {
+    throw new Error("22K product leaked into the 18K purity filter");
+  }
+
   const crossTenantChecks = [
     ["cross-tenant profile", `/api/shops/${fixture.shopB.id}/profile`],
     ["cross-tenant categories", `/api/shops/${fixture.shopB.id}/categories`],
@@ -378,6 +552,26 @@ async function main() {
   ]) {
     await expectStatus(label, await request(path, {}, cookieA), 403);
   }
+
+
+  const adminPageAsMerchant = await request("/admin", {}, cookieA);
+  if (![303, 307, 308].includes(adminPageAsMerchant.status)) {
+    throw new Error(
+      `merchant admin page should redirect to access denied, got HTTP ${adminPageAsMerchant.status}`,
+    );
+  }
+  const merchantAdminLocation = adminPageAsMerchant.headers.get("location") || "";
+  if (!merchantAdminLocation.includes("/access-denied")) {
+    throw new Error(
+      `merchant admin page redirected to an unexpected location: ${merchantAdminLocation}`,
+    );
+  }
+
+  await expectStatus(
+    "merchant session remains valid after blocked admin page",
+    await request("/api/auth/me", {}, cookieA),
+    200,
+  );
 
   await prisma.shopUser.update({
     where: { id: fixture.membershipA.id },

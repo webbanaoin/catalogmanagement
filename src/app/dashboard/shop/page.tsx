@@ -1,13 +1,9 @@
 import {
   Badge,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   PageHeader,
 } from "@/components/ui";
 import { ShopProfileForm } from "@/components/shop-management/shop-profile-form";
+import { ShopHoursManager } from "@/components/shop-management/shop-hours-manager";
 
 export default function ShopProfilePage() {
   return (
@@ -15,23 +11,12 @@ export default function ShopProfilePage() {
       <PageHeader
         eyebrow="Sprint 6"
         title="Shop profile"
-        description="Manage the customer-facing shop identity, branding, contact details, location and catalogue settings."
+        description="Manage the customer-facing shop identity, branding, contact details, location, opening hours and catalogue settings."
         actions={<Badge variant="success">Ready</Badge>}
       />
 
       <ShopProfileForm />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Opening hours</CardTitle>
-          <CardDescription>The tenant-safe hours API is available for the next UI connection step.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm leading-6 text-muted">
-            Opening hours remain separate from profile details so merchants can manage closed days and daily timings independently.
-          </p>
-        </CardContent>
-      </Card>
+      <ShopHoursManager />
     </div>
   );
 }

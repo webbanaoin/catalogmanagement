@@ -3,6 +3,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/server/database/prisma";
+import { getCatalogPreset } from "@/lib/catalog-presets";
 import { S3StorageService } from "@/services/storage/s3-storage";
 
 export interface PublicShopHour {
@@ -25,6 +26,9 @@ export interface PublicShop {
   googleMapsUrl: string | null;
   showProductPrices: boolean;
   businessCategoryName: string | null;
+  businessCategorySlug: string | null;
+  catalogGroupLabel: string;
+  primaryFilterAttribute: string | null;
   logoUrl: string | null;
   coverUrl: string | null;
   hours: PublicShopHour[];
@@ -49,6 +53,7 @@ export interface PublicProductSummary {
   isFeatured: boolean;
   isNewArrival: boolean;
   isOffer: boolean;
+  catalogGroup: string | null;
   category: { slug: string; name: string } | null;
   imageUrl: string | null;
 }
@@ -61,6 +66,8 @@ export interface PublicProductDetail extends PublicProductSummary {
 export interface PublicStorefrontResult {
   shop: PublicShop;
   categories: PublicCategory[];
+  catalogGroups: string[];
+  primaryFilter: { name: string; label: string; values: string[] } | null;
   products: PublicProductSummary[];
   featured: PublicProductSummary[];
   newArrivals: PublicProductSummary[];
@@ -76,6 +83,8 @@ export interface PublicStorefrontResult {
 export interface StorefrontQuery {
   q?: string;
   categorySlug?: string;
+  catalogGroup?: string;
+  attributeValue?: string;
   availability?: "IN_STOCK" | "OUT_OF_STOCK" | "ON_REQUEST";
   page?: number;
   includeHighlights?: boolean;
@@ -94,6 +103,7 @@ const productSummarySelect = {
   isFeatured: true,
   isNewArrival: true,
   isOffer: true,
+  catalogGroup: true,
   category: {
     select: {
       slug: true,
@@ -148,13 +158,14 @@ async function mapShop(shop: {
   showProductPrices: boolean;
   logoStorageKey: string | null;
   coverStorageKey: string | null;
-  businessCategory: { name: string } | null;
+  businessCategory: { name: string; slug: string } | null;
   hours: PublicShopHour[];
 }): Promise<PublicShop> {
   const [logoUrl, coverUrl] = await Promise.all([
     mediaUrl(shop.logoStorageKey),
     mediaUrl(shop.coverStorageKey),
   ]);
+  const preset = getCatalogPreset(shop.businessCategory);
 
   return {
     slug: shop.slug,
@@ -169,6 +180,9 @@ async function mapShop(shop: {
     googleMapsUrl: shop.googleMapsUrl,
     showProductPrices: shop.showProductPrices,
     businessCategoryName: shop.businessCategory?.name ?? null,
+    businessCategorySlug: shop.businessCategory?.slug ?? null,
+    catalogGroupLabel: preset.groupLabel,
+    primaryFilterAttribute: preset.primaryFilterAttribute ?? null,
     logoUrl,
     coverUrl,
     hours: shop.hours,
@@ -180,7 +194,9 @@ async function mapProduct(
   shopShowProductPrices: boolean,
 ): Promise<PublicProductSummary> {
   const priceVisible =
-    row.priceType !== "ASK_PRICE" && (row.showPrice ?? shopShowProductPrices);
+    row.price != null &&
+    row.priceType !== "ASK_PRICE" &&
+    (row.showPrice ?? shopShowProductPrices);
 
   return {
     slug: row.slug,
@@ -196,6 +212,7 @@ async function mapProduct(
     isFeatured: row.isFeatured,
     isNewArrival: row.isNewArrival,
     isOffer: row.isOffer,
+    catalogGroup: row.catalogGroup,
     category:
       row.category?.status === "ACTIVE"
         ? { slug: row.category.slug, name: row.category.name }
@@ -226,7 +243,7 @@ async function getActiveShopRecord(shopSlug: string) {
       logoStorageKey: true,
       coverStorageKey: true,
       businessCategory: {
-        select: { name: true },
+        select: { name: true, slug: true },
       },
       hours: {
         orderBy: { dayOfWeek: "asc" },
@@ -241,9 +258,16 @@ async function getActiveShopRecord(shopSlug: string) {
   });
 }
 
-function publicProductWhere(shopId: string, query: StorefrontQuery): Prisma.ProductWhereInput {
+function publicProductWhere(
+  shopId: string,
+  query: StorefrontQuery,
+  primaryAttributeName?: string,
+): Prisma.ProductWhereInput {
   const q = query.q?.trim().slice(0, 120);
   const categorySlug = query.categorySlug?.trim().slice(0, 160);
+  const catalogGroup = query.catalogGroup?.trim().slice(0, 120);
+  const attributeValue = query.attributeValue?.trim().slice(0, 500);
+  const and: Prisma.ProductWhereInput[] = [];
 
   const where: Prisma.ProductWhereInput = {
     shopId,
@@ -254,9 +278,11 @@ function publicProductWhere(shopId: string, query: StorefrontQuery): Prisma.Prod
           OR: [
             { name: { contains: q } },
             { description: { contains: q } },
+            { sku: { contains: q } },
           ],
         }
       : {}),
+    ...(catalogGroup ? { catalogGroup } : {}),
     ...(query.availability ? { availabilityStatus: query.availability } : {}),
   };
 
@@ -266,16 +292,26 @@ function publicProductWhere(shopId: string, query: StorefrontQuery): Prisma.Prod
       status: "ACTIVE",
     };
   } else {
-    where.AND = [
-      {
-        OR: [
-          { categoryId: null },
-          { category: { status: "ACTIVE" } },
-        ],
-      },
-    ];
+    and.push({
+      OR: [
+        { categoryId: null },
+        { category: { status: "ACTIVE" } },
+      ],
+    });
   }
 
+  if (primaryAttributeName && attributeValue) {
+    and.push({
+      attributes: {
+        some: {
+          attributeName: primaryAttributeName,
+          attributeValue,
+        },
+      },
+    });
+  }
+
+  if (and.length > 0) where.AND = and;
   return where;
 }
 
@@ -293,14 +329,67 @@ export async function getPublicStorefront(
 
   const pageSize = 24;
   const page = Math.max(1, query.page ?? 1);
-  const where = publicProductWhere(shopRecord.id, query);
+  const preset = getCatalogPreset(shopRecord.businessCategory);
+  const primaryAttributeName = preset.primaryFilterAttribute;
+  const where = publicProductWhere(shopRecord.id, query, primaryAttributeName);
 
-  const [categories, products, total] = await Promise.all([
+  const [categories, groupRows, attributeRows, products, total] = await Promise.all([
     prisma.shopCategory.findMany({
-      where: { shopId: shopRecord.id, status: "ACTIVE" },
+      where: {
+        shopId: shopRecord.id,
+        status: "ACTIVE",
+        ...(query.catalogGroup?.trim()
+          ? {
+              products: {
+                some: {
+                  deletedAt: null,
+                  isVisible: true,
+                  catalogGroup: query.catalogGroup.trim().slice(0, 120),
+                },
+              },
+            }
+          : {}),
+      },
       orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
       select: { name: true, slug: true, imageStorageKey: true },
     }),
+    prisma.product.findMany({
+      where: {
+        shopId: shopRecord.id,
+        deletedAt: null,
+        isVisible: true,
+        catalogGroup: { not: null },
+      },
+      distinct: ["catalogGroup"],
+      orderBy: { catalogGroup: "asc" },
+      select: { catalogGroup: true },
+    }),
+    primaryAttributeName
+      ? prisma.productAttribute.findMany({
+          where: {
+            attributeName: primaryAttributeName,
+            product: {
+              shopId: shopRecord.id,
+              deletedAt: null,
+              isVisible: true,
+              ...(query.catalogGroup?.trim()
+                ? { catalogGroup: query.catalogGroup.trim().slice(0, 120) }
+                : {}),
+              ...(query.categorySlug?.trim()
+                ? {
+                    category: {
+                      slug: query.categorySlug.trim().slice(0, 160),
+                      status: "ACTIVE",
+                    },
+                  }
+                : {}),
+            },
+          },
+          distinct: ["attributeValue"],
+          orderBy: { attributeValue: "asc" },
+          select: { attributeValue: true },
+        })
+      : Promise.resolve([]),
     prisma.product.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -363,9 +452,47 @@ export async function getPublicStorefront(
       Promise.all((offers as ProductSummaryRow[]).map((product) => mapProduct(product, shopRecord.showProductPrices))),
     ]);
 
+  const groupOrder = new Map(
+    preset.groups.map((value, index) => [value.toLowerCase(), index]),
+  );
+  const catalogGroups = groupRows
+    .map((row) => row.catalogGroup?.trim())
+    .filter((value): value is string => Boolean(value))
+    .sort((left, right) => {
+      const leftOrder = groupOrder.get(left.toLowerCase()) ?? Number.MAX_SAFE_INTEGER;
+      const rightOrder = groupOrder.get(right.toLowerCase()) ?? Number.MAX_SAFE_INTEGER;
+      return leftOrder - rightOrder || left.localeCompare(right);
+    });
+
+  const primaryPreset = primaryAttributeName
+    ? preset.attributes.find((attribute) => attribute.name === primaryAttributeName)
+    : undefined;
+  const primaryValueOrder = new Map(
+    (primaryPreset?.options ?? []).map((value, index) => [value.toLowerCase(), index]),
+  );
+  const primaryFilterValues = attributeRows
+    .map((row) => row.attributeValue.trim())
+    .filter(Boolean)
+    .sort((left, right) => {
+      const leftOrder =
+        primaryValueOrder.get(left.toLowerCase()) ?? Number.MAX_SAFE_INTEGER;
+      const rightOrder =
+        primaryValueOrder.get(right.toLowerCase()) ?? Number.MAX_SAFE_INTEGER;
+      return leftOrder - rightOrder || left.localeCompare(right);
+    });
+
   return {
     shop,
     categories: mappedCategories,
+    catalogGroups,
+    primaryFilter:
+      primaryAttributeName && primaryFilterValues.length > 0
+        ? {
+            name: primaryAttributeName,
+            label: primaryPreset?.label ?? primaryAttributeName,
+            values: primaryFilterValues,
+          }
+        : null,
     products: mappedProducts,
     featured: mappedFeatured,
     newArrivals: mappedNewArrivals,

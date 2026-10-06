@@ -41,6 +41,7 @@ export const categoryUpdateSchema = categoryCreateSchema.partial();
 const attributeSchema = z.object({ attributeName: z.string().trim().min(1).max(120), attributeValue: z.string().trim().min(1).max(500), displayOrder: z.number().int().min(0).default(0) });
 const productFields = {
   name: z.string().trim().min(1).max(180), categoryId: z.string().min(1).optional().nullable(),
+  catalogGroup: optionalTrimmed(120),
   sku: optionalTrimmed(100), description: optionalTrimmed(20000), price: money, discountPrice: money,
   priceType: z.enum(["FIXED","STARTING_FROM","ASK_PRICE"]),
   availabilityStatus: z.enum(["IN_STOCK","OUT_OF_STOCK","ON_REQUEST"]),
@@ -49,7 +50,7 @@ const productFields = {
   attributes: z.array(attributeSchema).max(50),
 };
 function productRules(v:{priceType?:string;price?:number|null;discountPrice?:number|null},ctx:z.RefinementCtx){
-  if (v.priceType && v.priceType !== "ASK_PRICE" && v.price == null) ctx.addIssue({code:"custom",path:["price"],message:"Price is required for fixed and starting-from pricing"});
+  if (v.price == null && v.discountPrice != null) ctx.addIssue({code:"custom",path:["discountPrice"],message:"Discount price requires a base price"});
   if (v.price != null && v.discountPrice != null && v.discountPrice > v.price) ctx.addIssue({code:"custom",path:["discountPrice"],message:"Discount price cannot exceed price"});
 }
 export const productCreateSchema = z.object({

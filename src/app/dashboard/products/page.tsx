@@ -29,6 +29,7 @@ import {
   getCurrentMerchantShop,
   getShopCategories,
   getShopProducts,
+  getShopProfile,
   updateShopProduct,
   uploadProductImage,
   type MerchantShop,
@@ -37,10 +38,22 @@ import {
   type ShopCategory,
   type ShopProduct,
 } from "@/lib/catalog-api";
+import {
+  catalogAttributeOptions,
+  catalogAttributesForGroup,
+  getCatalogPreset,
+} from "@/lib/catalog-presets";
+
+interface ProductAttributeDraft {
+  attributeName: string;
+  attributeValue: string;
+  displayOrder: number;
+}
 
 interface ProductDraft {
   name: string;
   categoryId: string;
+  catalogGroup: string;
   sku: string;
   description: string;
   price: string;
@@ -52,11 +65,13 @@ interface ProductDraft {
   isNewArrival: boolean;
   isOffer: boolean;
   isVisible: boolean;
+  attributes: ProductAttributeDraft[];
 }
 
 const emptyDraft: ProductDraft = {
   name: "",
   categoryId: "",
+  catalogGroup: "",
   sku: "",
   description: "",
   price: "",
@@ -68,12 +83,14 @@ const emptyDraft: ProductDraft = {
   isNewArrival: false,
   isOffer: false,
   isVisible: true,
+  attributes: [],
 };
 
 function toDraft(product: ShopProduct): ProductDraft {
   return {
     name: product.name,
     categoryId: product.categoryId ?? "",
+    catalogGroup: product.catalogGroup ?? "",
     sku: product.sku ?? "",
     description: product.description ?? "",
     price: product.price == null ? "" : String(product.price),
@@ -86,6 +103,11 @@ function toDraft(product: ShopProduct): ProductDraft {
     isNewArrival: product.isNewArrival,
     isOffer: product.isOffer,
     isVisible: product.isVisible,
+    attributes: (product.attributes ?? []).map((attribute, index) => ({
+      attributeName: attribute.attributeName,
+      attributeValue: attribute.attributeValue,
+      displayOrder: attribute.displayOrder ?? index,
+    })),
   };
 }
 
@@ -102,6 +124,7 @@ export default function ProductsPage() {
   const [shop, setShop] = useState<MerchantShop | null>(null);
   const [categories, setCategories] = useState<ShopCategory[]>([]);
   const [products, setProducts] = useState<ShopProduct[]>([]);
+  const [businessCategory, setBusinessCategory] = useState<{ name: string; slug: string } | null>(null);
   const [draft, setDraft] = useState<ProductDraft>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -123,14 +146,23 @@ export default function ProductsPage() {
     async function load() {
       try {
         const currentShop = await getCurrentMerchantShop();
-        const [categoryResponse, productResponse] = await Promise.all([
+        const [categoryResponse, productResponse, profileResponse] = await Promise.all([
           getShopCategories(currentShop.id),
           getShopProducts(currentShop.id),
+          getShopProfile(currentShop.id),
         ]);
         if (!active) return;
         setShop(currentShop);
         setCategories(categoryResponse.items);
         setProducts(productResponse.items);
+        setBusinessCategory(
+          profileResponse.data.businessCategory
+            ? {
+                name: profileResponse.data.businessCategory.name,
+                slug: profileResponse.data.businessCategory.slug,
+              }
+            : null,
+        );
       } catch (error) {
         if (!active) return;
         setFeedback({
@@ -163,6 +195,62 @@ export default function ProductsPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  const catalogPreset = getCatalogPreset(businessCategory);
+  const activeCatalogAttributes = catalogAttributesForGroup(
+    catalogPreset,
+    draft.catalogGroup,
+  );
+
+  function changeCatalogGroup(catalogGroup: string) {
+    setDraft((current) => {
+      const activeAttributes = catalogAttributesForGroup(catalogPreset, catalogGroup);
+      const activeByName = new Map(
+        activeAttributes.map((attribute) => [attribute.name, attribute]),
+      );
+
+      const attributes = current.attributes.filter((attribute) => {
+        const presetAttribute = activeByName.get(attribute.attributeName);
+        if (!presetAttribute) return false;
+
+        const options = catalogAttributeOptions(presetAttribute, catalogGroup);
+        return options.length === 0 || options.includes(attribute.attributeValue);
+      });
+
+      return { ...current, catalogGroup, attributes };
+    });
+  }
+
+  function productDetailValue(attributeName: string) {
+    return (
+      draft.attributes.find((attribute) => attribute.attributeName === attributeName)
+        ?.attributeValue ?? ""
+    );
+  }
+
+  function setProductDetail(attributeName: string, attributeValue: string) {
+    setDraft((current) => {
+      const existingIndex = current.attributes.findIndex(
+        (attribute) => attribute.attributeName === attributeName,
+      );
+      const attributes = [...current.attributes];
+
+      if (existingIndex >= 0) {
+        attributes[existingIndex] = {
+          ...attributes[existingIndex],
+          attributeValue,
+        };
+      } else {
+        attributes.push({
+          attributeName,
+          attributeValue,
+          displayOrder: attributes.length,
+        });
+      }
+
+      return { ...current, attributes };
+    });
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!shop) return;
@@ -176,6 +264,7 @@ export default function ProductsPage() {
     const payload = {
       name,
       categoryId: draft.categoryId || null,
+      catalogGroup: draft.catalogGroup.trim() || null,
       sku: draft.sku.trim() || null,
       description: draft.description.trim() || null,
       price: draft.price === "" ? null : Number(draft.price),
@@ -190,7 +279,13 @@ export default function ProductsPage() {
       isNewArrival: draft.isNewArrival,
       isOffer: draft.isOffer,
       isVisible: draft.isVisible,
-      attributes: [],
+      attributes: draft.attributes
+        .map((attribute) => ({
+          attributeName: attribute.attributeName.trim(),
+          attributeValue: attribute.attributeValue.trim(),
+          displayOrder: attribute.displayOrder,
+        }))
+        .filter((attribute) => attribute.attributeName && attribute.attributeValue),
     };
 
     setSaving(true);
@@ -263,31 +358,65 @@ export default function ProductsPage() {
     }
   }
 
-  async function uploadImage(product: ShopProduct, event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+  async function uploadImages(product: ShopProduct, event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
     event.target.value = "";
-    if (!shop || !file) return;
+    if (!shop || files.length === 0) return;
 
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      setFeedback({ variant: "error", message: "Use a JPG, PNG or WebP image." });
+    const invalidType = files.find(
+      (file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type),
+    );
+    if (invalidType) {
+      setFeedback({
+        variant: "error",
+        message: `${invalidType.name}: use JPG, PNG or WebP images only.`,
+      });
       return;
     }
-    if (file.size > 8 * 1024 * 1024) {
-      setFeedback({ variant: "error", message: "Product image must be 8 MB or smaller." });
+
+    const oversized = files.find((file) => file.size > 8 * 1024 * 1024);
+    if (oversized) {
+      setFeedback({
+        variant: "error",
+        message: `${oversized.name}: each product image must be 8 MB or smaller.`,
+      });
       return;
     }
 
     setBusyId(product.id);
-    setFeedback(null);
+    setFeedback({
+      variant: "info",
+      message: `Uploading ${files.length} image${files.length === 1 ? "" : "s"} for ${product.name}…`,
+    });
+
+    let uploaded = 0;
     try {
-      await uploadProductImage(shop.id, product.id, file);
-      setFeedback({ variant: "success", message: `Image uploaded for ${product.name}.` });
+      for (const [index, file] of files.entries()) {
+        await uploadProductImage(shop.id, product.id, file, {
+          isPrimary: false,
+          displayOrder: (product.images?.length ?? 0) + index,
+        });
+        uploaded += 1;
+      }
+
+      setFeedback({
+        variant: "success",
+        message: `${uploaded} image${uploaded === 1 ? "" : "s"} uploaded for ${product.name}. The existing primary image is preserved; the first image becomes primary automatically when the product had no images.`,
+      });
       await refreshProducts(shop.id);
     } catch (error) {
+      const message =
+        error instanceof CatalogApiError
+          ? error.message
+          : "Unable to upload product images.";
       setFeedback({
-        variant: "error",
-        message: error instanceof CatalogApiError ? error.message : "Unable to upload product image.",
+        variant: uploaded > 0 ? "warning" : "error",
+        message:
+          uploaded > 0
+            ? `${uploaded} image${uploaded === 1 ? "" : "s"} uploaded before the next upload stopped: ${message}`
+            : message,
       });
+      await refreshProducts(shop.id);
     } finally {
       setBusyId(null);
     }
@@ -307,7 +436,7 @@ export default function ProductsPage() {
       <PageHeader
         eyebrow="Sprint 6"
         title="Products"
-        description="Create, edit, duplicate, hide or remove products and upload product images from one merchant workspace."
+        description="Create, edit, duplicate, hide or remove products and upload one or multiple product images from one merchant workspace."
         actions={<Badge variant="success">Ready</Badge>}
       />
 
@@ -347,6 +476,35 @@ export default function ProductsPage() {
                     </option>
                   ))}
               </Select>
+            </Field>
+
+            <Field
+              label={catalogPreset.groupLabel}
+              htmlFor="product-catalog-group"
+              hint="Customer-facing high-level grouping. Relevant product details change automatically with this selection."
+            >
+              {catalogPreset.groups.length > 0 ? (
+                <Select
+                  id="product-catalog-group"
+                  value={draft.catalogGroup}
+                  onChange={(event) => changeCatalogGroup(event.target.value)}
+                >
+                  <option value="">Select {catalogPreset.groupLabel.toLowerCase()}</option>
+                  {catalogPreset.groups.map((group) => (
+                    <option key={group} value={group}>
+                      {group}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <Input
+                  id="product-catalog-group"
+                  value={draft.catalogGroup}
+                  onChange={(event) => changeCatalogGroup(event.target.value)}
+                  maxLength={120}
+                  placeholder="Optional collection or department"
+                />
+              )}
             </Field>
 
             <Field label="Product code / SKU" htmlFor="product-sku" hint="Optional. Blank values are generated automatically.">
@@ -413,7 +571,7 @@ export default function ProductsPage() {
             <Field
               label="Price"
               htmlFor="product-price"
-              required={draft.priceType !== "ASK_PRICE"}
+              hint="Optional. Leave blank when the current price should be shared only on request."
             >
               <Input
                 id="product-price"
@@ -422,7 +580,6 @@ export default function ProductsPage() {
                 step="0.01"
                 value={draft.price}
                 onChange={(event) => setDraft({ ...draft, price: event.target.value })}
-                required={draft.priceType !== "ASK_PRICE"}
               />
             </Field>
 
@@ -436,6 +593,57 @@ export default function ProductsPage() {
                 onChange={(event) => setDraft({ ...draft, discountPrice: event.target.value })}
               />
             </Field>
+
+            {activeCatalogAttributes.length > 0 ? (
+              <div className="md:col-span-2 rounded-xl border border-border bg-surface-muted p-4">
+                <div className="mb-4">
+                  <p className="font-medium text-foreground">Product details</p>
+                  <p className="mt-1 text-sm text-muted">
+                    Suggested fields are based on the shop and selected {catalogPreset.groupLabel.toLowerCase()}. Fill only what is useful; blank fields are ignored.
+                  </p>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {activeCatalogAttributes.map((attribute, index) => {
+                    const inputId = `product-detail-${index}`;
+                    const options = catalogAttributeOptions(
+                      attribute,
+                      draft.catalogGroup,
+                    );
+
+                    return (
+                      <Field key={attribute.name} label={attribute.label} htmlFor={inputId}>
+                        {options.length > 0 ? (
+                          <Select
+                            id={inputId}
+                            value={productDetailValue(attribute.name)}
+                            onChange={(event) =>
+                              setProductDetail(attribute.name, event.target.value)
+                            }
+                          >
+                            <option value="">Select {attribute.label.toLowerCase()}</option>
+                            {options.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </Select>
+                        ) : (
+                          <Input
+                            id={inputId}
+                            value={productDetailValue(attribute.name)}
+                            onChange={(event) =>
+                              setProductDetail(attribute.name, event.target.value)
+                            }
+                            maxLength={500}
+                            placeholder={attribute.placeholder}
+                          />
+                        )}
+                      </Field>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
 
             <Field label="Description" htmlFor="product-description" className="md:col-span-2">
               <Textarea
@@ -511,6 +719,9 @@ export default function ProductsPage() {
                     <div className="min-w-0 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-semibold text-foreground">{product.name}</p>
+                        {product.catalogGroup ? (
+                          <Badge variant="info">{product.catalogGroup}</Badge>
+                        ) : null}
                         <Badge variant={product.isVisible ? "success" : "neutral"}>
                           {product.isVisible ? "Visible" : "Hidden"}
                         </Badge>
@@ -529,7 +740,7 @@ export default function ProductsPage() {
                         </Badge>
                       </div>
                       <p className="text-sm text-muted">
-                        {product.sku ?? "Auto code"} · {product.category?.name ?? "No category"} ·{" "}
+                        {product.sku ?? "Auto code"} · {product.catalogGroup ? `${catalogPreset.groupLabel}: ${product.catalogGroup} · ` : ""}{product.category?.name ?? "No category"} ·{" "}
                         {product.priceType === "ASK_PRICE" ? "Ask price" : money(product.discountPrice ?? product.price)}
                       </p>
                       <p className="text-xs text-muted">
@@ -569,13 +780,14 @@ export default function ProductsPage() {
                         </Link>
                       ) : null}
                       <label className={buttonClassName("secondary", "sm", busyId === product.id ? "pointer-events-none opacity-50" : "cursor-pointer")}>
-                        {busyId === product.id ? "Working…" : "Upload image"}
+                        {busyId === product.id ? "Uploading…" : "Upload images"}
                         <input
                           type="file"
                           accept="image/jpeg,image/png,image/webp"
+                          multiple
                           className="sr-only"
                           disabled={busyId === product.id}
-                          onChange={(event) => void uploadImage(product, event)}
+                          onChange={(event) => void uploadImages(product, event)}
                         />
                       </label>
                       <Button
