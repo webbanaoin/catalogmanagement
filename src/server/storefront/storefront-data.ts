@@ -335,7 +335,21 @@ export async function getPublicStorefront(
 
   const [categories, groupRows, attributeRows, products, total] = await Promise.all([
     prisma.shopCategory.findMany({
-      where: { shopId: shopRecord.id, status: "ACTIVE" },
+      where: {
+        shopId: shopRecord.id,
+        status: "ACTIVE",
+        ...(query.catalogGroup?.trim()
+          ? {
+              products: {
+                some: {
+                  deletedAt: null,
+                  isVisible: true,
+                  catalogGroup: query.catalogGroup.trim().slice(0, 120),
+                },
+              },
+            }
+          : {}),
+      },
       orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
       select: { name: true, slug: true, imageStorageKey: true },
     }),
@@ -360,6 +374,14 @@ export async function getPublicStorefront(
               isVisible: true,
               ...(query.catalogGroup?.trim()
                 ? { catalogGroup: query.catalogGroup.trim().slice(0, 120) }
+                : {}),
+              ...(query.categorySlug?.trim()
+                ? {
+                    category: {
+                      slug: query.categorySlug.trim().slice(0, 160),
+                      status: "ACTIVE",
+                    },
+                  }
                 : {}),
             },
           },
