@@ -38,7 +38,11 @@ import {
   type ShopCategory,
   type ShopProduct,
 } from "@/lib/catalog-api";
-import { getCatalogPreset } from "@/lib/catalog-presets";
+import {
+  catalogAttributeOptions,
+  catalogAttributesForGroup,
+  getCatalogPreset,
+} from "@/lib/catalog-presets";
 
 interface ProductAttributeDraft {
   attributeName: string;
@@ -192,6 +196,29 @@ export default function ProductsPage() {
   }
 
   const catalogPreset = getCatalogPreset(businessCategory);
+  const activeCatalogAttributes = catalogAttributesForGroup(
+    catalogPreset,
+    draft.catalogGroup,
+  );
+
+  function changeCatalogGroup(catalogGroup: string) {
+    setDraft((current) => {
+      const activeAttributes = catalogAttributesForGroup(catalogPreset, catalogGroup);
+      const activeByName = new Map(
+        activeAttributes.map((attribute) => [attribute.name, attribute]),
+      );
+
+      const attributes = current.attributes.filter((attribute) => {
+        const presetAttribute = activeByName.get(attribute.attributeName);
+        if (!presetAttribute) return false;
+
+        const options = catalogAttributeOptions(presetAttribute, catalogGroup);
+        return options.length === 0 || options.includes(attribute.attributeValue);
+      });
+
+      return { ...current, catalogGroup, attributes };
+    });
+  }
 
   function productDetailValue(attributeName: string) {
     return (
@@ -454,23 +481,30 @@ export default function ProductsPage() {
             <Field
               label={catalogPreset.groupLabel}
               htmlFor="product-catalog-group"
-              hint="Customer-facing high-level grouping. Example: Gold/Silver/Diamond, Men/Women/Kids or a department."
+              hint="Customer-facing high-level grouping. Relevant product details change automatically with this selection."
             >
-              <Input
-                id="product-catalog-group"
-                list="product-catalog-group-options"
-                value={draft.catalogGroup}
-                onChange={(event) => setDraft({ ...draft, catalogGroup: event.target.value })}
-                maxLength={120}
-                placeholder={catalogPreset.groups[0] ? `e.g. ${catalogPreset.groups.slice(0, 3).join(", ")}` : "Optional collection or department"}
-              />
               {catalogPreset.groups.length > 0 ? (
-                <datalist id="product-catalog-group-options">
+                <Select
+                  id="product-catalog-group"
+                  value={draft.catalogGroup}
+                  onChange={(event) => changeCatalogGroup(event.target.value)}
+                >
+                  <option value="">Select {catalogPreset.groupLabel.toLowerCase()}</option>
                   {catalogPreset.groups.map((group) => (
-                    <option key={group} value={group} />
+                    <option key={group} value={group}>
+                      {group}
+                    </option>
                   ))}
-                </datalist>
-              ) : null}
+                </Select>
+              ) : (
+                <Input
+                  id="product-catalog-group"
+                  value={draft.catalogGroup}
+                  onChange={(event) => changeCatalogGroup(event.target.value)}
+                  maxLength={120}
+                  placeholder="Optional collection or department"
+                />
+              )}
             </Field>
 
             <Field label="Product code / SKU" htmlFor="product-sku" hint="Optional. Blank values are generated automatically.">
@@ -560,37 +594,50 @@ export default function ProductsPage() {
               />
             </Field>
 
-            {catalogPreset.attributes.length > 0 ? (
+            {activeCatalogAttributes.length > 0 ? (
               <div className="md:col-span-2 rounded-xl border border-border bg-surface-muted p-4">
                 <div className="mb-4">
                   <p className="font-medium text-foreground">Product details</p>
                   <p className="mt-1 text-sm text-muted">
-                    Suggested fields are based on the shop business type. Fill only what is useful; blank fields are ignored.
+                    Suggested fields are based on the shop and selected {catalogPreset.groupLabel.toLowerCase()}. Fill only what is useful; blank fields are ignored.
                   </p>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
-                  {catalogPreset.attributes.map((attribute, index) => {
+                  {activeCatalogAttributes.map((attribute, index) => {
                     const inputId = `product-detail-${index}`;
-                    const listId = `product-detail-options-${index}`;
+                    const options = catalogAttributeOptions(
+                      attribute,
+                      draft.catalogGroup,
+                    );
+
                     return (
                       <Field key={attribute.name} label={attribute.label} htmlFor={inputId}>
-                        <Input
-                          id={inputId}
-                          list={attribute.options?.length ? listId : undefined}
-                          value={productDetailValue(attribute.name)}
-                          onChange={(event) =>
-                            setProductDetail(attribute.name, event.target.value)
-                          }
-                          maxLength={500}
-                          placeholder={attribute.placeholder}
-                        />
-                        {attribute.options?.length ? (
-                          <datalist id={listId}>
-                            {attribute.options.map((option) => (
-                              <option key={option} value={option} />
+                        {options.length > 0 ? (
+                          <Select
+                            id={inputId}
+                            value={productDetailValue(attribute.name)}
+                            onChange={(event) =>
+                              setProductDetail(attribute.name, event.target.value)
+                            }
+                          >
+                            <option value="">Select {attribute.label.toLowerCase()}</option>
+                            {options.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
                             ))}
-                          </datalist>
-                        ) : null}
+                          </Select>
+                        ) : (
+                          <Input
+                            id={inputId}
+                            value={productDetailValue(attribute.name)}
+                            onChange={(event) =>
+                              setProductDetail(attribute.name, event.target.value)
+                            }
+                            maxLength={500}
+                            placeholder={attribute.placeholder}
+                          />
+                        )}
                       </Field>
                     );
                   })}
