@@ -1,0 +1,331 @@
+export interface DefaultCategoryPreset {
+  key: string;
+  categories: string[];
+}
+
+const PRESETS: Array<{
+  matches: string[];
+  preset: DefaultCategoryPreset;
+}> = [
+  {
+    matches: ["jewellery", "jewelry", "jeweller", "jeweler"],
+    preset: {
+      key: "jewellery",
+      categories: [
+        "Rings",
+        "Earrings",
+        "Necklaces",
+        "Chains",
+        "Pendants",
+        "Bangles",
+        "Bracelets",
+        "Mangalsutra",
+        "Anklets & Payal",
+        "Nose Pins",
+        "Toe Rings",
+        "Jewellery Sets",
+        "Brooches",
+        "Coins & Bars",
+        "Religious Jewellery",
+        "Kids Jewellery",
+        "Men's Jewellery",
+        "Gift Articles",
+      ],
+    },
+  },
+  {
+    matches: ["toy", "gift"],
+    preset: {
+      key: "toys-gifts",
+      categories: [
+        "Soft Toys",
+        "Baby Toys",
+        "Educational Toys",
+        "Dolls & Doll Houses",
+        "Cars & Vehicles",
+        "Remote Control Toys",
+        "Building Blocks",
+        "Puzzles",
+        "Board Games",
+        "Outdoor Toys",
+        "Musical Toys",
+        "Pretend Play",
+        "Art & Craft",
+        "Return Gifts",
+        "Birthday Gifts",
+        "Personalized Gifts",
+        "Corporate Gifts",
+        "Home Decor",
+        "Photo Frames",
+        "Mugs & Bottles",
+        "Keychains",
+        "Greeting Cards",
+        "Party Supplies",
+      ],
+    },
+  },
+  {
+    matches: ["garment", "clothing", "apparel", "fashion", "boutique"],
+    preset: {
+      key: "garments",
+      categories: [
+        "T-Shirts",
+        "Shirts",
+        "Jeans",
+        "Trousers",
+        "Kurtas & Kurtis",
+        "Sarees",
+        "Dresses",
+        "Tops",
+        "Suits & Dress Materials",
+        "Ethnic Sets",
+        "Jackets & Sweatshirts",
+        "Sweaters",
+        "Nightwear",
+        "Innerwear",
+        "Activewear",
+        "Kids Wear",
+        "Fashion Accessories",
+      ],
+    },
+  },
+  {
+    matches: ["footwear", "shoe", "shoes"],
+    preset: {
+      key: "footwear",
+      categories: [
+        "Casual Shoes",
+        "Formal Shoes",
+        "Sports Shoes",
+        "Sneakers",
+        "Sandals",
+        "Slippers & Flip-Flops",
+        "Heels",
+        "Flats",
+        "Boots",
+        "Loafers",
+        "School Shoes",
+        "Kids Footwear",
+        "Socks & Accessories",
+      ],
+    },
+  },
+  {
+    matches: ["electronic", "mobile", "computer", "appliance"],
+    preset: {
+      key: "electronics",
+      categories: [
+        "Smartphones",
+        "Feature Phones",
+        "Laptops",
+        "Desktops",
+        "Tablets",
+        "Smartwatches",
+        "Televisions",
+        "Speakers & Audio",
+        "Headphones & Earphones",
+        "Cameras",
+        "Refrigerators",
+        "Washing Machines",
+        "Air Conditioners",
+        "Kitchen Appliances",
+        "Fans & Coolers",
+        "Power Banks",
+        "Chargers & Cables",
+        "Computer Accessories",
+        "Mobile Accessories",
+        "Networking",
+        "Storage Devices",
+      ],
+    },
+  },
+  {
+    matches: ["grocery", "supermarket", "supermart", "kirana"],
+    preset: {
+      key: "grocery",
+      categories: [
+        "Atta, Rice & Dal",
+        "Oil & Ghee",
+        "Spices & Masala",
+        "Salt, Sugar & Jaggery",
+        "Dry Fruits & Nuts",
+        "Snacks & Namkeen",
+        "Biscuits & Cookies",
+        "Noodles, Pasta & Instant Food",
+        "Breakfast & Cereals",
+        "Tea & Coffee",
+        "Beverages",
+        "Dairy Products",
+        "Bakery",
+        "Fruits & Vegetables",
+        "Personal Care",
+        "Baby Care",
+        "Household Cleaning",
+        "Pooja Essentials",
+        "Pet Care",
+      ],
+    },
+  },
+  {
+    matches: ["cosmetic", "beauty", "salon"],
+    preset: {
+      key: "beauty",
+      categories: [
+        "Face Care",
+        "Makeup",
+        "Lip Care",
+        "Eye Makeup",
+        "Nail Care",
+        "Hair Care",
+        "Bath & Body",
+        "Fragrances",
+        "Men's Grooming",
+        "Beauty Tools",
+        "Personal Care",
+        "Salon Professional",
+      ],
+    },
+  },
+  {
+    matches: ["furniture", "home decor", "decor"],
+    preset: {
+      key: "home-furniture",
+      categories: [
+        "Sofas",
+        "Chairs",
+        "Tables",
+        "Beds",
+        "Mattresses",
+        "Wardrobes",
+        "Cabinets & Storage",
+        "Dining Sets",
+        "Office Furniture",
+        "TV Units",
+        "Shoe Racks",
+        "Curtains",
+        "Rugs & Carpets",
+        "Lighting",
+        "Wall Decor",
+        "Mirrors",
+        "Clocks",
+        "Decorative Items",
+      ],
+    },
+  },
+  {
+    matches: ["hardware", "electrical", "plumbing", "paint"],
+    preset: {
+      key: "hardware",
+      categories: [
+        "Hand Tools",
+        "Power Tools",
+        "Fasteners",
+        "Adhesives & Sealants",
+        "Wires & Cables",
+        "Switches & Sockets",
+        "Lights & Bulbs",
+        "Fans",
+        "Pipes & Fittings",
+        "Taps & Faucets",
+        "Sanitaryware",
+        "Paints",
+        "Brushes & Rollers",
+        "Locks & Hardware",
+        "Pumps & Motors",
+        "Safety Equipment",
+      ],
+    },
+  },
+  {
+    matches: ["auto", "automobile", "vehicle", "spare part"],
+    preset: {
+      key: "auto-parts",
+      categories: [
+        "Engine Parts",
+        "Filters",
+        "Brakes",
+        "Clutch",
+        "Suspension",
+        "Steering",
+        "Electrical Parts",
+        "Batteries",
+        "Lighting",
+        "Tyres & Tubes",
+        "Lubricants",
+        "Car Care",
+        "Interior Accessories",
+        "Exterior Accessories",
+        "Two-Wheeler Accessories",
+        "Helmets & Safety Gear",
+      ],
+    },
+  },
+  {
+    matches: ["book", "stationery"],
+    preset: {
+      key: "books-stationery",
+      categories: [
+        "School Books",
+        "College Books",
+        "Competitive Exam Books",
+        "Children's Books",
+        "Fiction",
+        "Non-Fiction",
+        "Religious Books",
+        "Notebooks",
+        "Pens & Pencils",
+        "Art Supplies",
+        "School Supplies",
+        "Office Supplies",
+        "Files & Folders",
+        "Paper Products",
+        "Craft Supplies",
+        "Bags & Pouches",
+      ],
+    },
+  },
+  {
+    matches: ["sports", "fitness"],
+    preset: {
+      key: "sports",
+      categories: [
+        "Cricket",
+        "Football",
+        "Badminton",
+        "Tennis",
+        "Table Tennis",
+        "Basketball",
+        "Volleyball",
+        "Gym Equipment",
+        "Yoga",
+        "Fitness Accessories",
+        "Sportswear",
+        "Sports Footwear",
+        "Cycling",
+        "Swimming",
+        "Outdoor Games",
+        "Indoor Games",
+        "Protective Gear",
+      ],
+    },
+  },
+];
+
+function normalize(value?: string | null) {
+  return (value ?? "").trim().toLowerCase();
+}
+
+export function getDefaultCategoryPreset(input?: {
+  slug?: string | null;
+  name?: string | null;
+} | null): DefaultCategoryPreset | null {
+  const haystack = `${normalize(input?.slug)} ${normalize(input?.name)}`;
+
+  for (const item of PRESETS) {
+    if (item.matches.some((match) => haystack.includes(match))) {
+      return item.preset;
+    }
+  }
+
+  return null;
+}
