@@ -125,12 +125,23 @@ async function createFixture() {
   });
   created.userIds.push(pendingUser.id);
 
+  const jewelleryBusinessCategory = await prisma.businessCategory.create({
+    data: {
+      name: `Jewellery Sprint 6 ${suffix}`,
+      slug: `jewellery-sprint6-${suffix}`,
+      status: "ACTIVE",
+      displayOrder: 9998,
+    },
+  });
+  created.businessCategoryIds.push(jewelleryBusinessCategory.id);
+
   const shopA = await prisma.shop.create({
     data: {
       name: "Sprint 6 Shop A",
       slug: `sprint6-shop-a-${suffix}`,
       email: userA.email,
       status: "ACTIVE",
+      businessCategoryId: jewelleryBusinessCategory.id,
     },
   });
   created.shopIds.push(shopA.id);
@@ -340,6 +351,7 @@ async function main() {
     {
       name: `Sprint6 No Price Product ${suffix}`,
       categoryId: null,
+      catalogGroup: "Gold",
       sku: null,
       description: "Regression product with intentionally blank price",
       price: null,
@@ -351,7 +363,10 @@ async function main() {
       isOffer: false,
       isVisible: true,
       showPrice: null,
-      attributes: [],
+      attributes: [
+        { attributeName: "Purity", attributeValue: "22K", displayOrder: 0 },
+        { attributeName: "Weight", attributeValue: "6.4 g", displayOrder: 1 },
+      ],
     },
     cookieA,
   );
@@ -396,6 +411,17 @@ async function main() {
   if (duplicatePayload?.data?.price != null) {
     throw new Error("Duplicated no-price product unexpectedly gained a price");
   }
+  if (duplicatePayload?.data?.catalogGroup !== "Gold") {
+    throw new Error("Duplicated product did not preserve its catalog group");
+  }
+  if (
+    !duplicatePayload?.data?.attributes?.some(
+      (attribute) =>
+        attribute.attributeName === "Purity" && attribute.attributeValue === "22K",
+    )
+  ) {
+    throw new Error("Duplicated product did not preserve its vertical attributes");
+  }
 
   const noPricePublic = await request(
     `/s/${fixture.shopA.slug}/p/${updatedNoPriceSlug}`,
@@ -404,6 +430,44 @@ async function main() {
   const noPriceHtml = await noPricePublic.text();
   if (!noPriceHtml.includes("Price on request")) {
     throw new Error("Product without price did not render as Price on request");
+  }
+  if (!noPriceHtml.includes("Jewellery Type: Gold")) {
+    throw new Error("Product detail did not render the Jewellery Type classification");
+  }
+  if (!noPriceHtml.includes("22K")) {
+    throw new Error("Product detail did not render the Purity attribute");
+  }
+
+  const goldStorefront = await request(
+    `/s/${fixture.shopA.slug}?group=${encodeURIComponent("Gold")}`,
+  );
+  await expectStatus("Gold catalog group filter", goldStorefront, 200);
+  if (!(await goldStorefront.text()).includes(`Sprint6 No Price Product Updated ${suffix}`)) {
+    throw new Error("Gold catalog group filter did not include the Gold product");
+  }
+
+  const silverStorefront = await request(
+    `/s/${fixture.shopA.slug}?group=${encodeURIComponent("Silver")}`,
+  );
+  await expectStatus("Silver catalog group filter", silverStorefront, 200);
+  if ((await silverStorefront.text()).includes(`Sprint6 No Price Product Updated ${suffix}`)) {
+    throw new Error("Gold product leaked into the Silver catalog group filter");
+  }
+
+  const purityStorefront = await request(
+    `/s/${fixture.shopA.slug}?group=${encodeURIComponent("Gold")}&spec=${encodeURIComponent("22K")}`,
+  );
+  await expectStatus("Jewellery purity filter", purityStorefront, 200);
+  if (!(await purityStorefront.text()).includes(`Sprint6 No Price Product Updated ${suffix}`)) {
+    throw new Error("22K purity filter did not include the matching Gold product");
+  }
+
+  const wrongPurityStorefront = await request(
+    `/s/${fixture.shopA.slug}?group=${encodeURIComponent("Gold")}&spec=${encodeURIComponent("18K")}`,
+  );
+  await expectStatus("non-matching jewellery purity filter", wrongPurityStorefront, 200);
+  if ((await wrongPurityStorefront.text()).includes(`Sprint6 No Price Product Updated ${suffix}`)) {
+    throw new Error("22K product leaked into the 18K purity filter");
   }
 
   const crossTenantChecks = [
