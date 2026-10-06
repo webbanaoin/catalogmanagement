@@ -213,6 +213,7 @@ model Product {
   id String @id @default(cuid())
   shopId String @map("shop_id")
   categoryId String? @map("category_id")
+  catalogGroup String? @map("catalog_group") @db.VarChar(120)
   name String @db.VarChar(180)
   slug String @db.VarChar(191)
   sku String? @db.VarChar(100)
@@ -239,6 +240,7 @@ model Product {
   @@unique([shopId, sku])
   @@index([shopId, isVisible, deletedAt, createdAt])
   @@index([shopId, categoryId, deletedAt])
+  @@index([shopId, catalogGroup, deletedAt])
   @@index([shopId, availabilityStatus, deletedAt])
   @@map("products")
 }
