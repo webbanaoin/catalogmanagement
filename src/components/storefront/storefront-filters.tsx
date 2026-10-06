@@ -26,6 +26,7 @@ export function StorefrontFilters({
 }) {
   return (
     <form
+      key={[q ?? "", categorySlug ?? "", catalogGroup ?? "", attributeValue ?? "", availability ?? ""].join("|")}
       action={`/s/${shopSlug}`}
       method="get"
       className="grid gap-3 rounded-2xl border border-border bg-surface p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
