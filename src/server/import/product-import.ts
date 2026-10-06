@@ -2,9 +2,19 @@ import "server-only";
 
 import { z } from "zod";
 
+import type {
+  CatalogAttributePreset,
+  CatalogPreset,
+} from "@/lib/catalog-presets";
 import { PRODUCT_IMPORT_HEADERS, type WorkbookRow } from "@/server/import/xlsx";
 
 export const PRODUCT_IMPORT_MAX_ROWS = 1000;
+
+const storedAttributeSchema = z.object({
+  attributeName: z.string().min(1).max(120),
+  attributeValue: z.string().min(1).max(500),
+  displayOrder: z.number().int().min(0),
+});
 
 const storedProductSchema = z.object({
   rowNumber: z.number().int().positive(),
@@ -18,12 +28,16 @@ const storedProductSchema = z.object({
   priceType: z.enum(["FIXED", "STARTING_FROM", "ASK_PRICE"]),
   description: z.string().max(20000).nullable(),
   availabilityStatus: z.enum(["IN_STOCK", "OUT_OF_STOCK", "ON_REQUEST"]),
+  showPrice: z.boolean().nullable().default(null),
+  isVisible: z.boolean().default(true),
   isFeatured: z.boolean(),
   isNewArrival: z.boolean(),
+  isOffer: z.boolean().default(false),
+  attributes: z.array(storedAttributeSchema).max(50).default([]),
 });
 
 export const storedProductImportPreviewSchema = z.object({
-  version: z.union([z.literal(2), z.literal(3)]),
+  version: z.union([z.literal(2), z.literal(3), z.literal(4)]),
   products: z.array(storedProductSchema).max(PRODUCT_IMPORT_MAX_ROWS),
 });
 
@@ -75,11 +89,25 @@ export type ExistingProductForImport = {
   priceType: "FIXED" | "STARTING_FROM" | "ASK_PRICE";
 };
 
+const OPTIONAL_HEADERS = [
+  "Price Visibility",
+  "Visible",
+  "Offer",
+] as const;
+
 function normalizeHeader(value: string): string {
-  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
-function headerAliases(header: (typeof PRODUCT_IMPORT_HEADERS)[number]): string[] {
+function headerAliases(
+  header: (typeof PRODUCT_IMPORT_HEADERS)[number],
+  catalogPreset?: CatalogPreset,
+): string[] {
   if (header === "SKU") {
     return [
       "sku",
@@ -100,8 +128,10 @@ function headerAliases(header: (typeof PRODUCT_IMPORT_HEADERS)[number]): string[
       "jewelry type",
       "department",
       "collection",
+      "room collection",
       "vehicle type",
       "for",
+      ...(catalogPreset ? [normalizeHeader(catalogPreset.groupLabel)] : []),
     ];
   }
 
@@ -210,9 +240,10 @@ function booleanValue(
   field: string,
   rowNumber: number,
   errors: ProductImportError[],
+  fallback: boolean,
 ): boolean {
   const normalized = value.trim().toLowerCase();
-  if (!normalized) return false;
+  if (!normalized) return fallback;
   if (["true", "yes", "y", "1"].includes(normalized)) return true;
   if (["false", "no", "n", "0"].includes(normalized)) return false;
 
@@ -221,7 +252,31 @@ function booleanValue(
     field,
     message: `${field} must be Yes/No or True/False`,
   });
-  return false;
+  return fallback;
+}
+
+function priceVisibility(
+  value: string,
+  rowNumber: number,
+  errors: ProductImportError[],
+): boolean | null {
+  const normalized = normalizeEnum(value || "USE_SHOP_SETTING");
+  if (
+    normalized === "USE_SHOP_SETTING" ||
+    normalized === "SHOP_SETTING" ||
+    normalized === "INHERIT"
+  ) {
+    return null;
+  }
+  if (normalized === "SHOW" || normalized === "YES") return true;
+  if (normalized === "HIDE" || normalized === "NO") return false;
+
+  errors.push({
+    rowNumber,
+    field: "Price Visibility",
+    message: "Price Visibility must be Use Shop Setting, Show, or Hide",
+  });
+  return null;
 }
 
 function priceType(
@@ -267,7 +322,9 @@ function categoryId(
   errors: ProductImportError[],
 ): { id: string | null; name: string | null } {
   const normalized = value.trim().toLowerCase();
-  if (!normalized) return { id: null, name: null };
+  if (!normalized || ["(none)", "none", "no category"].includes(normalized)) {
+    return { id: null, name: null };
+  }
 
   const slugMatch = categories.find((category) => category.slug.toLowerCase() === normalized);
   if (slugMatch) return { id: slugMatch.id, name: slugMatch.name };
@@ -291,16 +348,51 @@ function categoryId(
   return { id: null, name: value.trim() || null };
 }
 
-function buildColumnIndexes(headerRow: WorkbookRow): {
+function catalogGroupValue(
+  value: string,
+  preset: CatalogPreset | undefined,
+  rowNumber: number,
+  errors: ProductImportError[],
+): string | null {
+  const trimmed = value.trim();
+  if (!trimmed || ["(none)", "none", "no group"].includes(trimmed.toLowerCase())) {
+    return null;
+  }
+
+  if (!preset?.groups.length) return trimmed;
+
+  const canonical = preset.groups.find(
+    (group) => group.toLowerCase() === trimmed.toLowerCase(),
+  );
+  if (canonical) return canonical;
+
+  errors.push({
+    rowNumber,
+    field: "Product Group",
+    message: `${preset.groupLabel} must be one of: ${preset.groups.join(", ")}`,
+  });
+  return trimmed;
+}
+
+type ColumnIndexes = {
   indexes: Map<string, number>;
+  optionalIndexes: Map<string, number>;
+  attributeIndexes: Map<string, number>;
   errors: ProductImportError[];
-} {
+};
+
+function buildColumnIndexes(
+  headerRow: WorkbookRow,
+  catalogPreset?: CatalogPreset,
+): ColumnIndexes {
   const actualHeaders = headerRow.values.map((value) => normalizeHeader(value ?? ""));
   const indexes = new Map<string, number>();
+  const optionalIndexes = new Map<string, number>();
+  const attributeIndexes = new Map<string, number>();
   const errors: ProductImportError[] = [];
 
   for (const header of PRODUCT_IMPORT_HEADERS) {
-    const aliases = headerAliases(header);
+    const aliases = headerAliases(header, catalogPreset);
     const index = actualHeaders.findIndex((actual) => aliases.includes(actual));
 
     if (index < 0) {
@@ -317,19 +409,192 @@ function buildColumnIndexes(headerRow: WorkbookRow): {
     }
   }
 
-  return { indexes, errors };
+  for (const header of OPTIONAL_HEADERS) {
+    const index = actualHeaders.findIndex(
+      (actual) => actual === normalizeHeader(header),
+    );
+    if (index >= 0) optionalIndexes.set(normalizeHeader(header), index);
+  }
+
+  for (const attribute of catalogPreset?.attributes ?? []) {
+    const aliases = [
+      normalizeHeader(attribute.name),
+      normalizeHeader(attribute.label),
+      normalizeHeader(`Attribute ${attribute.name}`),
+      normalizeHeader(`Attribute ${attribute.label}`),
+    ];
+    const index = actualHeaders.findIndex((actual) => aliases.includes(actual));
+    if (index >= 0) attributeIndexes.set(attribute.name, index);
+  }
+
+  return { indexes, optionalIndexes, attributeIndexes, errors };
 }
 
 function rowValues(
   row: WorkbookRow,
-  indexes: Map<string, number>,
+  columns: ColumnIndexes,
+  catalogPreset?: CatalogPreset,
 ): Record<string, string> {
-  return Object.fromEntries(
+  const values: Record<string, string> = Object.fromEntries(
     PRODUCT_IMPORT_HEADERS.map((header) => [
       header,
-      row.values[indexes.get(normalizeHeader(header)) ?? -1]?.trim() ?? "",
+      row.values[columns.indexes.get(normalizeHeader(header)) ?? -1]?.trim() ?? "",
     ]),
   );
+
+  for (const header of OPTIONAL_HEADERS) {
+    values[header] =
+      row.values[columns.optionalIndexes.get(normalizeHeader(header)) ?? -1]?.trim() ?? "";
+  }
+
+  for (const attribute of catalogPreset?.attributes ?? []) {
+    values[`Attribute:${attribute.name}`] =
+      row.values[columns.attributeIndexes.get(attribute.name) ?? -1]?.trim() ?? "";
+  }
+
+  return values;
+}
+
+function findHeaderRowIndex(rows: WorkbookRow[]): number {
+  return rows.findIndex((row) =>
+    row.values.some((value) => normalizeHeader(value ?? "") === "product name"),
+  );
+}
+
+function parseDefaults(
+  rows: WorkbookRow[],
+  catalogPreset?: CatalogPreset,
+): Map<string, string> {
+  const defaults = new Map<string, string>();
+  const groupLabels = new Set([
+    "default product group",
+    "default product group type",
+    ...(catalogPreset
+      ? [`default ${normalizeHeader(catalogPreset.groupLabel)}`]
+      : []),
+  ]);
+
+  const baseMap = new Map<string, string>([
+    ["default category", "Category"],
+    ["default price type", "Price Type"],
+    ["default availability", "Availability"],
+    ["default price visibility", "Price Visibility"],
+    ["default visible", "Visible"],
+    ["default featured", "Featured"],
+    ["default new arrival", "New Arrival"],
+    ["default offer", "Offer"],
+  ]);
+
+  for (const row of rows) {
+    const label = normalizeHeader(row.values[0] ?? "");
+    const value = (row.values[1] ?? "").trim();
+    if (!label) continue;
+
+    if (groupLabels.has(label)) {
+      defaults.set("Product Group", value);
+      continue;
+    }
+
+    const baseKey = baseMap.get(label);
+    if (baseKey) {
+      defaults.set(baseKey, value);
+      continue;
+    }
+
+    for (const attribute of catalogPreset?.attributes ?? []) {
+      if (
+        label === `default ${normalizeHeader(attribute.name)}` ||
+        label === `default ${normalizeHeader(attribute.label)}`
+      ) {
+        defaults.set(`Attribute:${attribute.name}`, value);
+        break;
+      }
+    }
+  }
+
+  return defaults;
+}
+
+function withDefault(
+  raw: string | undefined,
+  defaults: Map<string, string>,
+  key: string,
+  fallback = "",
+): string {
+  const value = raw?.trim() ?? "";
+  if (value) return value;
+  const configured = defaults.get(key)?.trim() ?? "";
+  return configured || fallback;
+}
+
+function validateAttributeValue(
+  attribute: CatalogAttributePreset,
+  rawValue: string,
+  catalogGroup: string | null,
+  rowNumber: number,
+  errors: ProductImportError[],
+): string | null {
+  const trimmed = rawValue.trim();
+  if (!trimmed || ["(none)", "none"].includes(trimmed.toLowerCase())) return null;
+
+  if (trimmed.length > 500) {
+    errors.push({
+      rowNumber,
+      field: attribute.label,
+      message: `${attribute.label} must be 500 characters or fewer`,
+    });
+    return null;
+  }
+
+  if (
+    attribute.visibleForGroups?.length &&
+    (!catalogGroup || !attribute.visibleForGroups.includes(catalogGroup))
+  ) {
+    errors.push({
+      rowNumber,
+      field: attribute.label,
+      message: catalogGroup
+        ? `${attribute.label} does not apply to ${catalogGroup}`
+        : `Select a product group before using ${attribute.label}`,
+    });
+    return null;
+  }
+
+  const allowed = attribute.optionsByGroup
+    ? catalogGroup
+      ? attribute.optionsByGroup[catalogGroup] ?? []
+      : []
+    : attribute.options ?? [];
+
+  if (
+    (attribute.optionsByGroup || attribute.options?.length) &&
+    allowed.length > 0
+  ) {
+    const canonical = allowed.find(
+      (option) => option.toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (canonical) return canonical;
+
+    errors.push({
+      rowNumber,
+      field: attribute.label,
+      message: `${attribute.label} must be one of: ${allowed.join(", ")}`,
+    });
+    return null;
+  }
+
+  if (attribute.optionsByGroup && allowed.length === 0) {
+    errors.push({
+      rowNumber,
+      field: attribute.label,
+      message: catalogGroup
+        ? `${attribute.label} does not apply to ${catalogGroup}`
+        : `Select a product group before using ${attribute.label}`,
+    });
+    return null;
+  }
+
+  return trimmed;
 }
 
 function existingSkuMap(products: ExistingProductForImport[]) {
@@ -353,8 +618,9 @@ export function previewProductImport(options: {
   rows: WorkbookRow[];
   categories: ShopCategoryForImport[];
   existingProducts: ExistingProductForImport[];
+  catalogPreset?: CatalogPreset;
 }) {
-  const { rows, categories, existingProducts } = options;
+  const { rows, categories, existingProducts, catalogPreset } = options;
 
   if (rows.length === 0) {
     return {
@@ -375,10 +641,32 @@ export function previewProductImport(options: {
     };
   }
 
-  const headerRow = rows[0] as WorkbookRow;
-  const { indexes, errors: headerErrors } = buildColumnIndexes(headerRow);
-  const dataRows = rows.slice(1);
-  const globalErrors = [...headerErrors];
+  const headerRowIndex = findHeaderRowIndex(rows);
+  if (headerRowIndex < 0) {
+    const errors: ProductImportError[] = [
+      {
+        rowNumber: null,
+        field: "Product Name",
+        message: 'Required column "Product Name" was not found',
+      },
+    ];
+    return {
+      totalRows: 0,
+      successfulRows: 0,
+      failedRows: 0,
+      duplicateRows: 0,
+      invalidRows: 0,
+      products: [] as StoredImportProduct[],
+      rows: [] as ProductImportPreviewRow[],
+      errors,
+    };
+  }
+
+  const headerRow = rows[headerRowIndex] as WorkbookRow;
+  const columns = buildColumnIndexes(headerRow, catalogPreset);
+  const defaults = parseDefaults(rows.slice(0, headerRowIndex), catalogPreset);
+  const dataRows = rows.slice(headerRowIndex + 1);
+  const globalErrors = [...columns.errors];
 
   if (dataRows.length === 0) {
     globalErrors.push({
@@ -407,7 +695,7 @@ export function previewProductImport(options: {
       products: [] as StoredImportProduct[],
       rows: limitedRows.map((row) => ({
         rowNumber: row.rowNumber,
-        values: rowValues(row, indexes),
+        values: rowValues(row, columns, catalogPreset),
         valid: false,
         status: "INVALID" as const,
         errors: globalErrors,
@@ -427,9 +715,49 @@ export function previewProductImport(options: {
   const products: StoredImportProduct[] = [];
   const allErrors: ProductImportError[] = [];
 
-  for (const row of dataRows) {
-    const values = rowValues(row, indexes);
+  for (const row of dataRows.slice(0, PRODUCT_IMPORT_MAX_ROWS)) {
+    const values = rowValues(row, columns, catalogPreset);
     const errors: ProductImportError[] = [];
+
+    values.Category = withDefault(values.Category, defaults, "Category");
+    values["Product Group"] = withDefault(
+      values["Product Group"],
+      defaults,
+      "Product Group",
+    );
+    values["Price Type"] = withDefault(
+      values["Price Type"],
+      defaults,
+      "Price Type",
+      "Fixed",
+    );
+    values.Availability = withDefault(
+      values.Availability,
+      defaults,
+      "Availability",
+      "In Stock",
+    );
+    values["Price Visibility"] = withDefault(
+      values["Price Visibility"],
+      defaults,
+      "Price Visibility",
+      "Use Shop Setting",
+    );
+    values.Visible = withDefault(values.Visible, defaults, "Visible", "Yes");
+    values.Featured = withDefault(values.Featured, defaults, "Featured", "No");
+    values["New Arrival"] = withDefault(
+      values["New Arrival"],
+      defaults,
+      "New Arrival",
+      "No",
+    );
+    values.Offer = withDefault(values.Offer, defaults, "Offer", "No");
+
+    for (const attribute of catalogPreset?.attributes ?? []) {
+      const key = `Attribute:${attribute.name}`;
+      values[key] = withDefault(values[key], defaults, key);
+    }
+
     const name = values["Product Name"]?.trim() ?? "";
 
     if (!name) {
@@ -446,12 +774,22 @@ export function previewProductImport(options: {
       });
     }
 
-    const sku = nullableText(values.SKU ?? "", 100, "SKU / Product Code", row.rowNumber, errors);
-    const category = categoryId(values.Category ?? "", categories, row.rowNumber, errors);
-    const catalogGroup = nullableText(
+    const sku = nullableText(
+      values.SKU ?? "",
+      100,
+      "SKU / Product Code",
+      row.rowNumber,
+      errors,
+    );
+    const category = categoryId(
+      values.Category ?? "",
+      categories,
+      row.rowNumber,
+      errors,
+    );
+    const catalogGroup = catalogGroupValue(
       values["Product Group"] ?? "",
-      120,
-      "Product Group",
+      catalogPreset,
       row.rowNumber,
       errors,
     );
@@ -492,18 +830,66 @@ export function previewProductImport(options: {
       row.rowNumber,
       errors,
     );
+    const showPrice = priceVisibility(
+      values["Price Visibility"] ?? "",
+      row.rowNumber,
+      errors,
+    );
+    const isVisible = booleanValue(
+      values.Visible ?? "",
+      "Visible",
+      row.rowNumber,
+      errors,
+      true,
+    );
     const isFeatured = booleanValue(
       values.Featured ?? "",
       "Featured",
       row.rowNumber,
       errors,
+      false,
     );
     const isNewArrival = booleanValue(
       values["New Arrival"] ?? "",
       "New Arrival",
       row.rowNumber,
       errors,
+      false,
     );
+    const isOffer = booleanValue(
+      values.Offer ?? "",
+      "Offer",
+      row.rowNumber,
+      errors,
+      false,
+    );
+
+    const attributes = (catalogPreset?.attributes ?? [])
+      .map((attribute, displayOrder) => {
+        const attributeValue = validateAttributeValue(
+          attribute,
+          values[`Attribute:${attribute.name}`] ?? "",
+          catalogGroup,
+          row.rowNumber,
+          errors,
+        );
+        return attributeValue
+          ? {
+              attributeName: attribute.name,
+              attributeValue,
+              displayOrder,
+            }
+          : null;
+      })
+      .filter(
+        (
+          attribute,
+        ): attribute is {
+          attributeName: string;
+          attributeValue: string;
+          displayOrder: number;
+        } => Boolean(attribute),
+      );
 
     const candidate: StoredImportProduct | null =
       errors.length === 0
@@ -519,8 +905,12 @@ export function previewProductImport(options: {
             priceType: type,
             description,
             availabilityStatus,
+            showPrice,
+            isVisible,
             isFeatured,
             isNewArrival,
+            isOffer,
+            attributes,
           }
         : null;
 
@@ -605,9 +995,9 @@ export function previewProductImport(options: {
   const invalidRows = previewRows.filter((row) => row.status === "INVALID").length;
 
   return {
-    totalRows: previewRows.length,
+    totalRows: dataRows.length,
     successfulRows: products.length,
-    failedRows: previewRows.length - products.length,
+    failedRows: dataRows.length - products.length,
     duplicateRows,
     invalidRows,
     products,
