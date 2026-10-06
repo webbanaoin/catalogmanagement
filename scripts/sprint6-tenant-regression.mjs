@@ -287,6 +287,7 @@ async function createFixture() {
     pendingShop,
     shopA,
     shopB,
+    jewelleryBusinessCategory,
     membershipA,
     categoryB,
     productB,
@@ -331,6 +332,41 @@ async function cleanup() {
 
 async function main() {
   const fixture = await createFixture();
+
+  const registrationEmail = `sprint6-preset-registration-${suffix}@example.test`;
+  const registrationResponse = await jsonRequest("/api/auth/register", "POST", {
+    name: "Preset Registration Merchant",
+    email: registrationEmail,
+    password: `Preset-Aa9!${randomUUID().slice(0, 12)}`,
+    shopName: `Preset Registration Shop ${suffix}`,
+    businessCategoryId: fixture.jewelleryBusinessCategory.id,
+  });
+  await expectStatus(
+    "registration seeds business-type categories",
+    registrationResponse,
+    201,
+  );
+  const registrationPayload = await registrationResponse.json();
+  const registeredUserId = registrationPayload?.data?.user?.id;
+  const registeredShopId = registrationPayload?.data?.shop?.id;
+  if (!registeredUserId || !registeredShopId) {
+    throw new Error("Preset registration did not return user and shop ids");
+  }
+  created.userIds.push(registeredUserId);
+  created.shopIds.push(registeredShopId);
+
+  const registrationCategories = await prisma.shopCategory.findMany({
+    where: { shopId: registeredShopId },
+    select: { name: true },
+  });
+  for (const categoryName of ["Ring", "Earring", "Necklace", "Chain"]) {
+    if (!registrationCategories.some((category) => category.name === categoryName)) {
+      throw new Error(
+        `Registration did not seed recommended Jewellery category: ${categoryName}`,
+      );
+    }
+  }
+
   let cookieA = await login(fixture.userA.email, passwordA);
 
   const onboarding = await request("/onboarding", {}, cookieA);
