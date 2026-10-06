@@ -279,6 +279,27 @@ async function createFixture() {
     },
   });
 
+  await prisma.productImage.createMany({
+    data: [
+      {
+        productId: visibleProductA.id,
+        storageKey: `tests/${suffix}/image-1.jpg`,
+        displayOrder: 0,
+        isPrimary: false,
+        fileSize: 100,
+        mimeType: "image/jpeg",
+      },
+      {
+        productId: visibleProductA.id,
+        storageKey: `tests/${suffix}/image-2.jpg`,
+        displayOrder: 1,
+        isPrimary: false,
+        fileSize: 100,
+        mimeType: "image/jpeg",
+      },
+    ],
+  });
+
   return {
     userA,
     userB,
@@ -402,6 +423,35 @@ async function main() {
     updatedAccount.mobile !== "9876543210"
   ) {
     throw new Error("Merchant account profile update did not persist");
+  }
+
+  const productListWithImageCount = await request(
+    `/api/shops/${fixture.shopA.id}/products?page=1&pageSize=100`,
+    {},
+    cookieA,
+  );
+  await expectStatus(
+    "merchant product list returns image counts",
+    productListWithImageCount,
+    200,
+  );
+  const productListWithImageCountPayload = await productListWithImageCount.json();
+  const visibleProductWithImages = (productListWithImageCountPayload?.items ?? []).find(
+    (product) => product.id === fixture.visibleProductA.id,
+  );
+  if (visibleProductWithImages?.imageCount !== 2) {
+    throw new Error(
+      `Merchant product list expected imageCount=2, got ${visibleProductWithImages?.imageCount}`,
+    );
+  }
+
+  const hiddenProductWithoutImages = (productListWithImageCountPayload?.items ?? []).find(
+    (product) => product.id === fixture.hiddenProductA.id,
+  );
+  if (hiddenProductWithoutImages?.imageCount !== 0) {
+    throw new Error(
+      `Merchant product list expected imageCount=0, got ${hiddenProductWithoutImages?.imageCount}`,
+    );
   }
 
   const pendingLogin = await jsonRequest(

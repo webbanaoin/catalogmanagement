@@ -394,7 +394,7 @@ export default function ProductsPage() {
       for (const [index, file] of files.entries()) {
         await uploadProductImage(shop.id, product.id, file, {
           isPrimary: false,
-          displayOrder: (product.images?.length ?? 0) + index,
+          displayOrder: (product.imageCount ?? product.images?.length ?? 0) + index,
         });
         uploaded += 1;
       }
@@ -725,6 +725,19 @@ export default function ProductsPage() {
                         <Badge variant={product.isVisible ? "success" : "neutral"}>
                           {product.isVisible ? "Visible" : "Hidden"}
                         </Badge>
+                        <Badge
+                          variant={
+                            (product.imageCount ?? product.images?.length ?? 0) === 0
+                              ? "warning"
+                              : "success"
+                          }
+                        >
+                          {(product.imageCount ?? product.images?.length ?? 0) === 0
+                            ? "No image uploaded"
+                            : (product.imageCount ?? product.images?.length ?? 0) === 1
+                              ? "1 image uploaded"
+                              : `${product.imageCount ?? product.images?.length ?? 0} images uploaded`}
+                        </Badge>
                         <Badge variant="info">{product.availabilityStatus.replaceAll("_", " ")}</Badge>
                         {product.isFeatured ? <Badge variant="warning">Featured</Badge> : null}
                         {product.isNewArrival ? <Badge variant="info">New</Badge> : null}
@@ -744,7 +757,7 @@ export default function ProductsPage() {
                         {product.priceType === "ASK_PRICE" ? "Ask price" : money(product.discountPrice ?? product.price)}
                       </p>
                       <p className="text-xs text-muted">
-                        Slug: {product.slug} · {primaryImage ? "Image ready" : "No image yet"}
+                        Slug: {product.slug} · Primary image: {primaryImage ? "Ready" : "Not set"}
                       </p>
                       {primaryImage?.url ? (
                         <a

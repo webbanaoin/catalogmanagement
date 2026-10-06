@@ -406,6 +406,7 @@ export interface ShopProduct {
     displayOrder: number;
   }>;
   images: ProductImage[];
+  imageCount?: number;
 }
 
 export interface ShopProductPayload {
