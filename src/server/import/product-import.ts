@@ -485,31 +485,55 @@ function parseDefaults(
     ["default offer", "Offer"],
   ]);
 
-  for (const row of rows) {
-    const label = normalizeHeader(row.values[0] ?? "");
-    const value = (row.values[1] ?? "").trim();
-    if (!label) continue;
-
-    if (groupLabels.has(label)) {
-      defaults.set("Product Group", value);
-      continue;
-    }
+  const resolveKey = (label: string): string | null => {
+    if (groupLabels.has(label)) return "Product Group";
 
     const baseKey = baseMap.get(label);
-    if (baseKey) {
-      defaults.set(baseKey, value);
-      continue;
-    }
+    if (baseKey) return baseKey;
 
     for (const attribute of catalogPreset?.attributes ?? []) {
       if (
         label === `default ${normalizeHeader(attribute.name)}` ||
         label === `default ${normalizeHeader(attribute.label)}`
       ) {
-        defaults.set(`Attribute:${attribute.name}`, value);
-        break;
+        return `Attribute:${attribute.name}`;
       }
     }
+
+    return null;
+  };
+
+  // Smart Excel V2: labels are horizontal on one row and values on the next.
+  for (let index = 0; index < rows.length - 1; index += 1) {
+    const labelRow = rows[index];
+    const valueRow = rows[index + 1];
+    if (!labelRow || !valueRow) continue;
+
+    const mapped = labelRow.values
+      .map((rawLabel, columnIndex) => {
+        const key = resolveKey(normalizeHeader(rawLabel ?? ""));
+        if (!key) return null;
+        return {
+          key,
+          value: (valueRow.values[columnIndex] ?? "").trim(),
+        };
+      })
+      .filter(
+        (item): item is { key: string; value: string } => Boolean(item),
+      );
+
+    if (mapped.length >= 2) {
+      for (const item of mapped) defaults.set(item.key, item.value);
+      return defaults;
+    }
+  }
+
+  // Backward compatibility: Smart Excel V1 stored one label/value pair per row.
+  for (const row of rows) {
+    const label = normalizeHeader(row.values[0] ?? "");
+    const key = resolveKey(label);
+    if (!key) continue;
+    defaults.set(key, (row.values[1] ?? "").trim());
   }
 
   return defaults;
