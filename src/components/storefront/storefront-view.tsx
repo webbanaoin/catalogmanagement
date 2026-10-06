@@ -86,29 +86,86 @@ function ShopHero({ shop }: { shop: PublicShop }) {
   );
 }
 
+function GroupLinks({
+  shopSlug,
+  label,
+  groups,
+  activeGroup,
+}: {
+  shopSlug: string;
+  label: string;
+  groups: string[];
+  activeGroup?: string;
+}) {
+  if (groups.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium text-foreground">Shop by {label}</p>
+      <div className="flex gap-2 overflow-x-auto pb-1" aria-label={label}>
+        <Link
+          href={`/s/${shopSlug}`}
+          className={buttonClassName(activeGroup ? "secondary" : "primary", "sm", "shrink-0")}
+        >
+          All
+        </Link>
+        {groups.map((group) => {
+          const params = new URLSearchParams({ group });
+          return (
+            <Link
+              key={group}
+              href={`/s/${shopSlug}?${params.toString()}`}
+              className={buttonClassName(
+                activeGroup === group ? "primary" : "secondary",
+                "sm",
+                "shrink-0",
+              )}
+            >
+              {group}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function CategoryLinks({
   shopSlug,
   categories,
   activeCategory,
+  catalogGroup,
+  attributeValue,
 }: {
   shopSlug: string;
   categories: PublicStorefrontResult["categories"];
   activeCategory?: string;
+  catalogGroup?: string;
+  attributeValue?: string;
 }) {
   if (categories.length === 0) return null;
+
+  function href(category?: string) {
+    const params = new URLSearchParams();
+    if (catalogGroup) params.set("group", catalogGroup);
+    if (attributeValue) params.set("spec", attributeValue);
+    if (category) params.set("category", category);
+    const query = params.toString();
+    return `/s/${shopSlug}${query ? `?${query}` : ""}`;
+  }
 
   return (
     <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Shop categories">
       <Link
-        href={`/s/${shopSlug}`}
+        href={href()}
         className={buttonClassName(activeCategory ? "secondary" : "primary", "sm", "shrink-0")}
       >
-        All
+        All categories
       </Link>
       {categories.map((category) => (
         <Link
           key={category.slug}
-          href={`/s/${shopSlug}/c/${category.slug}`}
+          href={href(category.slug)}
           className={buttonClassName(
             activeCategory === category.slug ? "primary" : "secondary",
             "sm",
@@ -152,6 +209,8 @@ function Pagination({
   totalPages,
   q,
   categorySlug,
+  catalogGroup,
+  attributeValue,
   availability,
 }: {
   basePath: string;
@@ -159,6 +218,8 @@ function Pagination({
   totalPages: number;
   q?: string;
   categorySlug?: string;
+  catalogGroup?: string;
+  attributeValue?: string;
   availability?: string;
 }) {
   if (totalPages <= 1) return null;
@@ -167,6 +228,8 @@ function Pagination({
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (categorySlug) params.set("category", categorySlug);
+    if (catalogGroup) params.set("group", catalogGroup);
+    if (attributeValue) params.set("spec", attributeValue);
     if (availability) params.set("availability", availability);
     params.set("page", String(target));
     return `${basePath}?${params.toString()}`;
@@ -227,6 +290,8 @@ export function StorefrontView({
   data,
   q,
   categorySlug,
+  catalogGroup,
+  attributeValue,
   availability,
   basePath,
   collectionTitle = "All products",
@@ -235,12 +300,14 @@ export function StorefrontView({
   data: PublicStorefrontResult;
   q?: string;
   categorySlug?: string;
+  catalogGroup?: string;
+  attributeValue?: string;
   availability?: string;
   basePath: string;
   collectionTitle?: string;
   collectionDescription?: string;
 }) {
-  const filtered = Boolean(q || categorySlug || availability);
+  const filtered = Boolean(q || categorySlug || catalogGroup || attributeValue || availability);
 
   return (
     <>
@@ -256,17 +323,30 @@ export function StorefrontView({
 
       <StorefrontSection title="Browse this shop">
         <div className="space-y-4">
+          <GroupLinks
+            shopSlug={data.shop.slug}
+            label={data.shop.catalogGroupLabel}
+            groups={data.catalogGroups}
+            activeGroup={catalogGroup}
+          />
           <StorefrontFilters
             shopSlug={data.shop.slug}
             categories={data.categories}
+            catalogGroups={data.catalogGroups}
+            catalogGroupLabel={data.shop.catalogGroupLabel}
+            primaryFilter={data.primaryFilter}
             q={q}
             categorySlug={categorySlug}
+            catalogGroup={catalogGroup}
+            attributeValue={attributeValue}
             availability={availability}
           />
           <CategoryLinks
             shopSlug={data.shop.slug}
             categories={data.categories}
             activeCategory={categorySlug}
+            catalogGroup={catalogGroup}
+            attributeValue={attributeValue}
           />
         </div>
       </StorefrontSection>
@@ -315,6 +395,8 @@ export function StorefrontView({
           totalPages={data.pagination.totalPages}
           q={q}
           categorySlug={categorySlug}
+          catalogGroup={catalogGroup}
+          attributeValue={attributeValue}
           availability={availability}
         />
       </StorefrontSection>
