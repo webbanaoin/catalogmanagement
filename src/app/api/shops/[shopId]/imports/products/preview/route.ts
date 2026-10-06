@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { getCatalogPreset } from "@/lib/catalog-presets";
 import { requireShopAccess } from "@/server/auth/tenant-access";
+import { ensureDefaultShopCategories } from "@/server/catalog/default-categories";
 import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
@@ -93,31 +95,55 @@ export async function POST(
       });
     }
 
-    const [categories, existingProducts] = await Promise.all([
-      prisma.shopCategory.findMany({
-        where: { shopId, status: "ACTIVE" },
-        select: { id: true, name: true, slug: true },
-      }),
-      prisma.product.findMany({
-        where: { shopId, deletedAt: null },
-        select: {
-          id: true,
-          name: true,
-          sku: true,
-          categoryId: true,
-          catalogGroup: true,
-          price: true,
-          discountPrice: true,
-          priceType: true,
-        },
-      }),
-    ]);
+    const { shop, categories, existingProducts } = await prisma.$transaction(
+      async (tx) => {
+        const shop = await tx.shop.findUnique({
+          where: { id: shopId },
+          select: {
+            businessCategory: {
+              select: { name: true, slug: true },
+            },
+          },
+        });
+
+        if (shop?.businessCategory) {
+          await ensureDefaultShopCategories(tx, {
+            shopId,
+            businessCategory: shop.businessCategory,
+            actorUserId: user.id,
+          });
+        }
+
+        const [categories, existingProducts] = await Promise.all([
+          tx.shopCategory.findMany({
+            where: { shopId, status: "ACTIVE" },
+            select: { id: true, name: true, slug: true },
+          }),
+          tx.product.findMany({
+            where: { shopId, deletedAt: null },
+            select: {
+              id: true,
+              name: true,
+              sku: true,
+              categoryId: true,
+              catalogGroup: true,
+              price: true,
+              discountPrice: true,
+              priceType: true,
+            },
+          }),
+        ]);
+
+        return { shop, categories, existingProducts };
+      },
+    );
 
     const workbookRows = parseFirstWorksheet(Buffer.from(await file.arrayBuffer()));
 
     const preview = previewProductImport({
       rows: workbookRows,
       categories,
+      catalogPreset: getCatalogPreset(shop?.businessCategory),
       existingProducts: existingProducts.map((product) => ({
         id: product.id,
         name: product.name,
@@ -141,7 +167,7 @@ export async function POST(
         failedRows: preview.failedRows,
         status,
         previewData: {
-          version: 3,
+          version: 4,
           products: preview.products,
         },
         ...(preview.failedRows > 0
