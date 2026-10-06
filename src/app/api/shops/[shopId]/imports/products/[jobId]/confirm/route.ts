@@ -241,10 +241,22 @@ export async function POST(
               discountPrice: product.discountPrice,
               priceType: product.priceType,
               availabilityStatus: product.availabilityStatus,
+              showPrice: product.showPrice,
+              isVisible: product.isVisible,
               isFeatured: product.isFeatured,
               isNewArrival: product.isNewArrival,
-              isOffer: false,
-              isVisible: true,
+              isOffer: product.isOffer,
+              ...(product.attributes.length > 0
+                ? {
+                    attributes: {
+                      create: product.attributes.map((attribute) => ({
+                        attributeName: attribute.attributeName,
+                        attributeValue: attribute.attributeValue,
+                        displayOrder: attribute.displayOrder,
+                      })),
+                    },
+                  }
+                : {}),
             },
             select: {
               id: true,

@@ -238,8 +238,8 @@ export default function ProductImportPage() {
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         eyebrow="Sprint 4"
-        title="Easy Excel product import"
-        description="Product Code and Price are optional. Product Group / Type keeps Gold/Silver/Diamond, Men/Women/Kids or departments separate. Existing or likely duplicate products are detected and skipped."
+        title="Smart Excel product import"
+        description="Download a shop-specific workbook with your categories, business-type fields, dropdowns and Quick Defaults. Enter only what is different for each product."
         actions={<Badge variant="success">API connected</Badge>}
       />
 
@@ -247,23 +247,30 @@ export default function ProductImportPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>1. Start with Excel</CardTitle>
+          <CardTitle>1. Download your Smart Excel</CardTitle>
           <CardDescription>
-            Download a blank template for new products, or download your current catalogue when you want a backup/editable sheet with saved product codes.
+            The workbook is generated for this shop. It includes current shop categories, business-specific product groups and fields, dropdown lists, and Quick Defaults that apply to every row unless you override them.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-3">
             <a href={templateUrl} className={buttonClassName("primary", "md")}>
-              Download blank template
+              Download Smart Excel for new products
             </a>
             <a href={exportUrl} className={buttonClassName("secondary", "md")}>
-              Download current catalogue
+              Download current catalogue backup
             </a>
           </div>
-          <p className="text-sm leading-6 text-muted">
-            SKU / Product Code is optional. If blank, a code such as PRD-A1B2C3D4 is generated automatically. Keep generated codes when editing/re-uploading exported products so duplicates are easy to identify.
-          </p>
+          <div className="grid gap-3 text-sm leading-6 text-muted sm:grid-cols-2">
+            <p>
+              <span className="font-medium text-foreground">New products:</span>{" "}
+              use the Smart Excel template for first-time onboarding or any bulk add. Quick Defaults apply common values once; row cells only need values that are different.
+            </p>
+            <p>
+              <span className="font-medium text-foreground">Current catalogue backup:</span>{" "}
+              downloads products already saved in this shop for backup/reference. Existing SKUs are intentionally detected as duplicates if re-uploaded; bulk-update of existing products is not enabled yet.
+            </p>
+          </div>
           <p className="text-xs text-muted">
             Maximum file size 5 MiB · Maximum 1000 product rows
           </p>
@@ -274,7 +281,7 @@ export default function ProductImportPage() {
         <CardHeader>
           <CardTitle>2. Upload and check</CardTitle>
           <CardDescription>
-            The system checks optional price/discount rules, categories, product codes and likely duplicates before creating anything. A blank Price is valid; a Discount Price requires a base Price. Good rows can still be imported even when other rows need attention.
+            Upload the same completed Smart Excel. The preview resolves Quick Defaults, validates business-specific values such as Jewellery Type/Purity, checks categories and product codes, and skips likely duplicates before anything is created.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -331,6 +338,7 @@ export default function ProductImportPage() {
                     <th className="px-3 py-3">Product group</th>
                     <th className="px-3 py-3">Price type</th>
                     <th className="px-3 py-3">Availability</th>
+                    <th className="px-3 py-3">Visible</th>
                     <th className="px-3 py-3">Result</th>
                   </tr>
                 </thead>
@@ -349,6 +357,7 @@ export default function ProductImportPage() {
                       <td className="px-3 py-3">{row.values["Product Group"] || "—"}</td>
                       <td className="px-3 py-3">{row.values["Price Type"] || "—"}</td>
                       <td className="px-3 py-3">{row.values.Availability || "—"}</td>
+                      <td className="px-3 py-3">{row.values.Visible || "Yes"}</td>
                       <td className="px-3 py-3">
                         {row.status === "READY" ? (
                           <span className="text-success-strong">
@@ -455,8 +464,8 @@ export default function ProductImportPage() {
         </CardContent>
       </Card>
 
-      <Alert title="Designed for shopkeepers">
-        You do not need to maintain product codes manually. Leave the field blank, import ready rows, and download the current catalogue whenever you need the saved auto-generated codes.
+      <Alert title="Minimum typing, maximum defaults">
+        Start by setting the values common to most products once in Quick Defaults. Then add Product Name and only the fields that are different. Product codes can stay blank for automatic generation, and the Lists & Help sheet keeps allowed values visible inside the same workbook.
       </Alert>
     </div>
   );
