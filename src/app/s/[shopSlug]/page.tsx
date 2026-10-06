@@ -75,13 +75,18 @@ export default async function StorefrontPage({
   const [{ shopSlug }, rawSearchParams] = await Promise.all([params, searchParams]);
   const q = value(rawSearchParams.q)?.trim().slice(0, 120) || undefined;
   const categorySlug = value(rawSearchParams.category)?.trim().slice(0, 160) || undefined;
+  const catalogGroup = value(rawSearchParams.group)?.trim().slice(0, 120) || undefined;
+  const attributeValue = value(rawSearchParams.spec)?.trim().slice(0, 500) || undefined;
   const availabilityFilter = availability(value(rawSearchParams.availability));
   const page = pageNumber(value(rawSearchParams.page));
-  const includeHighlights = !q && !categorySlug && !availabilityFilter && page === 1;
+  const includeHighlights =
+    !q && !categorySlug && !catalogGroup && !attributeValue && !availabilityFilter && page === 1;
 
   const data = await getPublicStorefront(shopSlug, {
     q,
     categorySlug,
+    catalogGroup,
+    attributeValue,
     availability: availabilityFilter,
     page,
     includeHighlights,
@@ -96,6 +101,8 @@ export default async function StorefrontPage({
         data={data}
         q={q}
         categorySlug={categorySlug}
+        catalogGroup={catalogGroup}
+        attributeValue={attributeValue}
         availability={availabilityFilter}
         basePath={`/s/${shopSlug}`}
       />
