@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Prisma } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 
 import { AppError } from "@/server/http/app-error";
 
@@ -13,7 +13,7 @@ export function normalizeCategoryName(value: string): string {
 }
 
 export async function assertUniqueCategoryName(
-  client: Prisma.TransactionClient | typeof import("@/server/database/prisma").prisma,
+  client: Prisma.TransactionClient | PrismaClient,
   options: {
     shopId: string;
     name: string;
