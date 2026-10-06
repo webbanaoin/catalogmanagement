@@ -338,17 +338,15 @@ export async function getPublicStorefront(
       where: {
         shopId: shopRecord.id,
         status: "ACTIVE",
-        ...(query.catalogGroup?.trim()
-          ? {
-              products: {
-                some: {
-                  deletedAt: null,
-                  isVisible: true,
-                  catalogGroup: query.catalogGroup.trim().slice(0, 120),
-                },
-              },
-            }
-          : {}),
+        products: {
+          some: {
+            deletedAt: null,
+            isVisible: true,
+            ...(query.catalogGroup?.trim()
+              ? { catalogGroup: query.catalogGroup.trim().slice(0, 120) }
+              : {}),
+          },
+        },
       },
       orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
       select: { name: true, slug: true, imageStorageKey: true },
