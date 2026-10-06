@@ -1,5 +1,26 @@
 # End-to-End Full System Testing Guide
 
+
+## Vertical-aware catalogue classification
+
+Use this check with a Jewellery business category first, then repeat with another vertical such as Garments or Toys & Gifts.
+
+1. Open **Dashboard -> Products**. Confirm the high-level field is labelled for the shop type (for Jewellery it should be **Jewellery Type**).
+2. Create a product with:
+   - Jewellery Type: **Gold**
+   - Category: **Ring**
+   - Purity: **22K**
+   - Weight: any optional value
+   - Price: blank if the shop uses enquiry-led pricing
+3. Open the public showroom. Confirm **Gold** appears as a customer-facing browse option and the product card is clearly labelled Gold.
+4. Select **Gold**, then Category **Ring**, then Purity **22K**. The product must remain visible.
+5. Select **Silver** or Purity **18K**. The Gold 22K product must not leak into the non-matching result.
+6. Open the product detail page. Confirm Jewellery Type, Purity and other entered product details are visible and the Request Price WhatsApp message includes the high-level product group.
+7. Duplicate the product. The copy must stay hidden by default but preserve Jewellery Type and product details while receiving its own product code.
+8. Download/export the catalogue and confirm **Product Group / Type** is present. Import a row with a group value and confirm preview + saved product preserve it.
+
+The same generic model should adapt to other shop types without jewellery-specific database columns, for example Men/Women/Kids for garments, departments for toys/electronics/grocery, Room/Collection for furniture, or Vehicle Type for auto parts.
+
 ## Purpose
 
 This document is the shared manual and automated validation checklist for Prashant and Parixit before promoting `staging` to `main` / production.
