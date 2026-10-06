@@ -11,6 +11,7 @@ export const PRODUCT_IMPORT_HEADERS = [
   "Product Name",
   "SKU",
   "Category",
+  "Product Group",
   "Price",
   "Price Type",
   "Discount Price",
@@ -413,6 +414,7 @@ const PRODUCT_WORKBOOK_HEADERS = [
   "Product Name",
   "SKU / Product Code (Optional)",
   "Category",
+  "Product Group / Type",
   "Price",
   "Price Type",
   "Discount Price",
@@ -426,6 +428,7 @@ export type ProductWorkbookRow = {
   name: string;
   sku: string | null;
   category: string | null;
+  catalogGroup: string | null;
   price: string | null;
   priceType: "FIXED" | "STARTING_FROM" | "ASK_PRICE";
   discountPrice: string | null;
@@ -452,6 +455,7 @@ function workbookRowValues(row: ProductWorkbookRow): string[] {
     row.name,
     row.sku ?? "",
     row.category ?? "",
+    row.catalogGroup ?? "",
     row.price ?? "",
     priceTypeLabel(row.priceType),
     row.discountPrice ?? "",
@@ -482,22 +486,22 @@ function buildProductWorkbook(rows: ProductWorkbookRow[], sheetName = "Products"
   const lastRow = Math.max(1, rows.length + 1);
   const worksheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <dimension ref="A1:J${lastRow}"/>
+  <dimension ref="A1:K${lastRow}"/>
   <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
   <sheetFormatPr defaultRowHeight="15"/>
   <cols>
     <col min="1" max="1" width="30" customWidth="1"/>
     <col min="2" max="2" width="28" customWidth="1"/>
-    <col min="3" max="3" width="22" customWidth="1"/>
-    <col min="4" max="6" width="16" customWidth="1"/>
-    <col min="7" max="7" width="42" customWidth="1"/>
-    <col min="8" max="10" width="18" customWidth="1"/>
+    <col min="3" max="4" width="22" customWidth="1"/>
+    <col min="5" max="7" width="16" customWidth="1"/>
+    <col min="8" max="8" width="42" customWidth="1"/>
+    <col min="9" max="11" width="18" customWidth="1"/>
   </cols>
   <sheetData>
     <row r="1">${headerCells}</row>
     ${dataRows}
   </sheetData>
-  <autoFilter ref="A1:J${lastRow}"/>
+  <autoFilter ref="A1:K${lastRow}"/>
 </worksheet>`;
 
   return buildZip([
