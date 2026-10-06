@@ -383,6 +383,7 @@ export interface ShopProduct {
   id: string;
   shopId: string;
   categoryId?: string | null;
+  catalogGroup?: string | null;
   name: string;
   slug: string;
   sku?: string | null;
@@ -398,12 +399,19 @@ export interface ShopProduct {
   showPrice?: boolean | null;
   deletedAt?: string | null;
   category?: ShopCategory | null;
+  attributes?: Array<{
+    id?: string;
+    attributeName: string;
+    attributeValue: string;
+    displayOrder: number;
+  }>;
   images: ProductImage[];
 }
 
 export interface ShopProductPayload {
   name: string;
   categoryId?: string | null;
+  catalogGroup?: string | null;
   sku?: string | null;
   description?: string | null;
   price?: number | null;
