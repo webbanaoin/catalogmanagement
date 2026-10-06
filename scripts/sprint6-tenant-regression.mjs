@@ -245,6 +245,16 @@ async function createFixture() {
     },
   });
 
+  await prisma.shopCategory.create({
+    data: {
+      shopId: shopA.id,
+      name: "Ring",
+      slug: "ring",
+      status: "ACTIVE",
+      displayOrder: 5,
+    },
+  });
+
   const visibleProductA = await prisma.product.create({
     data: {
       shopId: shopA.id,
@@ -380,6 +390,75 @@ async function main() {
     await request(`/api/shops/${fixture.shopA.id}/profile`, {}, cookieA),
     200,
   );
+
+  const seededCategoriesResponse = await request(
+    `/api/shops/${fixture.shopA.id}/categories?page=1&pageSize=100`,
+    {},
+    cookieA,
+  );
+  await expectStatus("automatic jewellery category seeding", seededCategoriesResponse, 200);
+  const seededCategoriesPayload = await seededCategoriesResponse.json();
+  const seededCategories = seededCategoriesPayload?.items ?? [];
+
+  for (const categoryName of [
+    "Ring",
+    "Earring",
+    "Necklace",
+    "Chain",
+    "Pendant",
+    "Bangle",
+    "Bracelet",
+    "Mangalsutra",
+    "Anklet & Payal",
+    "Nose Pin",
+    "Toe Ring",
+    "Jewellery Set",
+    "Gift Articles",
+  ]) {
+    if (!seededCategories.some((category) => category.name === categoryName)) {
+      throw new Error(`Recommended jewellery category was not seeded: ${categoryName}`);
+    }
+  }
+
+  if (seededCategories.filter((category) => category.name === "Ring").length !== 1) {
+    throw new Error("Existing Ring category was duplicated by automatic category seeding");
+  }
+
+  const removableDefault = seededCategories.find(
+    (category) => category.name === "Gift Articles",
+  );
+  if (!removableDefault?.id) {
+    throw new Error("Seeded Gift Articles category was not available for deletion test");
+  }
+
+  await expectStatus(
+    "delete a seeded unused category",
+    await request(
+      `/api/shops/${fixture.shopA.id}/categories/${removableDefault.id}`,
+      { method: "DELETE" },
+      cookieA,
+    ),
+    200,
+  );
+
+  const categoriesAfterDeleteResponse = await request(
+    `/api/shops/${fixture.shopA.id}/categories?page=1&pageSize=100`,
+    {},
+    cookieA,
+  );
+  await expectStatus(
+    "recommended category deletion remains respected",
+    categoriesAfterDeleteResponse,
+    200,
+  );
+  const categoriesAfterDeletePayload = await categoriesAfterDeleteResponse.json();
+  if (
+    (categoriesAfterDeletePayload?.items ?? []).some(
+      (category) => category.name === "Gift Articles",
+    )
+  ) {
+    throw new Error("Deleted recommended category was recreated automatically");
+  }
 
 
   const noPriceCreate = await jsonRequest(
