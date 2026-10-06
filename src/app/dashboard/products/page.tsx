@@ -29,6 +29,7 @@ import {
   getCurrentMerchantShop,
   getShopCategories,
   getShopProducts,
+  getShopProfile,
   updateShopProduct,
   uploadProductImage,
   type MerchantShop,
@@ -37,10 +38,18 @@ import {
   type ShopCategory,
   type ShopProduct,
 } from "@/lib/catalog-api";
+import { getCatalogPreset } from "@/lib/catalog-presets";
+
+interface ProductAttributeDraft {
+  attributeName: string;
+  attributeValue: string;
+  displayOrder: number;
+}
 
 interface ProductDraft {
   name: string;
   categoryId: string;
+  catalogGroup: string;
   sku: string;
   description: string;
   price: string;
@@ -52,11 +61,13 @@ interface ProductDraft {
   isNewArrival: boolean;
   isOffer: boolean;
   isVisible: boolean;
+  attributes: ProductAttributeDraft[];
 }
 
 const emptyDraft: ProductDraft = {
   name: "",
   categoryId: "",
+  catalogGroup: "",
   sku: "",
   description: "",
   price: "",
@@ -68,12 +79,14 @@ const emptyDraft: ProductDraft = {
   isNewArrival: false,
   isOffer: false,
   isVisible: true,
+  attributes: [],
 };
 
 function toDraft(product: ShopProduct): ProductDraft {
   return {
     name: product.name,
     categoryId: product.categoryId ?? "",
+    catalogGroup: product.catalogGroup ?? "",
     sku: product.sku ?? "",
     description: product.description ?? "",
     price: product.price == null ? "" : String(product.price),
@@ -86,6 +99,11 @@ function toDraft(product: ShopProduct): ProductDraft {
     isNewArrival: product.isNewArrival,
     isOffer: product.isOffer,
     isVisible: product.isVisible,
+    attributes: (product.attributes ?? []).map((attribute, index) => ({
+      attributeName: attribute.attributeName,
+      attributeValue: attribute.attributeValue,
+      displayOrder: attribute.displayOrder ?? index,
+    })),
   };
 }
 
@@ -102,6 +120,7 @@ export default function ProductsPage() {
   const [shop, setShop] = useState<MerchantShop | null>(null);
   const [categories, setCategories] = useState<ShopCategory[]>([]);
   const [products, setProducts] = useState<ShopProduct[]>([]);
+  const [businessCategory, setBusinessCategory] = useState<{ name: string; slug: string } | null>(null);
   const [draft, setDraft] = useState<ProductDraft>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -123,14 +142,23 @@ export default function ProductsPage() {
     async function load() {
       try {
         const currentShop = await getCurrentMerchantShop();
-        const [categoryResponse, productResponse] = await Promise.all([
+        const [categoryResponse, productResponse, profileResponse] = await Promise.all([
           getShopCategories(currentShop.id),
           getShopProducts(currentShop.id),
+          getShopProfile(currentShop.id),
         ]);
         if (!active) return;
         setShop(currentShop);
         setCategories(categoryResponse.items);
         setProducts(productResponse.items);
+        setBusinessCategory(
+          profileResponse.data.businessCategory
+            ? {
+                name: profileResponse.data.businessCategory.name,
+                slug: profileResponse.data.businessCategory.slug,
+              }
+            : null,
+        );
       } catch (error) {
         if (!active) return;
         setFeedback({
@@ -163,6 +191,39 @@ export default function ProductsPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  const catalogPreset = getCatalogPreset(businessCategory);
+
+  function productDetailValue(attributeName: string) {
+    return (
+      draft.attributes.find((attribute) => attribute.attributeName === attributeName)
+        ?.attributeValue ?? ""
+    );
+  }
+
+  function setProductDetail(attributeName: string, attributeValue: string) {
+    setDraft((current) => {
+      const existingIndex = current.attributes.findIndex(
+        (attribute) => attribute.attributeName === attributeName,
+      );
+      const attributes = [...current.attributes];
+
+      if (existingIndex >= 0) {
+        attributes[existingIndex] = {
+          ...attributes[existingIndex],
+          attributeValue,
+        };
+      } else {
+        attributes.push({
+          attributeName,
+          attributeValue,
+          displayOrder: attributes.length,
+        });
+      }
+
+      return { ...current, attributes };
+    });
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!shop) return;
@@ -176,6 +237,7 @@ export default function ProductsPage() {
     const payload = {
       name,
       categoryId: draft.categoryId || null,
+      catalogGroup: draft.catalogGroup.trim() || null,
       sku: draft.sku.trim() || null,
       description: draft.description.trim() || null,
       price: draft.price === "" ? null : Number(draft.price),
@@ -190,7 +252,13 @@ export default function ProductsPage() {
       isNewArrival: draft.isNewArrival,
       isOffer: draft.isOffer,
       isVisible: draft.isVisible,
-      attributes: [],
+      attributes: draft.attributes
+        .map((attribute) => ({
+          attributeName: attribute.attributeName.trim(),
+          attributeValue: attribute.attributeValue.trim(),
+          displayOrder: attribute.displayOrder,
+        }))
+        .filter((attribute) => attribute.attributeName && attribute.attributeValue),
     };
 
     setSaving(true);
@@ -383,6 +451,28 @@ export default function ProductsPage() {
               </Select>
             </Field>
 
+            <Field
+              label={catalogPreset.groupLabel}
+              htmlFor="product-catalog-group"
+              hint="Customer-facing high-level grouping. Example: Gold/Silver/Diamond, Men/Women/Kids or a department."
+            >
+              <Input
+                id="product-catalog-group"
+                list="product-catalog-group-options"
+                value={draft.catalogGroup}
+                onChange={(event) => setDraft({ ...draft, catalogGroup: event.target.value })}
+                maxLength={120}
+                placeholder={catalogPreset.groups[0] ? `e.g. ${catalogPreset.groups.slice(0, 3).join(", ")}` : "Optional collection or department"}
+              />
+              {catalogPreset.groups.length > 0 ? (
+                <datalist id="product-catalog-group-options">
+                  {catalogPreset.groups.map((group) => (
+                    <option key={group} value={group} />
+                  ))}
+                </datalist>
+              ) : null}
+            </Field>
+
             <Field label="Product code / SKU" htmlFor="product-sku" hint="Optional. Blank values are generated automatically.">
               <Input
                 id="product-sku"
@@ -470,6 +560,44 @@ export default function ProductsPage() {
               />
             </Field>
 
+            {catalogPreset.attributes.length > 0 ? (
+              <div className="md:col-span-2 rounded-xl border border-border bg-surface-muted p-4">
+                <div className="mb-4">
+                  <p className="font-medium text-foreground">Product details</p>
+                  <p className="mt-1 text-sm text-muted">
+                    Suggested fields are based on the shop business type. Fill only what is useful; blank fields are ignored.
+                  </p>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {catalogPreset.attributes.map((attribute, index) => {
+                    const inputId = `product-detail-${index}`;
+                    const listId = `product-detail-options-${index}`;
+                    return (
+                      <Field key={attribute.name} label={attribute.label} htmlFor={inputId}>
+                        <Input
+                          id={inputId}
+                          list={attribute.options?.length ? listId : undefined}
+                          value={productDetailValue(attribute.name)}
+                          onChange={(event) =>
+                            setProductDetail(attribute.name, event.target.value)
+                          }
+                          maxLength={500}
+                          placeholder={attribute.placeholder}
+                        />
+                        {attribute.options?.length ? (
+                          <datalist id={listId}>
+                            {attribute.options.map((option) => (
+                              <option key={option} value={option} />
+                            ))}
+                          </datalist>
+                        ) : null}
+                      </Field>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
             <Field label="Description" htmlFor="product-description" className="md:col-span-2">
               <Textarea
                 id="product-description"
@@ -544,6 +672,9 @@ export default function ProductsPage() {
                     <div className="min-w-0 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-semibold text-foreground">{product.name}</p>
+                        {product.catalogGroup ? (
+                          <Badge variant="info">{product.catalogGroup}</Badge>
+                        ) : null}
                         <Badge variant={product.isVisible ? "success" : "neutral"}>
                           {product.isVisible ? "Visible" : "Hidden"}
                         </Badge>
@@ -562,7 +693,7 @@ export default function ProductsPage() {
                         </Badge>
                       </div>
                       <p className="text-sm text-muted">
-                        {product.sku ?? "Auto code"} · {product.category?.name ?? "No category"} ·{" "}
+                        {product.sku ?? "Auto code"} · {product.catalogGroup ? `${catalogPreset.groupLabel}: ${product.catalogGroup} · ` : ""}{product.category?.name ?? "No category"} ·{" "}
                         {product.priceType === "ASK_PRICE" ? "Ask price" : money(product.discountPrice ?? product.price)}
                       </p>
                       <p className="text-xs text-muted">
