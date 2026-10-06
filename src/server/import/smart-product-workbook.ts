@@ -321,14 +321,14 @@ function productsWorksheet(
     ...config.preset.attributes.map((attribute) => attribute.label),
   ];
   const settings = defaultSettings(config);
-  const settingStartRow = 5;
-  const settingRows = new Map(
-    settings.map((setting, index) => [setting.key, settingStartRow + index]),
-  );
-  const headerRow = settingStartRow + settings.length + 3;
+  const headerRow = 7;
   const firstDataRow = headerRow + 1;
   const lastDataRow = firstDataRow + DATA_ROWS - 1;
   const lastColumn = headers.length - 1;
+
+  const settingCells = new Map(
+    settings.map((setting, index) => [setting.key, cellRef(index, 5)]),
+  );
 
   const sheetRows: string[] = [];
   sheetRows.push(
@@ -338,34 +338,38 @@ function productsWorksheet(
     `<row r="2">${inlineCell(
       0,
       2,
-      `Business type: ${config.businessCategoryName ?? "General"} | Fill Product Name and only values that differ from Quick Defaults. Blank cells inherit defaults.`,
+      `Business type: ${config.businessCategoryName ?? "General"} | Set common values once below. Product-row blanks inherit these defaults.`,
       2,
     )}</row>`,
   );
   sheetRows.push(
-    `<row r="3">${inlineCell(
-      0,
-      3,
-      "Tip: SKU and Price are optional. Use dropdowns where available. Individual row values override Quick Defaults.",
-      2,
-    )}</row>`,
-  );
-  sheetRows.push(
-    `<row r="4" ht="22" customHeight="1">${inlineCell(0, 4, "QUICK DEFAULTS - set once for the whole upload", 3)}</row>`,
+    `<row r="3" ht="22" customHeight="1">${inlineCell(0, 3, "QUICK DEFAULTS - set once for the whole upload", 3)}</row>`,
   );
 
-  for (const [index, setting] of settings.entries()) {
-    const rowNumber = settingStartRow + index;
-    sheetRows.push(
-      `<row r="${rowNumber}">${inlineCell(0, rowNumber, setting.label, 4)}${inlineCell(1, rowNumber, setting.value, 6)}</row>`,
-    );
-  }
+  sheetRows.push(
+    `<row r="4" ht="28" customHeight="1">${settings
+      .map((setting, index) => inlineCell(index, 4, setting.label, 4))
+      .join("")}</row>`,
+  );
+  sheetRows.push(
+    `<row r="5" ht="24" customHeight="1">${settings
+      .map((setting, index) => inlineCell(index, 5, setting.value, 6))
+      .join("")}</row>`,
+  );
+  sheetRows.push(
+    `<row r="6" ht="22" customHeight="1">${inlineCell(
+      0,
+      6,
+      "PRODUCTS - add one product per row below. Product Name is required; SKU and Price are optional.",
+      3,
+    )}</row>`,
+  );
 
   const headerCells = headers
-    .map((header, index) => inlineCell(index, headerRow, header, 5))
+    .map((header, index) => inlineCell(index, headerRow, header, 7))
     .join("");
   sheetRows.push(
-    `<row r="${headerRow}" ht="30" customHeight="1">${headerCells}</row>`,
+    `<row r="${headerRow}" ht="32" customHeight="1">${headerCells}</row>`,
   );
 
   for (const [rowIndex, row] of rows.entries()) {
@@ -406,17 +410,9 @@ function productsWorksheet(
     addColumnValidation(header, "YesNoList");
   }
 
-  const categoryDefaultRow = settingRows.get("category");
-  if (categoryDefaultRow) {
-    validations.push(dataValidation("CategoryList", `B${categoryDefaultRow}`));
-  }
-  const groupDefaultRow = settingRows.get("group");
-  if (groupDefaultRow && config.preset.groups.length) {
-    validations.push(
-      dataValidation("ProductGroupList", `B${groupDefaultRow}`),
-    );
-  }
-  for (const [key, listName] of [
+  const topListValidations = new Map<string, string>([
+    ["category", "CategoryList"],
+    ["group", "ProductGroupList"],
     ["priceType", "PriceTypeList"],
     ["availability", "AvailabilityList"],
     ["priceVisibility", "PriceVisibilityList"],
@@ -424,22 +420,26 @@ function productsWorksheet(
     ["featured", "YesNoList"],
     ["newArrival", "YesNoList"],
     ["offer", "YesNoList"],
-  ] as const) {
-    const rowNumber = settingRows.get(key);
-    if (rowNumber) {
-      validations.push(dataValidation(listName, `B${rowNumber}`));
-    }
+  ]);
+
+  for (const [key, listName] of topListValidations) {
+    const ref = settingCells.get(key);
+    if (!ref) continue;
+    if (key === "group" && config.preset.groups.length === 0) continue;
+    validations.push(dataValidation(listName, ref));
   }
 
   const groupColumnIndex = headerIndex.get(config.preset.groupLabel) ?? 3;
   const groupColumnName = cellRef(groupColumnIndex, firstDataRow).replace(/\d+$/, "");
-  const defaultGroupCell = groupDefaultRow ? `$B$${groupDefaultRow}` : '""';
+  const defaultGroupCell = settingCells.get("group")
+    ? `$${settingCells.get("group")!.replace(/\d+/, "")}$${settingCells.get("group")!.match(/\d+/)?.[0]}`
+    : '""';
 
   for (const attribute of config.preset.attributes) {
     const attributeColumnIndex = headerIndex.get(attribute.label);
     if (attributeColumnIndex == null) continue;
 
-    const settingRow = settingRows.get(`attribute:${attribute.name}`);
+    const settingCell = settingCells.get(`attribute:${attribute.name}`);
     const simpleList = lists.simpleAttributeNames.get(attribute.name);
     const dependentLists = lists.dependentAttributeNames.get(attribute.name);
 
@@ -450,10 +450,10 @@ function productsWorksheet(
           `${cellRef(attributeColumnIndex, firstDataRow)}:${cellRef(attributeColumnIndex, lastDataRow)}`,
         ),
       );
-      if (settingRow) {
-        validations.push(dataValidation(simpleList, `B${settingRow}`));
+      if (settingCell) {
+        validations.push(dataValidation(simpleList, settingCell));
       }
-    } else if (dependentLists && groupDefaultRow) {
+    } else if (dependentLists && settingCell && settingCells.get("group")) {
       const firstGroupCell = `$${groupColumnName}${firstDataRow}`;
       const groupExpression = `IF(${firstGroupCell}="",${defaultGroupCell},${firstGroupCell})`;
       validations.push(
@@ -463,14 +463,12 @@ function productsWorksheet(
           `Select a ${attribute.label} valid for the selected ${config.preset.groupLabel}.`,
         ),
       );
-      if (settingRow) {
-        validations.push(
-          dataValidation(
-            dependentFormula(attribute.name, defaultGroupCell),
-            `B${settingRow}`,
-          ),
-        );
-      }
+      validations.push(
+        dataValidation(
+          dependentFormula(attribute.name, defaultGroupCell),
+          settingCell,
+        ),
+      );
     }
   }
 
@@ -497,7 +495,12 @@ function productsWorksheet(
     xml: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
   <dimension ref="A1:${cellRef(lastColumn, Math.max(lastDataRow, headerRow))}"/>
-  <sheetViews><sheetView workbookViewId="0"><pane ySplit="${headerRow}" topLeftCell="A${firstDataRow}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
+  <sheetViews>
+    <sheetView workbookViewId="0">
+      <pane ySplit="${headerRow}" topLeftCell="A${firstDataRow}" activePane="bottomLeft" state="frozen"/>
+      <selection pane="bottomLeft" activeCell="A${firstDataRow}" sqref="A${firstDataRow}"/>
+    </sheetView>
+  </sheetViews>
   <sheetFormatPr defaultRowHeight="18"/>
   <cols>${widthColumns}</cols>
   <sheetData>${sheetRows.join("")}</sheetData>
@@ -505,7 +508,7 @@ function productsWorksheet(
     <mergeCell ref="A1:${cellRef(lastColumn, 1)}"/>
     <mergeCell ref="A2:${cellRef(lastColumn, 2)}"/>
     <mergeCell ref="A3:${cellRef(lastColumn, 3)}"/>
-    <mergeCell ref="A4:B4"/>
+    <mergeCell ref="A6:${cellRef(lastColumn, 6)}"/>
   </mergeCells>
   <autoFilter ref="A${headerRow}:${cellRef(lastColumn, headerRow)}"/>
   ${validationXml}
@@ -671,26 +674,28 @@ function buildZip(files: Array<{ name: string; content: string }>): Buffer {
 
 const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <fonts count="4">
+  <fonts count="5">
     <font><sz val="11"/><name val="Calibri"/></font>
     <font><b/><sz val="16"/><name val="Calibri"/></font>
     <font><b/><sz val="11"/><name val="Calibri"/></font>
     <font><i/><sz val="10"/><name val="Calibri"/></font>
+    <font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Calibri"/></font>
   </fonts>
-  <fills count="6">
+  <fills count="7">
     <fill><patternFill patternType="none"/></fill>
     <fill><patternFill patternType="gray125"/></fill>
     <fill><patternFill patternType="solid"><fgColor rgb="FFDDEBF7"/><bgColor indexed="64"/></patternFill></fill>
     <fill><patternFill patternType="solid"><fgColor rgb="FFE2F0D9"/><bgColor indexed="64"/></patternFill></fill>
     <fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/><bgColor indexed="64"/></patternFill></fill>
     <fill><patternFill patternType="solid"><fgColor rgb="FFD9EAD3"/><bgColor indexed="64"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FF0F766E"/><bgColor indexed="64"/></patternFill></fill>
   </fills>
   <borders count="2">
     <border><left/><right/><top/><bottom/><diagonal/></border>
     <border><left style="thin"><color rgb="FFD9D9D9"/></left><right style="thin"><color rgb="FFD9D9D9"/></right><top style="thin"><color rgb="FFD9D9D9"/></top><bottom style="thin"><color rgb="FFD9D9D9"/></bottom><diagonal/></border>
   </borders>
   <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-  <cellXfs count="7">
+  <cellXfs count="8">
     <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
     <xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFill="1"/>
     <xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0"/>
@@ -698,6 +703,7 @@ const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
     <xf numFmtId="0" fontId="2" fillId="4" borderId="1" xfId="0" applyFill="1"/>
     <xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFill="1"/>
     <xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0" applyFill="1"/>
+    <xf numFmtId="0" fontId="4" fillId="6" borderId="1" xfId="0" applyFill="1" applyFont="1"/>
   </cellXfs>
 </styleSheet>`;
 
