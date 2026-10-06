@@ -255,20 +255,20 @@ export default function ProductImportPage() {
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-3">
             <a href={templateUrl} className={buttonClassName("primary", "md")}>
-              Download Smart Excel template
+              Download Smart Excel for new products
             </a>
             <a href={exportUrl} className={buttonClassName("secondary", "md")}>
-              Download Smart current catalogue
+              Download current catalogue backup
             </a>
           </div>
-          <div className="grid gap-2 text-sm leading-6 text-muted sm:grid-cols-2">
+          <div className="grid gap-3 text-sm leading-6 text-muted sm:grid-cols-2">
             <p>
-              <span className="font-medium text-foreground">Quick Defaults:</span>{" "}
-              set common values such as Category, Product Group, Availability, Price Visibility, Visible, Featured, New Arrival and Offer once at the top.
+              <span className="font-medium text-foreground">New products:</span>{" "}
+              use the Smart Excel template for first-time onboarding or any bulk add. Quick Defaults apply common values once; row cells only need values that are different.
             </p>
             <p>
-              <span className="font-medium text-foreground">Row override:</span>{" "}
-              leave a row cell blank to inherit the default, or choose a different value only for that product. SKU and Price can remain blank.
+              <span className="font-medium text-foreground">Current catalogue backup:</span>{" "}
+              downloads products already saved in this shop for backup/reference. Existing SKUs are intentionally detected as duplicates if re-uploaded; bulk-update of existing products is not enabled yet.
             </p>
           </div>
           <p className="text-xs text-muted">
