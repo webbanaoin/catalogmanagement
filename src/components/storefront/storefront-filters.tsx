@@ -48,7 +48,7 @@ export function StorefrontFilters({
             name="group"
             defaultValue={catalogGroup ?? ""}
           >
-            <option value="">All {catalogGroupLabel.toLowerCase()}</option>
+            <option value="">All</option>
             {catalogGroups.map((group) => (
               <option key={group} value={group}>
                 {group}
