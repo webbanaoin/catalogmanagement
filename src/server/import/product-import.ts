@@ -12,6 +12,7 @@ const storedProductSchema = z.object({
   sku: z.string().max(100).nullable(),
   categoryId: z.string().nullable(),
   categoryName: z.string().nullable(),
+  catalogGroup: z.string().max(120).nullable().optional(),
   price: z.string().nullable(),
   discountPrice: z.string().nullable(),
   priceType: z.enum(["FIXED", "STARTING_FROM", "ASK_PRICE"]),
@@ -22,7 +23,7 @@ const storedProductSchema = z.object({
 });
 
 export const storedProductImportPreviewSchema = z.object({
-  version: z.literal(2),
+  version: z.union([z.literal(2), z.literal(3)]),
   products: z.array(storedProductSchema).max(PRODUCT_IMPORT_MAX_ROWS),
 });
 
@@ -68,6 +69,7 @@ export type ExistingProductForImport = {
   name: string;
   sku: string | null;
   categoryId: string | null;
+  catalogGroup?: string | null;
   price: string | null;
   discountPrice: string | null;
   priceType: "FIXED" | "STARTING_FROM" | "ASK_PRICE";
@@ -85,6 +87,21 @@ function headerAliases(header: (typeof PRODUCT_IMPORT_HEADERS)[number]): string[
       "sku product code",
       "sku product code optional",
       "sku product code optional auto generated if blank",
+    ];
+  }
+
+  if (header === "Product Group") {
+    return [
+      "product group",
+      "product group type",
+      "catalog group",
+      "catalog group type",
+      "jewellery type",
+      "jewelry type",
+      "department",
+      "collection",
+      "vehicle type",
+      "for",
     ];
   }
 
@@ -115,6 +132,7 @@ function normalizedMoney(value: string | null): string {
 export function productFingerprint(product: {
   name: string;
   categoryId: string | null;
+  catalogGroup?: string | null;
   priceType: "FIXED" | "STARTING_FROM" | "ASK_PRICE";
   price: string | null;
   discountPrice?: string | null;
@@ -125,6 +143,7 @@ export function productFingerprint(product: {
 
   return [
     normalizeName(product.name),
+    normalizeName(product.catalogGroup ?? ""),
     product.categoryId ?? "",
     product.priceType,
     price,
@@ -429,6 +448,13 @@ export function previewProductImport(options: {
 
     const sku = nullableText(values.SKU ?? "", 100, "SKU / Product Code", row.rowNumber, errors);
     const category = categoryId(values.Category ?? "", categories, row.rowNumber, errors);
+    const catalogGroup = nullableText(
+      values["Product Group"] ?? "",
+      120,
+      "Product Group",
+      row.rowNumber,
+      errors,
+    );
     const type = priceType(values["Price Type"] ?? "", row.rowNumber, errors);
     const price = money(values.Price ?? "", "Price", row.rowNumber, errors);
     const discountPrice = money(
@@ -487,6 +513,7 @@ export function previewProductImport(options: {
             sku,
             categoryId: category.id,
             categoryName: category.name,
+            catalogGroup,
             price,
             discountPrice,
             priceType: type,
