@@ -33,6 +33,7 @@ const created = {
   userIds: [],
   shopIds: [],
   businessCategoryIds: [],
+  planIds: [],
 };
 
 async function request(path, options = {}, cookie) {
@@ -125,6 +126,25 @@ async function createFixture() {
   });
   created.userIds.push(pendingUser.id);
 
+  const testPlan = await prisma.plan.create({
+    data: {
+      name: `Sprint 6 Regression Plan ${suffix}`,
+      slug: `sprint6-regression-plan-${suffix}`,
+      description: "Disposable CI plan for Sprint 6 tenant regression",
+      monthlyPrice: "0.00",
+      annualPrice: "0.00",
+      productLimit: 100,
+      imageLimitPerProduct: 10,
+      analyticsEnabled: true,
+      excelImportEnabled: true,
+      customBrandingEnabled: true,
+      trialDays: 30,
+      graceDays: 7,
+      status: "ACTIVE",
+    },
+  });
+  created.planIds.push(testPlan.id);
+
   const jewelleryBusinessCategory = await prisma.businessCategory.create({
     data: {
       name: `Jewellery Sprint 6 ${suffix}`,
@@ -145,6 +165,18 @@ async function createFixture() {
     },
   });
   created.shopIds.push(shopA.id);
+
+  await prisma.subscription.create({
+    data: {
+      shopId: shopA.id,
+      planId: testPlan.id,
+      startDate: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      graceEndsAt: new Date(Date.now() + 37 * 24 * 60 * 60 * 1000),
+      status: "ACTIVE",
+      paymentStatus: "WAIVED",
+    },
+  });
 
   const shopB = await prisma.shop.create({
     data: {
@@ -274,6 +306,11 @@ async function cleanup() {
     if (created.businessCategoryIds.length) {
       await prisma.businessCategory.deleteMany({
         where: { id: { in: created.businessCategoryIds } },
+      });
+    }
+    if (created.planIds.length) {
+      await prisma.plan.deleteMany({
+        where: { id: { in: created.planIds } },
       });
     }
     if (created.userIds.length) {
