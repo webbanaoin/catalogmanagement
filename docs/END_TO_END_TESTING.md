@@ -1,6 +1,21 @@
 # End-to-End Full System Testing Guide
 
 
+
+## Automatic business-type categories
+
+1. Use a shop with a supported business type, starting with **Jewellery**.
+2. Open **Dashboard -> Categories**. Recommended categories should be created automatically, for example Ring, Earring, Necklace, Chain, Pendant, Bangle, Bracelet, Mangalsutra and other jewellery categories.
+3. Confirm an existing category with the same name is not duplicated.
+4. Add a custom category manually, edit one recommended category, and deactivate another. Merchant changes must continue to work normally.
+5. Delete an unused recommended category, refresh the page, and confirm it is **not recreated**. Automatic presets are a one-time starting point, not a forced list.
+6. Open **Dashboard -> Products** and confirm all active shop categories are available for product assignment.
+7. Open the public showroom before products exist in most recommended categories. Empty recommended categories must **not** clutter the customer storefront; only categories containing visible products should appear.
+8. Change the shop business type to another supported vertical. Its recommended categories should be added without deleting or overwriting existing merchant categories.
+9. Repeat with another shop type such as Toys & Gifts, Garments or Electronics and confirm the preset matches the selected business type.
+
+New registrations that choose a supported business type receive their recommended categories during registration. Existing shops are initialized automatically the next time their categories are loaded.
+
 ## Vertical-aware catalogue classification
 
 Use this check with a Jewellery business category first, then repeat with another vertical such as Garments or Toys & Gifts.

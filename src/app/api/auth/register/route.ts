@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { hashPassword } from "@/server/auth/password";
+import { ensureDefaultShopCategories } from "@/server/catalog/default-categories";
 import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
@@ -36,10 +37,11 @@ export async function POST(request: Request) {
         throw new AppError({ code: "EMAIL_IN_USE", message: "An account with this email already exists", status: 409 });
       }
 
+      let businessCategory: { id: string; name: string; slug: string } | null = null;
       if (input.businessCategoryId) {
-        const businessCategory = await tx.businessCategory.findFirst({
+        businessCategory = await tx.businessCategory.findFirst({
           where: { id: input.businessCategoryId, status: "ACTIVE" },
-          select: { id: true },
+          select: { id: true, name: true, slug: true },
         });
         if (!businessCategory) {
           throw new AppError({
@@ -76,6 +78,14 @@ export async function POST(request: Request) {
         data: { userId: user.id, shopId: shop.id, role: "OWNER" },
         select: { id: true, role: true, shopId: true, createdAt: true },
       });
+
+      if (businessCategory) {
+        await ensureDefaultShopCategories(tx, {
+          shopId: shop.id,
+          businessCategory,
+          actorUserId: user.id,
+        });
+      }
 
       return { user, shop, membership };
     });

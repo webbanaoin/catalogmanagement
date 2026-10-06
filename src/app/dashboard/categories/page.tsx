@@ -183,7 +183,7 @@ export default function CategoriesPage() {
       <PageHeader
         eyebrow="Sprint 2"
         title="Shop categories"
-        description="Create and organize catalogue categories for this shop."
+        description="Recommended categories are created automatically from the shop business type. You can add, edit, deactivate or delete categories for your own catalogue."
         actions={<Badge variant="success">API connected</Badge>}
       />
 
@@ -192,7 +192,7 @@ export default function CategoriesPage() {
       <Card>
         <CardHeader>
           <CardTitle>{editingId ? "Edit category" : "Add category"}</CardTitle>
-          <CardDescription>Categories are scoped to the authenticated shop and support parent-child organization.</CardDescription>
+          <CardDescription>Recommended categories are only a starting point. Changes here affect this shop only.</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="grid gap-5 md:grid-cols-2" onSubmit={handleSubmit}>

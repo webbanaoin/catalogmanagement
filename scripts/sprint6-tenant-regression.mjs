@@ -245,6 +245,16 @@ async function createFixture() {
     },
   });
 
+  await prisma.shopCategory.create({
+    data: {
+      shopId: shopA.id,
+      name: "Ring",
+      slug: "ring",
+      status: "ACTIVE",
+      displayOrder: 5,
+    },
+  });
+
   const visibleProductA = await prisma.product.create({
     data: {
       shopId: shopA.id,
@@ -277,6 +287,7 @@ async function createFixture() {
     pendingShop,
     shopA,
     shopB,
+    jewelleryBusinessCategory,
     membershipA,
     categoryB,
     productB,
@@ -321,6 +332,41 @@ async function cleanup() {
 
 async function main() {
   const fixture = await createFixture();
+
+  const registrationEmail = `sprint6-preset-registration-${suffix}@example.test`;
+  const registrationResponse = await jsonRequest("/api/auth/register", "POST", {
+    name: "Preset Registration Merchant",
+    email: registrationEmail,
+    password: `Preset-Aa9!${randomUUID().slice(0, 12)}`,
+    shopName: `Preset Registration Shop ${suffix}`,
+    businessCategoryId: fixture.jewelleryBusinessCategory.id,
+  });
+  await expectStatus(
+    "registration seeds business-type categories",
+    registrationResponse,
+    201,
+  );
+  const registrationPayload = await registrationResponse.json();
+  const registeredUserId = registrationPayload?.data?.user?.id;
+  const registeredShopId = registrationPayload?.data?.shop?.id;
+  if (!registeredUserId || !registeredShopId) {
+    throw new Error("Preset registration did not return user and shop ids");
+  }
+  created.userIds.push(registeredUserId);
+  created.shopIds.push(registeredShopId);
+
+  const registrationCategories = await prisma.shopCategory.findMany({
+    where: { shopId: registeredShopId },
+    select: { name: true },
+  });
+  for (const categoryName of ["Ring", "Earring", "Necklace", "Chain"]) {
+    if (!registrationCategories.some((category) => category.name === categoryName)) {
+      throw new Error(
+        `Registration did not seed recommended Jewellery category: ${categoryName}`,
+      );
+    }
+  }
+
   let cookieA = await login(fixture.userA.email, passwordA);
 
   const onboarding = await request("/onboarding", {}, cookieA);
@@ -380,6 +426,110 @@ async function main() {
     await request(`/api/shops/${fixture.shopA.id}/profile`, {}, cookieA),
     200,
   );
+
+  const seededCategoriesResponse = await request(
+    `/api/shops/${fixture.shopA.id}/categories?page=1&pageSize=100`,
+    {},
+    cookieA,
+  );
+  await expectStatus("automatic jewellery category seeding", seededCategoriesResponse, 200);
+  const seededCategoriesPayload = await seededCategoriesResponse.json();
+  const seededCategories = seededCategoriesPayload?.items ?? [];
+
+  for (const categoryName of [
+    "Ring",
+    "Earring",
+    "Necklace",
+    "Chain",
+    "Pendant",
+    "Bangle",
+    "Bracelet",
+    "Mangalsutra",
+    "Anklet & Payal",
+    "Nose Pin",
+    "Toe Ring",
+    "Jewellery Set",
+    "Gift Articles",
+  ]) {
+    if (!seededCategories.some((category) => category.name === categoryName)) {
+      throw new Error(`Recommended jewellery category was not seeded: ${categoryName}`);
+    }
+  }
+
+  if (seededCategories.filter((category) => category.name === "Ring").length !== 1) {
+    throw new Error("Existing Ring category was duplicated by automatic category seeding");
+  }
+
+  const duplicateCategoryCreate = await jsonRequest(
+    `/api/shops/${fixture.shopA.id}/categories`,
+    "POST",
+    {
+      name: "  rInG  ",
+      displayOrder: 999,
+      status: "ACTIVE",
+    },
+    cookieA,
+  );
+  await expectStatus(
+    "case-insensitive duplicate category create blocked",
+    duplicateCategoryCreate,
+    409,
+  );
+
+  const earringCategory = seededCategories.find(
+    (category) => category.name === "Earring",
+  );
+  if (!earringCategory?.id) {
+    throw new Error("Seeded Earring category was not available for duplicate edit test");
+  }
+
+  const duplicateCategoryEdit = await jsonRequest(
+    `/api/shops/${fixture.shopA.id}/categories/${earringCategory.id}`,
+    "PATCH",
+    { name: "RING" },
+    cookieA,
+  );
+  await expectStatus(
+    "case-insensitive duplicate category edit blocked",
+    duplicateCategoryEdit,
+    409,
+  );
+
+  const removableDefault = seededCategories.find(
+    (category) => category.name === "Gift Articles",
+  );
+  if (!removableDefault?.id) {
+    throw new Error("Seeded Gift Articles category was not available for deletion test");
+  }
+
+  await expectStatus(
+    "delete a seeded unused category",
+    await request(
+      `/api/shops/${fixture.shopA.id}/categories/${removableDefault.id}`,
+      { method: "DELETE" },
+      cookieA,
+    ),
+    200,
+  );
+
+  const categoriesAfterDeleteResponse = await request(
+    `/api/shops/${fixture.shopA.id}/categories?page=1&pageSize=100`,
+    {},
+    cookieA,
+  );
+  await expectStatus(
+    "recommended category deletion remains respected",
+    categoriesAfterDeleteResponse,
+    200,
+  );
+  const categoriesAfterDeletePayload = await categoriesAfterDeleteResponse.json();
+  if (
+    (categoriesAfterDeletePayload?.items ?? []).some(
+      (category) => category.name === "Gift Articles",
+    )
+  ) {
+    throw new Error("Deleted recommended category was recreated automatically");
+  }
 
 
   const noPriceCreate = await jsonRequest(
