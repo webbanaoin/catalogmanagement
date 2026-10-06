@@ -3,6 +3,8 @@ export interface CatalogAttributePreset {
   label: string;
   placeholder?: string;
   options?: string[];
+  optionsByGroup?: Record<string, string[]>;
+  visibleForGroups?: string[];
 }
 
 export interface CatalogPreset {
@@ -38,11 +40,21 @@ const PRESETS: Array<{
         {
           name: "Purity",
           label: "Purity",
-          placeholder: "e.g. 22K or 925 Silver",
-          options: ["24K", "22K", "20K", "18K", "14K", "999 Silver", "925 Silver"],
+          placeholder: "Select purity",
+          visibleForGroups: ["Gold", "Silver", "Platinum"],
+          optionsByGroup: {
+            Gold: ["24K", "22K", "20K", "18K", "14K"],
+            Silver: ["999 Silver", "925 Silver", "900 Silver", "800 Silver"],
+            Platinum: ["999 Platinum", "950 Platinum", "900 Platinum", "850 Platinum"],
+          },
         },
         { name: "Weight", label: "Weight", placeholder: "e.g. 6.4 g" },
-        { name: "Diamond Carat", label: "Diamond Carat", placeholder: "e.g. 0.50 ct" },
+        {
+          name: "Diamond Carat",
+          label: "Diamond Carat",
+          placeholder: "e.g. 0.50 ct",
+          visibleForGroups: ["Diamond"],
+        },
         {
           name: "Gender",
           label: "For",
@@ -226,6 +238,30 @@ export function getCatalogPreset(input?: {
   }
 
   return DEFAULT_PRESET;
+}
+
+export function catalogAttributesForGroup(
+  preset: CatalogPreset,
+  catalogGroup?: string | null,
+): CatalogAttributePreset[] {
+  const group = (catalogGroup ?? "").trim();
+
+  return preset.attributes.filter((attribute) => {
+    if (!attribute.visibleForGroups?.length) return true;
+    if (!group) return false;
+    return attribute.visibleForGroups.includes(group);
+  });
+}
+
+export function catalogAttributeOptions(
+  attribute: CatalogAttributePreset,
+  catalogGroup?: string | null,
+): string[] {
+  const group = (catalogGroup ?? "").trim();
+  if (group && attribute.optionsByGroup?.[group]) {
+    return attribute.optionsByGroup[group] ?? [];
+  }
+  return attribute.options ?? [];
 }
 
 export function catalogGroupSuggestions(input?: {
