@@ -5,9 +5,9 @@ export default function AdminPaymentsPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Admin finance"
-        title="Payments"
-        description="Record money received from shops and keep a permanent manual payment and renewal history. No payment gateway is used."
+        eyebrow="Admin finance & renewals"
+        title="Payments & Subscription Intelligence"
+        description="Track actual collections, weekly/monthly/quarterly revenue, payment methods, billing cycles, renewal pipeline, expiring subscriptions and full shop payment history. No payment gateway is used."
       />
       <AdminPaymentManager />
     </div>
