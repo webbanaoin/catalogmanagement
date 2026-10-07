@@ -140,6 +140,7 @@ async function createFixture() {
       customBrandingEnabled: true,
       trialDays: 30,
       graceDays: 7,
+      isDefaultTrial: true,
       status: "ACTIVE",
     },
   });
@@ -880,6 +881,80 @@ async function main() {
   }
 
   const adminCookie = await login(fixture.admin.email, adminPassword);
+
+  const adminOnboardingTemplate = await request(
+    `/api/admin/shops/${registeredShopId}/imports/products/template`,
+    {},
+    adminCookie,
+  );
+  await expectStatus(
+    "admin assisted onboarding template for pending shop",
+    adminOnboardingTemplate,
+    200,
+  );
+  const adminOnboardingTemplateBuffer = Buffer.from(
+    await adminOnboardingTemplate.arrayBuffer(),
+  );
+  if (!adminOnboardingTemplateBuffer.toString("utf8").includes("QUICK DEFAULTS")) {
+    throw new Error("Admin onboarding Smart Excel did not contain Quick Defaults");
+  }
+
+  const subscriptionBeforePayment = await prisma.subscription.findUnique({
+    where: { shopId: fixture.shopA.id },
+    select: { endDate: true },
+  });
+  if (!subscriptionBeforePayment) {
+    throw new Error("Payment regression requires shop A subscription");
+  }
+
+  const paymentCreate = await jsonRequest(
+    `/api/admin/shops/${fixture.shopA.id}/payments`,
+    "POST",
+    {
+      amount: 299,
+      status: "PAID",
+      method: "UPI",
+      paymentDate: new Date().toISOString(),
+      referenceId: `SPRINT6-${suffix}`,
+      notes: "Regression payment",
+      extendDays: 30,
+    },
+    adminCookie,
+  );
+  await expectStatus("admin payment record create", paymentCreate, 201);
+
+  const paymentHistory = await request(
+    `/api/admin/shops/${fixture.shopA.id}/payments`,
+    {},
+    adminCookie,
+  );
+  await expectStatus("admin payment history", paymentHistory, 200);
+  const paymentHistoryPayload = await paymentHistory.json();
+  if (
+    !(paymentHistoryPayload?.items ?? []).some(
+      (payment) =>
+        payment.referenceId === `SPRINT6-${suffix}` &&
+        payment.status === "PAID" &&
+        payment.method === "UPI",
+    )
+  ) {
+    throw new Error("Admin payment history did not return the recorded payment");
+  }
+
+  const subscriptionAfterPayment = await prisma.subscription.findUnique({
+    where: { shopId: fixture.shopA.id },
+    select: { paymentStatus: true, status: true, endDate: true },
+  });
+  if (
+    subscriptionAfterPayment?.paymentStatus !== "PAID" ||
+    subscriptionAfterPayment.status !== "ACTIVE" ||
+    subscriptionAfterPayment.endDate.getTime() <=
+      subscriptionBeforePayment.endDate.getTime()
+  ) {
+    throw new Error(
+      "Paid admin payment did not synchronize payment status and extend subscription",
+    );
+  }
 
   await expectStatus(
     "admin shop detail",
