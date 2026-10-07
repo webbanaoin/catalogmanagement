@@ -197,13 +197,13 @@ export default function Home() {
 
       <section className="relative border-b border-slate-200/80 bg-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_8%_20%,rgba(56,189,248,.18),transparent_25%),radial-gradient(circle_at_90%_10%,rgba(99,102,241,.18),transparent_24%),linear-gradient(to_bottom,#ffffff,#f3f7ff)]" />
-        <Container className="relative grid items-start gap-9 py-12 lg:grid-cols-[.78fr_1.22fr] lg:gap-8 lg:py-14 xl:gap-10 xl:py-16">
+        <Container className="relative grid items-center gap-9 py-12 lg:grid-cols-[.9fr_1.1fr] lg:gap-8 lg:py-14 xl:gap-10 xl:py-16">
           <div>
             <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.14em] text-sky-800">
               For local shops, boutiques and retailers
             </span>
 
-            <h1 className="mt-6 max-w-2xl text-[2.75rem] font-black tracking-[-0.055em] text-[#07152f] sm:text-5xl lg:text-[3.45rem] lg:leading-[1.02] xl:text-[3.7rem]">
+            <h1 className="mt-6 max-w-2xl text-[2.75rem] font-black tracking-[-0.055em] text-[#07152f] sm:text-5xl lg:text-[3.3rem] lg:leading-[1.02] xl:text-[3.55rem]">
               Take your shop online with its own
               <span className="mt-1 block bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">
                 Digital Showroom
@@ -237,36 +237,23 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative mx-auto w-full max-w-[860px] lg:-mr-4 lg:pt-10 xl:-mr-8">
+          <div className="relative mx-auto w-full max-w-[820px] lg:w-[106%] lg:-mr-[6%]">
             <div className="absolute -inset-7 rounded-[2.8rem] bg-gradient-to-br from-cyan-200/55 via-indigo-200/50 to-violet-200/40 blur-3xl" />
             <div className="relative overflow-hidden rounded-[2rem] border border-white bg-white p-2.5 shadow-[0_34px_90px_rgba(15,23,42,.20)] ring-1 ring-slate-200/70">
               <Image
-                src="/images/webbanao-premium-showroom.jpg"
+                src="/images/webbanao-premium-showroom-hq.jpg"
                 alt="Premium Webbanao digital showroom example on laptop and mobile with QR, catalogue browsing and WhatsApp enquiries"
-                width={1200}
-                height={720}
+                width={1619}
+                height={971}
                 priority
-                sizes="(max-width: 1024px) 100vw, 61vw"
+                sizes="(max-width: 1024px) 100vw, 58vw"
                 className="h-auto w-full rounded-[1.5rem] object-cover"
               />
-            </div>
-
-            <div className="relative z-10 mx-4 -mt-4 grid gap-2 rounded-2xl border border-slate-200/90 bg-white/95 p-3 shadow-[0_18px_45px_rgba(15,23,42,.14)] backdrop-blur sm:mx-7 sm:grid-cols-3">
-              {[
-                ["QR ready", "Share anywhere"],
-                ["WhatsApp enquiries", "Direct to your shop"],
-                ["Onboarding support", "We help you launch"],
-              ].map(([title, text]) => (
-                <div key={title} className="rounded-xl bg-slate-50 px-3 py-2.5">
-                  <p className="text-[11px] font-extrabold text-slate-900">{title}</p>
-                  <p className="mt-0.5 text-[10px] font-semibold text-slate-500">{text}</p>
-                </div>
-              ))}
             </div>
           </div>
         </Container>
 
-        <Container className="relative pb-5 pt-5 lg:pt-3">
+        <Container className="relative pb-5 pt-3 lg:-mt-3 lg:pt-0">
           <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_12px_35px_rgba(15,23,42,.08)] sm:grid-cols-4 lg:grid-cols-12">
             {shopTypes.map((item) => (
               <div key={item.label} className="flex min-h-[72px] flex-col items-center justify-center gap-1.5 border-b border-r border-slate-100 px-2 py-3 text-center last:border-r-0 lg:border-b-0">
