@@ -241,10 +241,10 @@ export default function Home() {
             <div className="absolute -inset-7 rounded-[2.8rem] bg-gradient-to-br from-cyan-200/55 via-indigo-200/50 to-violet-200/40 blur-3xl" />
             <div className="relative overflow-hidden rounded-[2rem] border border-white bg-white p-2.5 shadow-[0_34px_90px_rgba(15,23,42,.20)] ring-1 ring-slate-200/70">
               <Image
-                src="/images/webbanao-premium-showroom-hq.jpg"
+                src="/images/webbanao-showroom-hero.svg"
                 alt="Premium Webbanao digital showroom example on laptop and mobile with QR, catalogue browsing and WhatsApp enquiries"
-                width={1619}
-                height={971}
+                width={1200}
+                height={720}
                 priority
                 sizes="(max-width: 1024px) 100vw, 58vw"
                 className="h-auto w-full rounded-[1.5rem] object-cover"
@@ -253,7 +253,7 @@ export default function Home() {
           </div>
         </Container>
 
-        <Container className="relative pb-5 pt-3 lg:-mt-3 lg:pt-0">
+        <Container className="relative pb-5 pt-2 lg:-mt-8 lg:pt-0">
           <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_12px_35px_rgba(15,23,42,.08)] sm:grid-cols-4 lg:grid-cols-12">
             {shopTypes.map((item) => (
               <div key={item.label} className="flex min-h-[72px] flex-col items-center justify-center gap-1.5 border-b border-r border-slate-100 px-2 py-3 text-center last:border-r-0 lg:border-b-0">
