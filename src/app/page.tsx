@@ -241,11 +241,13 @@ export default function Home() {
             <div className="absolute -inset-7 rounded-[2.8rem] bg-gradient-to-br from-cyan-200/50 via-indigo-200/45 to-violet-200/40 blur-3xl" />
             <div className="relative overflow-hidden rounded-[2rem] border border-white bg-white p-2 shadow-[0_34px_90px_rgba(15,23,42,.18)] ring-1 ring-slate-200/70">
               <Image
-                src="/images/webbanao-showroom-hero-premium.webp"
-                alt="Premium Webbanao digital showroom example on laptop and mobile"
-                width={1400}
-                height={840}
+                src="/images/webbanao-premium-showroom.jpg"
+                alt="Premium Webbanao digital showroom example on laptop and mobile with QR, catalogue browsing and WhatsApp enquiries"
+                width={560}
+                height={336}
                 priority
+                unoptimized
+                sizes="(max-width: 1024px) 100vw, 56vw"
                 className="h-auto w-full rounded-[1.5rem] object-cover"
               />
             </div>
