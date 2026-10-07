@@ -341,10 +341,10 @@ export default function Home() {
             <div className="absolute -inset-6 -z-10 rounded-[2.5rem] bg-gradient-to-br from-cyan-200/50 via-indigo-200/45 to-violet-200/35 blur-3xl" />
             <div className="relative overflow-hidden rounded-[2rem] border border-white/90 bg-white p-2.5 shadow-[0_30px_80px_rgba(15,23,42,.18)] ring-1 ring-slate-200/70">
               <Image
-                src="/images/webbanao-premium-showroom.jpg"
+                src="/images/webbanao-showroom-hero.svg"
                 alt="Premium Webbanao digital showroom example displayed on laptop and mobile with QR and WhatsApp customer journey"
-                width={800}
-                height={410}
+                width={1200}
+                height={720}
                 priority
                 className="h-auto w-full rounded-[1.45rem] object-cover"
               />
