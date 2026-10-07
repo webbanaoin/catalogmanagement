@@ -87,6 +87,43 @@ export interface AdminSubscription {
   usage: { products?: number };
 }
 
+export type AdminPaymentMethod = "CASH" | "UPI" | "BANK_TRANSFER" | "OTHER";
+
+export interface AdminPaymentRecord {
+  id: string;
+  amount: string;
+  currency: string;
+  method: AdminPaymentMethod;
+  reference?: string | null;
+  comment?: string | null;
+  receivedAt: string;
+  extendDays: number;
+  previousEndDate?: string | null;
+  newEndDate?: string | null;
+  createdAt: string;
+  planName: string;
+  shop: { id: string; name: string; slug: string };
+  recordedBy?: { id: string; name: string; email: string } | null;
+}
+
+export interface AdminPaymentSummary {
+  count: number;
+  amount: string;
+  currency: string;
+  byMethod: Record<AdminPaymentMethod, { count: number; amount: string }>;
+}
+
+export interface AdminPaymentCreatePayload {
+  shopId: string;
+  amount: number;
+  method: AdminPaymentMethod;
+  reference?: string | null;
+  comment?: string | null;
+  receivedAt?: string;
+  extendDays: number;
+  activateSubscription: boolean;
+}
+
 export interface AdminPlanPayload {
   name: string;
   slug?: string;
@@ -241,6 +278,39 @@ export async function updateAdminSubscription(
     "/api/admin/shops/" + encodeURIComponent(shopId) + "/subscription",
     { method: "PATCH", body: JSON.stringify(payload) },
   );
+}
+
+export async function getAdminPayments(filters?: {
+  shopId?: string;
+  method?: AdminPaymentMethod;
+  from?: string;
+  to?: string;
+  page?: number;
+  pageSize?: number;
+}) {
+  const params = new URLSearchParams();
+  if (filters?.shopId) params.set("shopId", filters.shopId);
+  if (filters?.method) params.set("method", filters.method);
+  if (filters?.from) params.set("from", filters.from);
+  if (filters?.to) params.set("to", filters.to);
+  params.set("page", String(filters?.page ?? 1));
+  params.set("pageSize", String(filters?.pageSize ?? 100));
+
+  return requestJson<{
+    items: AdminPaymentRecord[];
+    summary: AdminPaymentSummary;
+    pagination: { page: number; pageSize: number; total: number; totalPages: number };
+  }>("/api/admin/payments?" + params.toString());
+}
+
+export async function recordAdminPayment(payload: AdminPaymentCreatePayload) {
+  return requestJson<{
+    data: AdminPaymentRecord;
+    subscription: AdminSubscription;
+  }>("/api/admin/payments", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function getAdminBusinessCategories() {
