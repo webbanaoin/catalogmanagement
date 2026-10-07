@@ -274,7 +274,10 @@ export function AdminBusinessCategoryManager() {
       {!loading && !error ? (
         <div className="grid gap-4 lg:grid-cols-2">
           {categories.map((category) => (
-            <Card key={category.id}>
+            <Card
+              key={category.id}
+              className={mediaCategory === category.id ? "lg:col-span-2" : undefined}
+            >
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <div>
