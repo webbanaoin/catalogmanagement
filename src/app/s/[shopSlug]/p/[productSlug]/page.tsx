@@ -277,9 +277,9 @@ export default async function ProductPage({
                 />
               </div>
 
-              <div className="mt-5 rounded-xl bg-primary-soft/70 p-3.5 text-xs leading-5 text-primary sm:p-4">
+              <div className="mt-5 rounded-xl bg-primary-soft p-3.5 text-xs leading-5 text-primary sm:p-4">
                 <p className="font-bold">Interested in this product?</p>
-                <p className="mt-0.5 text-primary/80">
+                <p className="mt-0.5 text-primary">
                   Contact the shop directly for current stock, custom options and
                   final purchase details.
                 </p>
