@@ -28,8 +28,15 @@ export async function POST(request: Request) {
       throw new AppError({ code: "INVALID_CREDENTIALS", message: "Invalid email or password", status: 401 });
     }
 
-    const usableMemberships = user.shopUsers.filter(({ shop }) => shop.status === "APPROVED" || shop.status === "ACTIVE");
-    if (user.shopUsers.length > 0 && usableMemberships.length === 0) {
+    const usableMemberships = user.shopUsers.filter(
+      ({ shop }) => shop.status === "APPROVED" || shop.status === "ACTIVE",
+    );
+
+    if (
+      user.platformRole !== "ADMIN" &&
+      user.shopUsers.length > 0 &&
+      usableMemberships.length === 0
+    ) {
       const statuses = new Set(user.shopUsers.map(({ shop }) => shop.status));
       if (statuses.has("PENDING")) {
         await clearSessionCookie();
@@ -47,6 +54,7 @@ export async function POST(request: Request) {
         email: user.email,
         mobile: user.mobile,
         status: user.status,
+        platformRole: user.platformRole,
         createdAt: user.createdAt,
         shops: usableMemberships.map(({ role, shop }) => ({ ...shop, role })),
       },
