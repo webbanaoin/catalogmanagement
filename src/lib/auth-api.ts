@@ -83,6 +83,7 @@ export interface RegisterPayload {
   password: string;
   shopName: string;
   businessCategoryId?: string;
+  requestedBusinessType?: string;
   phone?: string;
   whatsapp?: string;
   city?: string;
