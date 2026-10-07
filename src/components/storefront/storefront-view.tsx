@@ -173,7 +173,7 @@ function ShopHero({
                   </a>
                   <a
                     href={`/s/${shop.slug}#storefront-products`}
-                    className="rounded-xl bg-foreground px-3 py-2.5 text-center text-xs font-bold text-surface shadow-sm transition hover:bg-primary"
+                    className="rounded-xl bg-foreground px-3 py-2.5 text-center text-xs font-bold text-white shadow-sm transition hover:bg-primary hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                   >
                     View collection
                   </a>
