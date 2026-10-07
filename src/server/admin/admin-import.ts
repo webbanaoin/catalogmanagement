@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { CatalogStatus, ShopStatus } from "@prisma/client";
+import type { ShopStatus } from "@prisma/client";
 
 import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
@@ -49,7 +49,7 @@ export async function getAdminImportShop(shopId: string) {
 
   if (
     !shop.businessCategory ||
-    shop.businessCategory.status !== ("ACTIVE" satisfies CatalogStatus)
+    shop.businessCategory.status !== "ACTIVE"
   ) {
     throw new AppError({
       code: "BUSINESS_TYPE_REQUIRED",
