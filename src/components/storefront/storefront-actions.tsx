@@ -41,22 +41,34 @@ export function StorefrontActions({
   }
 
   return (
-    <div className="flex flex-wrap gap-2" aria-label="Shop actions">
+    <div
+      className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2.5 [&>button]:w-full sm:[&>button]:w-auto"
+      aria-label="Shop actions"
+    >
       {whatsAppLink ? (
         <a
           href={whatsAppLink}
           target="_blank"
           rel="noreferrer"
-          className={buttonClassName("primary", "sm")}
+          className={buttonClassName(
+            "primary",
+            "md",
+            "w-full rounded-xl px-4 shadow-[0_8px_24px_rgba(23,79,67,0.14)] sm:w-auto",
+          )}
           onClick={() => track("WHATSAPP")}
         >
           {whatsappLabel}
+          <span aria-hidden="true">↗</span>
         </a>
       ) : null}
       {callLink ? (
         <a
           href={callLink}
-          className={buttonClassName("secondary", "sm")}
+          className={buttonClassName(
+            "secondary",
+            "md",
+            "w-full rounded-xl bg-surface/95 sm:w-auto",
+          )}
           onClick={() => track("CALL")}
         >
           Call shop
@@ -67,7 +79,11 @@ export function StorefrontActions({
           href={directionsUrl}
           target="_blank"
           rel="noreferrer"
-          className={buttonClassName("secondary", "sm")}
+          className={buttonClassName(
+            "secondary",
+            "md",
+            "w-full rounded-xl bg-surface/95 sm:w-auto",
+          )}
           onClick={() => track("DIRECTIONS")}
         >
           Directions
