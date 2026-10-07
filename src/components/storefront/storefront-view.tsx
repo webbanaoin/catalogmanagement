@@ -26,10 +26,14 @@ function ShopHero({
   shop,
   productCount,
   categoryCount,
+  newArrivalCount,
+  offerCount,
 }: {
   shop: PublicShop;
   productCount: number;
   categoryCount: number;
+  newArrivalCount: number;
+  offerCount: number;
 }) {
   const location = [shop.address, shop.city, shop.state]
     .filter(Boolean)
@@ -67,56 +71,118 @@ function ShopHero({
               eager
             />
 
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary sm:text-xs">
-                    Welcome to our showroom
+            <div className="grid min-w-0 flex-1 gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(17rem,0.8fr)] lg:gap-6">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary sm:text-xs">
+                  Welcome to our showroom
+                </p>
+                <h1 className="storefront-heading mt-1.5 text-2xl font-bold text-foreground sm:text-3xl lg:text-4xl">
+                  {shop.name}
+                </h1>
+                {shop.tagline ? (
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-muted sm:text-base">
+                    {shop.tagline}
                   </p>
-                  <h1 className="storefront-heading mt-1.5 text-2xl font-bold text-foreground sm:text-3xl lg:text-4xl">
-                    {shop.name}
-                  </h1>
-                  {shop.tagline ? (
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-muted sm:text-base">
-                      {shop.tagline}
+                ) : null}
+
+                {shop.description ? (
+                  <p className="mt-4 line-clamp-3 max-w-3xl whitespace-pre-line text-sm leading-6 text-muted">
+                    {shop.description}
+                  </p>
+                ) : null}
+
+                {location ? (
+                  <p className="mt-4 flex items-start gap-2 text-sm leading-6 text-muted-strong">
+                    <span className="mt-0.5 shrink-0" aria-hidden="true">
+                      ◉
+                    </span>
+                    <span>{location}</span>
+                  </p>
+                ) : null}
+
+                <div className="mt-5">
+                  <StorefrontActions
+                    title={shop.name}
+                    shopSlug={shop.slug}
+                    phone={shop.phone}
+                    whatsapp={shop.whatsapp}
+                    directionsUrl={shop.googleMapsUrl}
+                  />
+                </div>
+              </div>
+
+              <aside className="overflow-hidden rounded-[1.25rem] border border-primary/10 bg-[linear-gradient(145deg,#f1f7f4_0%,#ffffff_58%,#f8f4ea_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] sm:p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary sm:text-xs">
+                      Showroom at a glance
                     </p>
-                  ) : null}
+                    <p className="mt-1 text-sm leading-5 text-muted">
+                      Everything organised for quick discovery.
+                    </p>
+                  </div>
+                  <span
+                    className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground shadow-sm"
+                    aria-hidden="true"
+                  >
+                    ✦
+                  </span>
                 </div>
 
-                <div className="flex flex-wrap gap-2 lg:justify-end">
-                  <span className="rounded-full bg-primary-soft px-3 py-1.5 text-xs font-bold text-primary">
-                    {productCount} product{productCount === 1 ? "" : "s"}
-                  </span>
-                  <span className="rounded-full bg-surface-muted px-3 py-1.5 text-xs font-semibold text-muted-strong">
-                    {categoryCount} categor{categoryCount === 1 ? "y" : "ies"}
-                  </span>
+                <div className="mt-4 grid grid-cols-2 gap-2.5">
+                  <div className="rounded-xl border border-white/80 bg-surface/85 p-3 shadow-sm">
+                    <p className="storefront-heading text-xl font-bold text-foreground">
+                      {productCount}
+                    </p>
+                    <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.11em] text-muted">
+                      Products
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/80 bg-surface/85 p-3 shadow-sm">
+                    <p className="storefront-heading text-xl font-bold text-foreground">
+                      {categoryCount}
+                    </p>
+                    <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.11em] text-muted">
+                      Categories
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/80 bg-surface/85 p-3 shadow-sm">
+                    <p className="storefront-heading text-xl font-bold text-foreground">
+                      {newArrivalCount}
+                    </p>
+                    <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.11em] text-muted">
+                      New arrivals
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/80 bg-surface/85 p-3 shadow-sm">
+                    <p className="storefront-heading text-xl font-bold text-foreground">
+                      {offerCount}
+                    </p>
+                    <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.11em] text-muted">
+                      Offers
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              {shop.description ? (
-                <p className="mt-4 line-clamp-3 max-w-3xl whitespace-pre-line text-sm leading-6 text-muted">
-                  {shop.description}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <a
+                    href="#storefront-categories"
+                    className="rounded-xl border border-border bg-surface px-3 py-2.5 text-center text-xs font-bold text-foreground shadow-sm transition hover:border-primary/30 hover:text-primary"
+                  >
+                    Browse categories
+                  </a>
+                  <a
+                    href="#storefront-products"
+                    className="rounded-xl bg-foreground px-3 py-2.5 text-center text-xs font-bold text-surface shadow-sm transition hover:bg-primary"
+                  >
+                    View collection
+                  </a>
+                </div>
+
+                <p className="mt-3 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+                  Direct shop contact · No marketplace middleman
                 </p>
-              ) : null}
-
-              {location ? (
-                <p className="mt-4 flex items-start gap-2 text-sm leading-6 text-muted-strong">
-                  <span className="mt-0.5 shrink-0" aria-hidden="true">
-                    ◉
-                  </span>
-                  <span>{location}</span>
-                </p>
-              ) : null}
-
-              <div className="mt-5">
-                <StorefrontActions
-                  title={shop.name}
-                  shopSlug={shop.slug}
-                  phone={shop.phone}
-                  whatsapp={shop.whatsapp}
-                  directionsUrl={shop.googleMapsUrl}
-                />
-              </div>
+              </aside>
             </div>
           </div>
 
@@ -432,16 +498,20 @@ export function StorefrontView({
         shop={data.shop}
         productCount={data.pagination.total}
         categoryCount={data.categories.length}
+        newArrivalCount={data.newArrivals.length}
+        offerCount={data.offers.length}
       />
 
       {!filtered ? (
-        <CategoryShowcase
-          shopSlug={data.shop.slug}
-          categories={data.categories}
-          activeCategory={categorySlug}
-          catalogGroup={catalogGroup}
-          attributeValue={attributeValue}
-        />
+        <div id="storefront-categories" className="scroll-mt-24">
+          <CategoryShowcase
+            shopSlug={data.shop.slug}
+            categories={data.categories}
+            activeCategory={categorySlug}
+            catalogGroup={catalogGroup}
+            attributeValue={attributeValue}
+          />
+        </div>
       ) : null}
 
       <StorefrontSection
@@ -499,8 +569,9 @@ export function StorefrontView({
         </>
       ) : null}
 
-      <StorefrontSection
-        eyebrow={filtered ? "Filtered catalogue" : "Complete collection"}
+      <div id="storefront-products" className="scroll-mt-24">
+        <StorefrontSection
+          eyebrow={filtered ? "Filtered catalogue" : "Complete collection"}
         title={collectionTitle}
         description={
           collectionDescription ??
@@ -526,7 +597,8 @@ export function StorefrontView({
           attributeValue={attributeValue}
           availability={availability}
         />
-      </StorefrontSection>
+        </StorefrontSection>
+      </div>
     </>
   );
 }
