@@ -36,6 +36,7 @@ export async function GET(
         instagramUrl: true,
         facebookUrl: true,
         status: true,
+        requestedBusinessType: true,
         createdAt: true,
         updatedAt: true,
         businessCategory: {
