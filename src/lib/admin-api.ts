@@ -87,6 +87,140 @@ export interface AdminSubscription {
   usage: { products?: number };
 }
 
+export type AdminPaymentMethod = "CASH" | "UPI" | "BANK_TRANSFER" | "OTHER";
+export type AdminBillingCycle =
+  | "WEEKLY"
+  | "MONTHLY"
+  | "QUARTERLY"
+  | "HALF_YEARLY"
+  | "YEARLY"
+  | "CUSTOM";
+
+export interface AdminPaymentRecord {
+  id: string;
+  amount: string;
+  currency: string;
+  method: AdminPaymentMethod;
+  billingCycle: AdminBillingCycle;
+  periodStartDate?: string | null;
+  periodEndDate?: string | null;
+  reference?: string | null;
+  comment?: string | null;
+  receivedAt: string;
+  extendDays: number;
+  previousEndDate?: string | null;
+  newEndDate?: string | null;
+  createdAt: string;
+  planName: string;
+  shop: { id: string; name: string; slug: string };
+  recordedBy?: { id: string; name: string; email: string } | null;
+}
+
+export interface AdminPaymentSummary {
+  count: number;
+  amount: string;
+  currency: string;
+  byMethod: Record<AdminPaymentMethod, { count: number; amount: string }>;
+}
+
+export interface AdminPaymentCreatePayload {
+  shopId: string;
+  amount: number;
+  method: AdminPaymentMethod;
+  billingCycle: AdminBillingCycle;
+  periodStartDate?: string | null;
+  periodEndDate?: string | null;
+  reference?: string | null;
+  comment?: string | null;
+  receivedAt?: string;
+  extendDays: number;
+  activateSubscription: boolean;
+}
+
+export interface AdminPaymentTrendPoint {
+  label: string;
+  from: string;
+  to: string;
+  amount: string;
+  count: number;
+}
+
+export interface AdminSubscriptionPaymentHealth {
+  subscriptionId: string;
+  shopId: string;
+  shopName: string;
+  shopSlug: string;
+  shopStatus: AdminShopStatus;
+  planId: string;
+  planName: string;
+  subscriptionStatus: "TRIAL" | "ACTIVE" | "GRACE" | "EXPIRED" | "CANCELLED";
+  paymentStatus: "NOT_REQUIRED" | "PENDING" | "PAID" | "WAIVED";
+  startDate: string;
+  endDate: string;
+  graceEndsAt?: string | null;
+  daysRemaining: number;
+  contact: {
+    ownerName?: string | null;
+    ownerEmail?: string | null;
+    ownerMobile?: string | null;
+    shopPhone?: string | null;
+    shopEmail?: string | null;
+  };
+  lastPayment?: {
+    amount: string;
+    receivedAt: string;
+    billingCycle: AdminBillingCycle;
+  } | null;
+}
+
+export interface AdminPaymentAnalytics {
+  generatedAt: string;
+  revenue: {
+    total: string;
+    today: string;
+    thisWeek: string;
+    thisMonth: string;
+    thisQuarter: string;
+    thisYear: string;
+    currency: string;
+  };
+  paymentBreakdown: {
+    byMethod: Record<AdminPaymentMethod, { count: number; amount: string }>;
+    byBillingCycle: Record<AdminBillingCycle, { count: number; amount: string }>;
+  };
+  subscriptions: {
+    activePaid: number;
+    trial: number;
+    grace: number;
+    expired: number;
+    pendingPayment: number;
+    expiringWithin7Days: number;
+    expiring8To15Days: number;
+    expiring16To30Days: number;
+  };
+  expiry: {
+    upcoming: AdminSubscriptionPaymentHealth[];
+    grace: AdminSubscriptionPaymentHealth[];
+    expired: AdminSubscriptionPaymentHealth[];
+    pendingPayments: AdminSubscriptionPaymentHealth[];
+  };
+  trends: {
+    weekly: AdminPaymentTrendPoint[];
+    monthly: AdminPaymentTrendPoint[];
+    quarterly: AdminPaymentTrendPoint[];
+  };
+  topShops: Array<{
+    shop: {
+      id: string;
+      name: string;
+      slug: string;
+      status: AdminShopStatus;
+    };
+    amount: string;
+    paymentCount: number;
+  }>;
+}
+
 export interface AdminPlanPayload {
   name: string;
   slug?: string;
@@ -241,6 +375,47 @@ export async function updateAdminSubscription(
     "/api/admin/shops/" + encodeURIComponent(shopId) + "/subscription",
     { method: "PATCH", body: JSON.stringify(payload) },
   );
+}
+
+export async function getAdminPayments(filters?: {
+  shopId?: string;
+  method?: AdminPaymentMethod;
+  billingCycle?: AdminBillingCycle;
+  from?: string;
+  to?: string;
+  page?: number;
+  pageSize?: number;
+}) {
+  const params = new URLSearchParams();
+  if (filters?.shopId) params.set("shopId", filters.shopId);
+  if (filters?.method) params.set("method", filters.method);
+  if (filters?.billingCycle) params.set("billingCycle", filters.billingCycle);
+  if (filters?.from) params.set("from", filters.from);
+  if (filters?.to) params.set("to", filters.to);
+  params.set("page", String(filters?.page ?? 1));
+  params.set("pageSize", String(filters?.pageSize ?? 100));
+
+  return requestJson<{
+    items: AdminPaymentRecord[];
+    summary: AdminPaymentSummary;
+    pagination: { page: number; pageSize: number; total: number; totalPages: number };
+  }>("/api/admin/payments?" + params.toString());
+}
+
+export async function getAdminPaymentAnalytics() {
+  return requestJson<{ data: AdminPaymentAnalytics }>(
+    "/api/admin/payments/analytics",
+  );
+}
+
+export async function recordAdminPayment(payload: AdminPaymentCreatePayload) {
+  return requestJson<{
+    data: AdminPaymentRecord;
+    subscription: AdminSubscription;
+  }>("/api/admin/payments", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function getAdminBusinessCategories() {

@@ -140,6 +140,7 @@ async function createFixture() {
       customBrandingEnabled: true,
       trialDays: 30,
       graceDays: 7,
+      isDefaultTrial: true,
       status: "ACTIVE",
     },
   });
@@ -194,6 +195,7 @@ async function createFixture() {
       slug: `sprint6-pending-shop-${suffix}`,
       email: pendingUser.email,
       status: "PENDING",
+      businessCategoryId: jewelleryBusinessCategory.id,
     },
   });
   created.shopIds.push(pendingShop.id);
@@ -886,6 +888,70 @@ async function main() {
     await request(`/api/admin/shops/${fixture.shopB.id}`, {}, adminCookie),
     200,
   );
+
+  await expectStatus(
+    "merchant cannot use admin Smart Excel template",
+    await request(
+      `/api/admin/shops/${fixture.pendingShop.id}/imports/products/template`,
+      {},
+      cookieA,
+    ),
+    403,
+  );
+
+  const adminTemplate = await request(
+    `/api/admin/shops/${fixture.pendingShop.id}/imports/products/template`,
+    {},
+    adminCookie,
+  );
+  await expectStatus(
+    "admin Smart Excel template for pending shop",
+    adminTemplate,
+    200,
+  );
+  const adminTemplateBuffer = Buffer.from(await adminTemplate.arrayBuffer());
+  if (adminTemplateBuffer.length < 1000) {
+    throw new Error("Admin Smart Excel template download was unexpectedly small");
+  }
+
+  const adminTemplateForm = new FormData();
+  adminTemplateForm.set(
+    "file",
+    new Blob([adminTemplateBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }),
+    "admin-onboarding-template.xlsx",
+  );
+  const adminTemplatePreview = await request(
+    `/api/admin/shops/${fixture.pendingShop.id}/imports/products/preview`,
+    { method: "POST", body: adminTemplateForm },
+    adminCookie,
+  );
+  await expectStatus(
+    "admin Smart Excel preview for pending shop",
+    adminTemplatePreview,
+    200,
+  );
+  const adminTemplatePreviewPayload = await adminTemplatePreview.json();
+  if (
+    adminTemplatePreviewPayload?.data?.job?.status !== "VALIDATION_FAILED" ||
+    adminTemplatePreviewPayload?.data?.summary?.capacitySource !== "DEFAULT_TRIAL"
+  ) {
+    throw new Error(
+      "Pending-shop admin Smart Excel preview did not use default-trial onboarding capacity",
+    );
+  }
+
+  const adminImportAudit = await prisma.auditLog.findFirst({
+    where: {
+      actorUserId: fixture.admin.id,
+      shopId: fixture.pendingShop.id,
+      action: "ADMIN_PRODUCT_IMPORT_PREVIEWED",
+    },
+  });
+  if (!adminImportAudit) {
+    throw new Error("Admin Smart Excel preview audit row was not created");
+  }
   await expectStatus(
     "admin platform analytics",
     await request("/api/admin/analytics", {}, adminCookie),

@@ -87,6 +87,22 @@ enum PaymentStatus {
   WAIVED
 }
 
+enum PaymentMethod {
+  CASH
+  UPI
+  BANK_TRANSFER
+  OTHER
+}
+
+enum BillingCycle {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  YEARLY
+  CUSTOM
+}
+
 model User {
   id String @id @default(cuid())
   name String @db.VarChar(120)
@@ -101,6 +117,7 @@ model User {
   shopUsers ShopUser[]
   passwordResetTokens PasswordResetToken[]
   auditLogs AuditLog[]
+  paymentsRecorded PaymentRecord[] @relation("PaymentRecordedBy")
   @@index([status])
   @@index([platformRole])
   @@map("users")
@@ -140,6 +157,7 @@ model Shop {
   productViews ProductView[]
   customerActions CustomerAction[]
   subscription Subscription?
+  payments PaymentRecord[]
   auditLogs AuditLog[]
   @@index([businessCategoryId])
   @@index([status])
@@ -306,6 +324,7 @@ model Plan {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   subscriptions Subscription[]
+  payments PaymentRecord[]
   @@index([status])
   @@index([isDefaultTrial, status])
   @@map("plans")
@@ -324,9 +343,43 @@ model Subscription {
   updatedAt DateTime @updatedAt @map("updated_at")
   shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
   plan Plan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  payments PaymentRecord[]
   @@index([planId, status])
   @@index([status, endDate])
   @@map("subscriptions")
+}
+
+model PaymentRecord {
+  id String @id @default(cuid())
+  shopId String @map("shop_id")
+  subscriptionId String? @map("subscription_id")
+  planId String? @map("plan_id")
+  recordedByUserId String? @map("recorded_by_user_id")
+  planNameSnapshot String @map("plan_name_snapshot") @db.VarChar(120)
+  amount Decimal @db.Decimal(12, 2)
+  currency String @default("INR") @db.Char(3)
+  method PaymentMethod
+  billingCycle BillingCycle @default(CUSTOM) @map("billing_cycle")
+  periodStartDate DateTime? @map("period_start_date")
+  periodEndDate DateTime? @map("period_end_date")
+  reference String? @db.VarChar(191)
+  comment String? @db.Text
+  receivedAt DateTime @map("received_at")
+  extendDays Int @default(0) @map("extend_days")
+  previousEndDate DateTime? @map("previous_end_date")
+  newEndDate DateTime? @map("new_end_date")
+  createdAt DateTime @default(now()) @map("created_at")
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  plan Plan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+  recordedByUser User? @relation("PaymentRecordedBy", fields: [recordedByUserId], references: [id], onDelete: SetNull)
+  @@index([shopId, receivedAt])
+  @@index([subscriptionId])
+  @@index([planId])
+  @@index([method, receivedAt])
+  @@index([billingCycle, receivedAt])
+  @@index([recordedByUserId, createdAt])
+  @@map("payment_records")
 }
 
 model ImportJob {

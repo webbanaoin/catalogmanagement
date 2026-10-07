@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import {
@@ -111,12 +112,20 @@ function SubscriptionInspector({
     setWorking(true);
     setMessage(null);
     try {
-      const response = await updateAdminSubscription(shop.id, {
-        planId,
-        status,
-        paymentStatus,
-        ...(extendDays ? { extendDays: Number(extendDays) } : {}),
-      });
+      const payload: Parameters<typeof updateAdminSubscription>[1] = {};
+      if (planId !== subscription.plan.id) payload.planId = planId;
+      if (status !== subscription.storedStatus) payload.status = status;
+      if (paymentStatus !== subscription.paymentStatus) {
+        payload.paymentStatus = paymentStatus;
+      }
+      if (extendDays) payload.extendDays = Number(extendDays);
+
+      if (Object.keys(payload).length === 0) {
+        setMessage("No subscription changes to save.");
+        return;
+      }
+
+      const response = await updateAdminSubscription(shop.id, payload);
       setSubscription(response.data);
       setExtendDays("");
       setMessage("Subscription updated.");
@@ -204,9 +213,12 @@ function SubscriptionInspector({
                       )
                     }
                   >
-                    {["NOT_REQUIRED", "PENDING", "PAID", "WAIVED"].map((value) => (
+                    {["NOT_REQUIRED", "PENDING", "WAIVED"].map((value) => (
                       <option key={value} value={value}>{titleCase(value)}</option>
                     ))}
+                    <option value="PAID" disabled>
+                      Paid (record through Payments)
+                    </option>
                   </select>
                 </label>
 
@@ -409,22 +421,29 @@ function ShopCard({
           </div>
         </div>
 
-        {transitions[shop.status].length ? (
-          <div className="flex flex-wrap gap-2">
-            {transitions[shop.status].map((next) => (
-              <Button
-                key={next}
-                type="button"
-                size="sm"
-                variant={next === "REJECTED" || next === "SUSPENDED" ? "danger" : "secondary"}
-                disabled={working}
-                onClick={() => changeStatus(next)}
-              >
-                {titleCase(next)}
-              </Button>
-            ))}
-          </div>
-        ) : null}
+        <div className="flex flex-wrap gap-2">
+          {["PENDING", "APPROVED", "ACTIVE"].includes(shop.status) ? (
+            <Link
+              href={`/admin/shops/${shop.id}/onboarding`}
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-surface px-3 text-sm font-semibold text-foreground shadow-sm hover:bg-primary-soft hover:text-primary"
+            >
+              Onboard products
+            </Link>
+          ) : null}
+
+          {transitions[shop.status].map((next) => (
+            <Button
+              key={next}
+              type="button"
+              size="sm"
+              variant={next === "REJECTED" || next === "SUSPENDED" ? "danger" : "secondary"}
+              disabled={working}
+              onClick={() => changeStatus(next)}
+            >
+              {titleCase(next)}
+            </Button>
+          ))}
+        </div>
 
         {message ? <Alert title="Status update">{message}</Alert> : null}
         <SubscriptionInspector shop={shop} plans={plans} />
