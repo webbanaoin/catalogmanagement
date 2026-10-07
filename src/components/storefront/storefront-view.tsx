@@ -12,63 +12,198 @@ import type {
   PublicStorefrontResult,
 } from "@/server/storefront/storefront-data";
 
-const dayLabels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const dayLabels = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
 
-function ShopHero({ shop }: { shop: PublicShop }) {
-  const location = [shop.address, shop.city, shop.state].filter(Boolean).join(", ");
+function ShopHero({
+  shop,
+  productCount,
+  categoryCount,
+  newArrivalCount,
+  offerCount,
+}: {
+  shop: PublicShop;
+  productCount: number;
+  categoryCount: number;
+  newArrivalCount: number;
+  offerCount: number;
+}) {
+  const location = [shop.address, shop.city, shop.state]
+    .filter(Boolean)
+    .join(", ");
 
   return (
-    <section className="border-b border-border bg-surface">
-      <Container className="py-4 sm:py-6">
-        <div className="overflow-hidden rounded-2xl border border-border bg-surface-muted">
+    <section className="pb-4 pt-4 sm:pb-6 sm:pt-6">
+      <Container>
+        <div className="relative overflow-hidden rounded-[1.75rem] border border-border/80 bg-foreground shadow-[0_24px_70px_rgba(23,32,29,0.12)] sm:rounded-[2rem]">
           <StorefrontMedia
             src={shop.coverUrl}
             alt={`${shop.name} cover`}
-            className="aspect-[16/6] w-full sm:aspect-[16/5]"
+            className="aspect-[4/3] w-full sm:aspect-[16/7] lg:aspect-[16/6]"
             eager
           />
-        </div>
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/5 to-black/15" />
 
-        <div className="relative -mt-8 flex items-end gap-4 px-3 sm:-mt-10 sm:px-5">
-          <StorefrontMedia
-            src={shop.logoUrl}
-            alt={`${shop.name} logo`}
-            className="size-20 shrink-0 rounded-2xl border-4 border-surface bg-surface shadow-sm sm:size-24"
-            eager
-          />
-          <div className="min-w-0 flex-1 pb-1">
-            {shop.businessCategoryName ? (
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-                {shop.businessCategoryName}
-              </p>
-            ) : null}
-            <h1 className="truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-              {shop.name}
-            </h1>
-            {shop.tagline ? <p className="mt-1 text-sm text-muted">{shop.tagline}</p> : null}
+          <div className="absolute left-4 top-4 sm:left-6 sm:top-6">
+            <span className="inline-flex rounded-full border border-white/20 bg-black/25 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-sm backdrop-blur-md sm:text-xs">
+              {shop.businessCategoryName ?? "Digital Showroom"}
+            </span>
+          </div>
+
+          <div className="absolute bottom-4 right-4 hidden rounded-full border border-white/20 bg-black/25 px-3 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-md sm:block">
+            Curated catalogue
           </div>
         </div>
 
-        <div className="mt-5 space-y-4">
-          {location ? <p className="text-sm leading-6 text-muted">{location}</p> : null}
-          <StorefrontActions
-            title={shop.name}
-            shopSlug={shop.slug}
-            phone={shop.phone}
-            whatsapp={shop.whatsapp}
-            directionsUrl={shop.googleMapsUrl}
-          />
+        <div className="relative -mt-10 mx-2 rounded-[1.5rem] border border-border bg-surface/95 p-4 shadow-[0_20px_50px_rgba(23,32,29,0.11)] backdrop-blur-xl sm:-mt-14 sm:mx-6 sm:p-6 lg:mx-10 lg:p-7">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+            <StorefrontMedia
+              src={shop.logoUrl}
+              alt={`${shop.name} logo`}
+              className="size-20 shrink-0 rounded-[1.25rem] border border-border bg-surface shadow-[0_10px_25px_rgba(23,32,29,0.12)] sm:size-24 lg:size-28"
+              eager
+            />
+
+            <div className="grid min-w-0 flex-1 gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(17rem,0.8fr)] lg:gap-6">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary sm:text-xs">
+                  Welcome to our showroom
+                </p>
+                <h1 className="storefront-heading mt-1.5 text-2xl font-bold text-foreground sm:text-3xl lg:text-4xl">
+                  {shop.name}
+                </h1>
+                {shop.tagline ? (
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-muted sm:text-base">
+                    {shop.tagline}
+                  </p>
+                ) : null}
+
+                {shop.description ? (
+                  <p className="mt-4 line-clamp-3 max-w-3xl whitespace-pre-line text-sm leading-6 text-muted">
+                    {shop.description}
+                  </p>
+                ) : null}
+
+                {location ? (
+                  <p className="mt-4 flex items-start gap-2 text-sm leading-6 text-muted-strong">
+                    <span className="mt-0.5 shrink-0" aria-hidden="true">
+                      ◉
+                    </span>
+                    <span>{location}</span>
+                  </p>
+                ) : null}
+
+                <div className="mt-5">
+                  <StorefrontActions
+                    title={shop.name}
+                    shopSlug={shop.slug}
+                    phone={shop.phone}
+                    whatsapp={shop.whatsapp}
+                    directionsUrl={shop.googleMapsUrl}
+                  />
+                </div>
+              </div>
+
+              <aside className="overflow-hidden rounded-[1.25rem] border border-primary/10 bg-[linear-gradient(145deg,#f1f7f4_0%,#ffffff_58%,#f8f4ea_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] sm:p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary sm:text-xs">
+                      Showroom at a glance
+                    </p>
+                    <p className="mt-1 text-sm leading-5 text-muted">
+                      Everything organised for quick discovery.
+                    </p>
+                  </div>
+                  <span
+                    className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground shadow-sm"
+                    aria-hidden="true"
+                  >
+                    ✦
+                  </span>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-2.5">
+                  <div className="rounded-xl border border-white/80 bg-surface/85 p-3 shadow-sm">
+                    <p className="storefront-heading text-xl font-bold text-foreground">
+                      {productCount}
+                    </p>
+                    <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.11em] text-muted">
+                      Products
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/80 bg-surface/85 p-3 shadow-sm">
+                    <p className="storefront-heading text-xl font-bold text-foreground">
+                      {categoryCount}
+                    </p>
+                    <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.11em] text-muted">
+                      Categories
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/80 bg-surface/85 p-3 shadow-sm">
+                    <p className="storefront-heading text-xl font-bold text-foreground">
+                      {newArrivalCount}
+                    </p>
+                    <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.11em] text-muted">
+                      New arrivals
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/80 bg-surface/85 p-3 shadow-sm">
+                    <p className="storefront-heading text-xl font-bold text-foreground">
+                      {offerCount}
+                    </p>
+                    <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.11em] text-muted">
+                      Offers
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <a
+                    href={`/s/${shop.slug}#storefront-categories`}
+                    className="rounded-xl border border-border bg-surface px-3 py-2.5 text-center text-xs font-bold text-foreground shadow-sm transition hover:border-primary/30 hover:text-primary"
+                  >
+                    Browse categories
+                  </a>
+                  <a
+                    href={`/s/${shop.slug}#storefront-products`}
+                    className="inline-flex min-h-10 items-center justify-center rounded-xl bg-primary px-3 py-2.5 text-center text-xs font-bold shadow-sm transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                    style={{ color: "#ffffff" }}
+                  >
+                    <span>View collection</span>
+                  </a>
+                </div>
+
+                <p className="mt-3 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+                  Direct shop contact · No marketplace middleman
+                </p>
+              </aside>
+            </div>
+          </div>
 
           {shop.hours.length > 0 ? (
-            <details className="rounded-xl border border-border bg-background p-4">
-              <summary className="cursor-pointer text-sm font-medium text-foreground">
-                Opening hours
+            <details className="mt-5 rounded-xl border border-border/80 bg-background/70 px-4 py-3 sm:px-5">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-foreground marker:hidden">
+                <span>Opening hours</span>
+                <span className="text-xs font-medium text-muted">View hours ▾</span>
               </summary>
-              <div className="mt-3 grid gap-2 text-sm text-muted sm:grid-cols-2">
+              <div className="mt-4 grid gap-x-8 gap-y-2 border-t border-border pt-4 text-sm text-muted sm:grid-cols-2 lg:grid-cols-3">
                 {shop.hours.map((hour) => (
-                  <div key={hour.dayOfWeek} className="flex justify-between gap-4">
-                    <span>{dayLabels[hour.dayOfWeek] ?? `Day ${hour.dayOfWeek + 1}`}</span>
-                    <span>
+                  <div
+                    key={hour.dayOfWeek}
+                    className="flex justify-between gap-4 rounded-lg py-1"
+                  >
+                    <span className="font-medium text-muted-strong">
+                      {dayLabels[hour.dayOfWeek] ??
+                        `Day ${hour.dayOfWeek + 1}`}
+                    </span>
+                    <span className="text-right">
                       {hour.isClosed
                         ? "Closed"
                         : hour.openTime && hour.closeTime
@@ -100,12 +235,21 @@ function GroupLinks({
   if (groups.length === 0) return null;
 
   return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium text-foreground">Shop by {label}</p>
-      <div className="flex gap-2 overflow-x-auto pb-1" aria-label={label}>
+    <div className="space-y-2.5">
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted-strong">
+        Shop by {label}
+      </p>
+      <div
+        className="storefront-scroll flex gap-2 overflow-x-auto pb-1"
+        aria-label={label}
+      >
         <Link
           href={`/s/${shopSlug}`}
-          className={buttonClassName(activeGroup ? "secondary" : "primary", "sm", "shrink-0")}
+          className={buttonClassName(
+            activeGroup ? "secondary" : "primary",
+            "sm",
+            "shrink-0 rounded-full px-4",
+          )}
         >
           All
         </Link>
@@ -118,7 +262,7 @@ function GroupLinks({
               className={buttonClassName(
                 activeGroup === group ? "primary" : "secondary",
                 "sm",
-                "shrink-0",
+                "shrink-0 rounded-full px-4",
               )}
             >
               {group}
@@ -130,7 +274,7 @@ function GroupLinks({
   );
 }
 
-function CategoryLinks({
+function CategoryShowcase({
   shopSlug,
   categories,
   activeCategory,
@@ -145,37 +289,55 @@ function CategoryLinks({
 }) {
   if (categories.length === 0) return null;
 
-  function href(category?: string) {
+  function href(category: string) {
     const params = new URLSearchParams();
     if (catalogGroup) params.set("group", catalogGroup);
     if (attributeValue) params.set("spec", attributeValue);
-    if (category) params.set("category", category);
-    const query = params.toString();
-    return `/s/${shopSlug}${query ? `?${query}` : ""}`;
+    params.set("category", category);
+    return `/s/${shopSlug}?${params.toString()}`;
   }
 
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Shop categories">
-      <Link
-        href={href()}
-        className={buttonClassName(activeCategory ? "secondary" : "primary", "sm", "shrink-0")}
-      >
-        All categories
-      </Link>
-      {categories.map((category) => (
-        <Link
-          key={category.slug}
-          href={href(category.slug)}
-          className={buttonClassName(
-            activeCategory === category.slug ? "primary" : "secondary",
-            "sm",
-            "shrink-0",
-          )}
-        >
-          {category.name}
-        </Link>
-      ))}
-    </div>
+    <StorefrontSection
+      eyebrow="Explore"
+      title="Shop by category"
+      description="Browse the collection the way you naturally shop."
+    >
+      <div className="storefront-scroll flex gap-3 overflow-x-auto pb-2 sm:gap-4 lg:grid lg:grid-cols-4 lg:overflow-visible xl:grid-cols-6">
+        {categories.map((category) => {
+          const active = activeCategory === category.slug;
+          return (
+            <Link
+              key={category.slug}
+              href={href(category.slug)}
+              className={[
+                "group relative w-[8.75rem] shrink-0 overflow-hidden rounded-[1.25rem] border bg-surface shadow-[0_8px_24px_rgba(23,32,29,0.055)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_16px_34px_rgba(23,32,29,0.1)] sm:w-[10rem] lg:w-auto",
+                active
+                  ? "border-primary ring-2 ring-primary/15"
+                  : "border-border/90 hover:border-primary/25",
+              ].join(" ")}
+            >
+              <div className="relative overflow-hidden">
+                <StorefrontMedia
+                  src={category.imageUrl}
+                  alt={category.name}
+                  className="aspect-[4/3] w-full transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
+              </div>
+              <div className="p-3">
+                <p className="line-clamp-2 text-sm font-bold leading-5 tracking-[-0.015em] text-foreground">
+                  {category.name}
+                </p>
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-primary">
+                  Explore →
+                </p>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </StorefrontSection>
   );
 }
 
@@ -195,7 +357,7 @@ function ProductGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:gap-5">
       {products.map((product) => (
         <ProductCard key={product.slug} shopSlug={shopSlug} product={product} />
       ))}
@@ -236,20 +398,29 @@ function Pagination({
   }
 
   return (
-    <nav className="mt-6 flex items-center justify-between gap-3" aria-label="Product pages">
+    <nav
+      className="mt-7 flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-3 shadow-sm sm:mt-8 sm:p-4"
+      aria-label="Product pages"
+    >
       {page > 1 ? (
-        <Link href={href(page - 1)} className={buttonClassName("secondary", "sm")}>
-          Previous
+        <Link
+          href={href(page - 1)}
+          className={buttonClassName("secondary", "sm", "rounded-xl")}
+        >
+          ← Previous
         </Link>
       ) : (
         <span />
       )}
-      <p className="text-sm text-muted">
+      <p className="text-xs font-semibold text-muted sm:text-sm">
         Page {page} of {totalPages}
       </p>
       {page < totalPages ? (
-        <Link href={href(page + 1)} className={buttonClassName("secondary", "sm")}>
-          Next
+        <Link
+          href={href(page + 1)}
+          className={buttonClassName("secondary", "sm", "rounded-xl")}
+        >
+          Next →
         </Link>
       ) : (
         <span />
@@ -260,21 +431,32 @@ function Pagination({
 
 function HighlightSection({
   title,
+  eyebrow,
+  description,
   shopSlug,
   products,
-  badge,
+  tone = "default",
 }: {
   title: string;
+  eyebrow: string;
+  description: string;
   shopSlug: string;
   products: PublicProductSummary[];
-  badge?: string;
+  tone?: "default" | "soft";
 }) {
   if (products.length === 0) return null;
 
   return (
     <StorefrontSection
+      eyebrow={eyebrow}
       title={title}
-      action={badge ? <Badge variant="info">{badge}</Badge> : undefined}
+      description={description}
+      tone={tone}
+      action={
+        <Badge variant="info">
+          {products.length} pick{products.length === 1 ? "" : "s"}
+        </Badge>
+      }
     >
       <ProductGrid
         shopSlug={shopSlug}
@@ -307,28 +489,39 @@ export function StorefrontView({
   collectionTitle?: string;
   collectionDescription?: string;
 }) {
-  const filtered = Boolean(q || categorySlug || catalogGroup || attributeValue || availability);
+  const filtered = Boolean(
+    q || categorySlug || catalogGroup || attributeValue || availability,
+  );
 
   return (
     <>
-      <ShopHero shop={data.shop} />
+      <ShopHero
+        shop={data.shop}
+        productCount={data.pagination.total}
+        categoryCount={data.categories.length}
+        newArrivalCount={data.newArrivals.length}
+        offerCount={data.offers.length}
+      />
 
-      {data.shop.description ? (
-        <StorefrontSection title="About this shop">
-          <p className="max-w-3xl whitespace-pre-line text-sm leading-6 text-muted">
-            {data.shop.description}
-          </p>
-        </StorefrontSection>
+      {!filtered ? (
+        <div id="storefront-categories" className="scroll-mt-24">
+          <CategoryShowcase
+            shopSlug={data.shop.slug}
+            categories={data.categories}
+            activeCategory={categorySlug}
+            catalogGroup={catalogGroup}
+            attributeValue={attributeValue}
+          />
+        </div>
       ) : null}
 
-      <StorefrontSection title="Browse this shop">
-        <div className="space-y-4">
-          <GroupLinks
-            shopSlug={data.shop.slug}
-            label={data.shop.catalogGroupLabel}
-            groups={data.catalogGroups}
-            activeGroup={catalogGroup}
-          />
+      <StorefrontSection
+        eyebrow="Discover"
+        title="Find your perfect pick"
+        description="Search the catalogue or refine by collection, category and availability."
+        tone={filtered ? "default" : "soft"}
+      >
+        <div className="space-y-5">
           <StorefrontFilters
             shopSlug={data.shop.slug}
             categories={data.categories}
@@ -341,12 +534,11 @@ export function StorefrontView({
             attributeValue={attributeValue}
             availability={availability}
           />
-          <CategoryLinks
+          <GroupLinks
             shopSlug={data.shop.slug}
-            categories={data.categories}
-            activeCategory={categorySlug}
-            catalogGroup={catalogGroup}
-            attributeValue={attributeValue}
+            label={data.shop.catalogGroupLabel}
+            groups={data.catalogGroups}
+            activeGroup={catalogGroup}
           />
         </div>
       </StorefrontSection>
@@ -354,34 +546,41 @@ export function StorefrontView({
       {!filtered ? (
         <>
           <HighlightSection
-            title="Featured"
+            eyebrow="Editor's selection"
+            title="Featured favourites"
+            description="A handpicked selection worth discovering first."
             shopSlug={data.shop.slug}
             products={data.featured}
-            badge="Featured"
           />
           <HighlightSection
+            eyebrow="Just added"
             title="New arrivals"
+            description="Fresh additions to the showroom, ready to explore."
             shopSlug={data.shop.slug}
             products={data.newArrivals}
-            badge="New"
+            tone="soft"
           />
           <HighlightSection
-            title="Offers"
+            eyebrow="Worth a look"
+            title="Special offers"
+            description="Current highlighted offers from this collection."
             shopSlug={data.shop.slug}
             products={data.offers}
-            badge="Offers"
           />
         </>
       ) : null}
 
-      <StorefrontSection
+      <div id="storefront-products" className="scroll-mt-24">
+        <StorefrontSection
+          eyebrow={filtered ? "Filtered catalogue" : "Complete collection"}
         title={collectionTitle}
         description={
           collectionDescription ??
           (filtered
             ? `${data.pagination.total} matching product${data.pagination.total === 1 ? "" : "s"}`
-            : `${data.pagination.total} product${data.pagination.total === 1 ? "" : "s"} available`)
+            : `${data.pagination.total} product${data.pagination.total === 1 ? "" : "s"} available to browse`)
         }
+        tone={!filtered ? "soft" : "default"}
       >
         <ProductGrid
           shopSlug={data.shop.slug}
@@ -399,7 +598,8 @@ export function StorefrontView({
           attributeValue={attributeValue}
           availability={availability}
         />
-      </StorefrontSection>
+        </StorefrontSection>
+      </div>
     </>
   );
 }

@@ -1,9 +1,61 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { AuthShell } from "@/components/auth/auth-shell";
 import { LoginForm } from "@/components/auth/login-form";
+import { getSession } from "@/server/auth/session";
+import { prisma } from "@/server/database/prisma";
 
-export default function LoginPage() {
+async function redirectAuthenticatedUser() {
+  const session = await getSession();
+  if (!session) return;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: {
+      status: true,
+      platformRole: true,
+      sessionVersion: true,
+      shopUsers: {
+        select: {
+          shop: {
+            select: { status: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (
+    !user ||
+    user.status !== "ACTIVE" ||
+    user.sessionVersion !== session.sessionVersion
+  ) {
+    return;
+  }
+
+  if (user.platformRole === "ADMIN") {
+    redirect("/admin");
+  }
+
+  const usableShop = user.shopUsers.some(
+    ({ shop }) => shop.status === "APPROVED" || shop.status === "ACTIVE",
+  );
+  if (usableShop) {
+    redirect("/onboarding");
+  }
+
+  const pendingShop = user.shopUsers.some(
+    ({ shop }) => shop.status === "PENDING",
+  );
+  if (pendingShop) {
+    redirect("/pending-approval");
+  }
+}
+
+export default async function LoginPage() {
+  await redirectAuthenticatedUser();
+
   return (
     <AuthShell
       title="Sign in"

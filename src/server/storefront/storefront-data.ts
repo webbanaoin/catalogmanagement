@@ -243,7 +243,7 @@ async function getActiveShopRecord(shopSlug: string) {
       logoStorageKey: true,
       coverStorageKey: true,
       businessCategory: {
-        select: { name: true, slug: true },
+        select: { id: true, name: true, slug: true },
       },
       hours: {
         orderBy: { dayOfWeek: "asc" },
@@ -333,7 +333,14 @@ export async function getPublicStorefront(
   const primaryAttributeName = preset.primaryFilterAttribute;
   const where = publicProductWhere(shopRecord.id, query, primaryAttributeName);
 
-  const [categories, groupRows, attributeRows, products, total] = await Promise.all([
+  const [
+    categories,
+    groupRows,
+    attributeRows,
+    products,
+    total,
+    globalCategoryMedia,
+  ] = await Promise.all([
     prisma.shopCategory.findMany({
       where: {
         shopId: shopRecord.id,
@@ -396,7 +403,25 @@ export async function getPublicStorefront(
       select: productSummarySelect,
     }),
     prisma.product.count({ where }),
+    shopRecord.businessCategory?.id
+      ? prisma.businessCategoryMedia.findMany({
+          where: {
+            businessCategoryId: shopRecord.businessCategory.id,
+          },
+          select: {
+            categorySlug: true,
+            imageStorageKey: true,
+          },
+        })
+      : Promise.resolve([]),
   ]);
+
+  const globalCategoryImageBySlug = new Map(
+    globalCategoryMedia.map((item) => [
+      item.categorySlug,
+      item.imageStorageKey,
+    ]),
+  );
 
   let featured: ProductSummaryRow[] = [];
   let newArrivals: ProductSummaryRow[] = [];
@@ -441,7 +466,11 @@ export async function getPublicStorefront(
         categories.map(async (category) => ({
           slug: category.slug,
           name: category.name,
-          imageUrl: await mediaUrl(category.imageStorageKey),
+          imageUrl: await mediaUrl(
+            category.imageStorageKey ??
+              globalCategoryImageBySlug.get(category.slug) ??
+              null,
+          ),
         })),
       ),
       Promise.all(products.map((product) => mapProduct(product, shopRecord.showProductPrices))),

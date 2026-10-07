@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { Alert, Button, Field, Input } from "@/components/ui";
@@ -19,7 +18,6 @@ function focusFirstInvalid(form: HTMLFormElement, errors: FieldErrors) {
 }
 
 export function LoginForm() {
-  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -57,13 +55,13 @@ export function LoginForm() {
 
     try {
       const response = await loginMerchant({ email, password });
-      router.push(
+      window.location.assign(
         response.data.platformRole === "ADMIN" ? "/admin" : "/onboarding",
       );
     } catch (error) {
       if (error instanceof AuthApiError) {
         if (error.code === "SHOP_PENDING_APPROVAL") {
-          router.push("/pending-approval");
+          window.location.assign("/pending-approval");
           return;
         }
         setFieldErrors(error.fields);

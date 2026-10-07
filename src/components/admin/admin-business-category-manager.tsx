@@ -2,6 +2,8 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 
+import { AdminCategoryMediaLibrary } from "@/components/admin/admin-category-media-library";
+
 import {
   AdminApiError,
   createAdminBusinessCategory,
@@ -190,6 +192,7 @@ export function AdminBusinessCategoryManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
+  const [mediaCategory, setMediaCategory] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -271,7 +274,10 @@ export function AdminBusinessCategoryManager() {
       {!loading && !error ? (
         <div className="grid gap-4 lg:grid-cols-2">
           {categories.map((category) => (
-            <Card key={category.id}>
+            <Card
+              key={category.id}
+              className={mediaCategory === category.id ? "lg:col-span-2" : undefined}
+            >
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -316,14 +322,39 @@ export function AdminBusinessCategoryManager() {
                       </div>
                     </dl>
 
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setEditing(category.id)}
-                    >
-                      Edit category
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setEditing(category.id)}
+                      >
+                        Edit category
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={mediaCategory === category.id ? "primary" : "secondary"}
+                        size="sm"
+                        onClick={() =>
+                          setMediaCategory((current) =>
+                            current === category.id ? null : category.id,
+                          )
+                        }
+                      >
+                        {mediaCategory === category.id
+                          ? "Hide category images"
+                          : "Manage category images"}
+                      </Button>
+                    </div>
+
+                    {mediaCategory === category.id ? (
+                      <div className="border-t border-border pt-4">
+                        <AdminCategoryMediaLibrary
+                          businessCategoryId={category.id}
+                          businessCategoryName={category.name}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 )}
               </CardContent>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { AdminLogoutButton } from "@/components/admin/admin-logout-button";
 import { Badge, Container } from "@/components/ui";
 
 const items = [
@@ -37,6 +38,7 @@ export function AdminShell({
           <div className="flex items-center gap-2">
             <Badge variant="info">ADMIN</Badge>
             <span className="hidden text-sm text-muted sm:inline">{adminName}</span>
+            <AdminLogoutButton />
           </div>
         </Container>
       </header>

@@ -52,6 +52,7 @@ export class AuthApiError extends Error {
 async function postJson<T>(path: string, payload: unknown): Promise<T> {
   const response = await fetch(path, {
     method: "POST",
+    credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });

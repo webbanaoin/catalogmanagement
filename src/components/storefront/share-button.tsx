@@ -49,7 +49,13 @@ export function ShareButton({
   }
 
   return (
-    <Button type="button" variant="secondary" size="sm" onClick={share}>
+    <Button
+      type="button"
+      variant="secondary"
+      size="md"
+      className="rounded-xl bg-surface/95"
+      onClick={share}
+    >
       {status === "copied" ? "Link copied" : "Share"}
     </Button>
   );

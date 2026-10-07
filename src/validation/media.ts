@@ -28,3 +28,23 @@ export const shopBrandingConfirmSchema = z.object({
 export const shopBrandingRemoveSchema = z.object({
   kind: z.enum(["logo", "cover"]),
 });
+
+
+export const GLOBAL_CATEGORY_MEDIA_MIME_TYPES = PRODUCT_IMAGE_MIME_TYPES;
+export const GLOBAL_CATEGORY_MEDIA_MAX_BYTES = PRODUCT_IMAGE_MAX_BYTES;
+
+export const globalCategoryMediaUploadSchema = z.object({
+  categorySlug: z.string().trim().min(1).max(160),
+  fileName: z.string().trim().min(1).max(255),
+  mimeType: z.enum(GLOBAL_CATEGORY_MEDIA_MIME_TYPES),
+  fileSize: z.number().int().positive().max(GLOBAL_CATEGORY_MEDIA_MAX_BYTES),
+});
+
+export const globalCategoryMediaConfirmSchema = z.object({
+  categorySlug: z.string().trim().min(1).max(160),
+  storageKey: z.string().trim().min(1).max(512),
+});
+
+export const globalCategoryMediaRemoveSchema = z.object({
+  categorySlug: z.string().trim().min(1).max(160),
+});

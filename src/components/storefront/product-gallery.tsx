@@ -327,7 +327,7 @@ export function ProductGallery({
   return (
     <>
       <div className="space-y-3">
-        <div className="group relative aspect-square overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+        <div className="group relative aspect-square overflow-hidden rounded-[1.5rem] border border-border/90 bg-surface shadow-[0_18px_50px_rgba(23,32,29,0.08)] sm:rounded-[1.75rem]">
           {selected ? (
             <ZoomSurface
               src={selected.url}
@@ -348,7 +348,7 @@ export function ProductGallery({
 
           {selected ? (
             <>
-              <div className="absolute right-3 top-3 rounded-full border border-border bg-surface/90 px-3 py-1 text-xs font-medium text-muted shadow-sm backdrop-blur">
+              <div className="absolute right-3 top-3 hidden rounded-full border border-border bg-surface/90 px-3 py-1 text-xs font-medium text-muted shadow-sm backdrop-blur sm:block">
                 Double-click to zoom
               </div>
 
@@ -370,7 +370,7 @@ export function ProductGallery({
 
         {images.length > 1 ? (
           <div
-            className="grid grid-cols-5 gap-2 sm:grid-cols-6"
+            className="storefront-scroll flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-6 sm:overflow-visible"
             aria-label="Product image gallery"
           >
             {images.map((image, index) => {
@@ -381,7 +381,7 @@ export function ProductGallery({
                   type="button"
                   onClick={() => selectImage(image.id)}
                   className={[
-                    "overflow-hidden rounded-xl border bg-surface p-0.5 transition hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                    "w-16 shrink-0 overflow-hidden rounded-xl border bg-surface p-0.5 transition hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:w-auto",
                     selectedImage
                       ? "border-primary ring-2 ring-primary/20"
                       : "border-border",
@@ -401,8 +401,8 @@ export function ProductGallery({
         ) : null}
 
         {selected ? (
-          <p className="text-xs leading-5 text-muted">
-            Zoom with + / −, double-click the image, drag while zoomed, or pinch on touch devices. Use Expand for the full-screen viewer.
+          <p className="text-[11px] leading-5 text-muted sm:text-xs">
+            Tap Expand for a closer look. Pinch to zoom on mobile, or use + / − and drag on larger screens.
           </p>
         ) : null}
       </div>
