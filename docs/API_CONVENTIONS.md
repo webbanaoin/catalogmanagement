@@ -143,3 +143,19 @@ Sprint 6 adds backend contracts required by the platform-admin UI:
 Business-category administration supports create/update/activate/deactivate; Phase 1 does not require destructive category deletion. Admin mutations are audited.
 
 Platform analytics accepts the same maximum 366-day range used by merchant analytics and returns aggregate shop/user/product/activity/subscription metrics plus top shops by visits.
+
+
+## Admin Payment Management contracts
+
+Admin Payment Management is manual accounting for Phase 1; it does not integrate a payment gateway.
+
+- GET `/api/admin/payments`
+- POST `/api/admin/payments`
+
+Both routes require `PlatformRole.ADMIN`.
+
+POST records an append-only payment ledger row containing the shop, amount, INR currency, Cash/UPI/Bank Transfer/Other method, optional reference, payment date, comment, current plan snapshot, subscription-extension effect and recording administrator. The same transaction updates the subscription payment status to `PAID`; optional renewal days extend from the later of the current subscription expiry or the current time, so early renewals do not discard remaining paid time.
+
+Directly PATCHing a subscription to `paymentStatus=PAID` is rejected. Actual paid state must originate from a payment record so revenue and audit history cannot be bypassed. `PENDING`, `NOT_REQUIRED` and `WAIVED` remain administrative subscription states.
+
+Payment records have no update/delete API in Phase 1. Corrections must use an explicit future accounting workflow rather than silently rewriting received-payment history.
