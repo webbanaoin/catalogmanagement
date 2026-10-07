@@ -87,6 +87,22 @@ enum PaymentStatus {
   WAIVED
 }
 
+enum PaymentMethod {
+  CASH
+  UPI
+  BANK_TRANSFER
+  ONLINE
+  OTHER
+}
+
+enum PaymentRecordStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  WAIVED
+}
+
 model User {
   id String @id @default(cuid())
   name String @db.VarChar(120)
@@ -101,6 +117,7 @@ model User {
   shopUsers ShopUser[]
   passwordResetTokens PasswordResetToken[]
   auditLogs AuditLog[]
+  receivedPayments PaymentRecord[] @relation("PaymentReceivedBy")
   @@index([status])
   @@index([platformRole])
   @@map("users")
@@ -140,6 +157,7 @@ model Shop {
   productViews ProductView[]
   customerActions CustomerAction[]
   subscription Subscription?
+  payments PaymentRecord[]
   auditLogs AuditLog[]
   @@index([businessCategoryId])
   @@index([status])
@@ -306,9 +324,37 @@ model Plan {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   subscriptions Subscription[]
+  payments PaymentRecord[]
   @@index([status])
   @@index([isDefaultTrial, status])
   @@map("plans")
+}
+
+model PaymentRecord {
+  id String @id @default(cuid())
+  shopId String @map("shop_id")
+  subscriptionId String? @map("subscription_id")
+  planId String? @map("plan_id")
+  receivedByUserId String? @map("received_by_user_id")
+  amount Decimal @db.Decimal(12, 2)
+  status PaymentRecordStatus
+  method PaymentMethod
+  paymentDate DateTime @map("payment_date")
+  referenceId String? @map("reference_id") @db.VarChar(191)
+  gatewayOrderId String? @map("gateway_order_id") @db.VarChar(191)
+  gatewayPaymentId String? @map("gateway_payment_id") @db.VarChar(191)
+  notes String? @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  plan Plan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+  receivedBy User? @relation("PaymentReceivedBy", fields: [receivedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([shopId, paymentDate])
+  @@index([subscriptionId, paymentDate])
+  @@index([status, paymentDate])
+  @@index([method, paymentDate])
+  @@map("payment_records")
 }
 
 model Subscription {
@@ -324,6 +370,7 @@ model Subscription {
   updatedAt DateTime @updatedAt @map("updated_at")
   shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
   plan Plan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  payments PaymentRecord[]
   @@index([planId, status])
   @@index([status, endDate])
   @@map("subscriptions")
