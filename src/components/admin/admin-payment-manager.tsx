@@ -58,6 +58,8 @@ export function AdminPaymentManager({
   const [amount, setAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState(todayValue());
   const [referenceId, setReferenceId] = useState("");
+  const [gatewayOrderId, setGatewayOrderId] = useState("");
+  const [gatewayPaymentId, setGatewayPaymentId] = useState("");
   const [notes, setNotes] = useState("");
   const [extendDays, setExtendDays] = useState("");
 
@@ -106,12 +108,20 @@ export function AdminPaymentManager({
         method,
         paymentDate: new Date(`${paymentDate}T12:00:00`).toISOString(),
         ...(referenceId.trim() ? { referenceId: referenceId.trim() } : {}),
+        ...(gatewayOrderId.trim()
+          ? { gatewayOrderId: gatewayOrderId.trim() }
+          : {}),
+        ...(gatewayPaymentId.trim()
+          ? { gatewayPaymentId: gatewayPaymentId.trim() }
+          : {}),
         ...(notes.trim() ? { notes: notes.trim() } : {}),
         ...(extendDays ? { extendDays: Number(extendDays) } : {}),
       });
 
       setAmount("");
       setReferenceId("");
+      setGatewayOrderId("");
+      setGatewayPaymentId("");
       setNotes("");
       setExtendDays("");
       setMessage("Payment entry recorded. Subscription payment status has been synchronized.");
@@ -225,6 +235,32 @@ export function AdminPaymentManager({
                   placeholder="UPI / bank / receipt reference"
                 />
               </label>
+
+              {method === "ONLINE" ? (
+                <>
+                  <label className="text-sm font-medium text-foreground">
+                    Gateway order ID
+                    <input
+                      className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3"
+                      value={gatewayOrderId}
+                      onChange={(event) => setGatewayOrderId(event.target.value)}
+                      maxLength={191}
+                      placeholder="Optional gateway order ID"
+                    />
+                  </label>
+
+                  <label className="text-sm font-medium text-foreground">
+                    Gateway payment ID
+                    <input
+                      className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3"
+                      value={gatewayPaymentId}
+                      onChange={(event) => setGatewayPaymentId(event.target.value)}
+                      maxLength={191}
+                      placeholder="Optional gateway payment ID"
+                    />
+                  </label>
+                </>
+              ) : null}
 
               <label className="text-sm font-medium text-foreground">
                 Extend subscription days
