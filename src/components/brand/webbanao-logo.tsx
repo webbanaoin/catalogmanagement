@@ -37,7 +37,7 @@ export function WebbanaoLogo({ compact = false }: { compact?: boolean }) {
           <span className="text-indigo-600">Banao</span>
         </div>
         <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
-          Build Smart. Grow Fast.
+          Digital Showroom for Every Shop
         </div>
       </div>
     </div>
