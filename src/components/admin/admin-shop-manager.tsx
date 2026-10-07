@@ -111,12 +111,20 @@ function SubscriptionInspector({
     setWorking(true);
     setMessage(null);
     try {
-      const response = await updateAdminSubscription(shop.id, {
-        planId,
-        status,
-        paymentStatus,
-        ...(extendDays ? { extendDays: Number(extendDays) } : {}),
-      });
+      const payload: Parameters<typeof updateAdminSubscription>[1] = {};
+      if (planId !== subscription.plan.id) payload.planId = planId;
+      if (status !== subscription.storedStatus) payload.status = status;
+      if (paymentStatus !== subscription.paymentStatus) {
+        payload.paymentStatus = paymentStatus;
+      }
+      if (extendDays) payload.extendDays = Number(extendDays);
+
+      if (Object.keys(payload).length === 0) {
+        setMessage("No subscription changes to save.");
+        return;
+      }
+
+      const response = await updateAdminSubscription(shop.id, payload);
       setSubscription(response.data);
       setExtendDays("");
       setMessage("Subscription updated.");
@@ -204,9 +212,12 @@ function SubscriptionInspector({
                       )
                     }
                   >
-                    {["NOT_REQUIRED", "PENDING", "PAID", "WAIVED"].map((value) => (
+                    {["NOT_REQUIRED", "PENDING", "WAIVED"].map((value) => (
                       <option key={value} value={value}>{titleCase(value)}</option>
                     ))}
+                    <option value="PAID" disabled>
+                      Paid (record through Payments)
+                    </option>
                   </select>
                 </label>
 
