@@ -388,6 +388,48 @@ async function main() {
     }
   }
 
+  const requestedBusinessType = `Medical Equipment ${suffix}`;
+  const otherRegistrationResponse = await jsonRequest(
+    "/api/auth/register",
+    "POST",
+    {
+      name: "Other Business Merchant",
+      email: `sprint6-other-business-${suffix}@example.test`,
+      password: `Other-Aa9!${randomUUID().slice(0, 12)}`,
+      shopName: `Other Business Shop ${suffix}`,
+      requestedBusinessType,
+    },
+  );
+  await expectStatus(
+    "registration stores requested Other business type",
+    otherRegistrationResponse,
+    201,
+  );
+  const otherRegistrationPayload = await otherRegistrationResponse.json();
+  const otherRegisteredUserId = otherRegistrationPayload?.data?.user?.id;
+  const otherRegisteredShopId = otherRegistrationPayload?.data?.shop?.id;
+  if (!otherRegisteredUserId || !otherRegisteredShopId) {
+    throw new Error("Other business registration did not return user and shop ids");
+  }
+  created.userIds.push(otherRegisteredUserId);
+  created.shopIds.push(otherRegisteredShopId);
+
+  const requestedShop = await prisma.shop.findUnique({
+    where: { id: otherRegisteredShopId },
+    select: {
+      businessCategoryId: true,
+      requestedBusinessType: true,
+      status: true,
+    },
+  });
+  if (
+    requestedShop?.status !== "PENDING" ||
+    requestedShop.businessCategoryId !== null ||
+    requestedShop.requestedBusinessType !== requestedBusinessType
+  ) {
+    throw new Error("Other business registration request was not stored correctly");
+  }
+
   let cookieA = await login(fixture.userA.email, passwordA);
 
   const onboarding = await request("/onboarding", {}, cookieA);
@@ -850,11 +892,22 @@ async function main() {
     200,
   );
 
+  await expectStatus(
+    "custom business request blocks approval before review",
+    await jsonRequest(
+      `/api/admin/shops/${otherRegisteredShopId}/status`,
+      "PATCH",
+      { status: "APPROVED" },
+      adminCookie,
+    ),
+    409,
+  );
+
   const businessCategoryCreate = await jsonRequest(
     "/api/admin/business-categories",
     "POST",
     {
-      name: `Sprint 6 Admin Category ${suffix}`,
+      name: requestedBusinessType,
       slug: `sprint6-admin-category-${suffix}`,
       status: "ACTIVE",
       displayOrder: 9999,
@@ -868,6 +921,42 @@ async function main() {
     throw new Error("Admin business category create did not return an id");
   }
   created.businessCategoryIds.push(businessCategoryId);
+
+  await expectStatus(
+    "admin accepts requested business type",
+    await jsonRequest(
+      `/api/admin/shops/${otherRegisteredShopId}/business-category`,
+      "PATCH",
+      { businessCategoryId },
+      adminCookie,
+    ),
+    200,
+  );
+
+  const acceptedBusinessTypeShop = await prisma.shop.findUnique({
+    where: { id: otherRegisteredShopId },
+    select: {
+      businessCategoryId: true,
+      requestedBusinessType: true,
+    },
+  });
+  if (
+    acceptedBusinessTypeShop?.businessCategoryId !== businessCategoryId ||
+    acceptedBusinessTypeShop.requestedBusinessType !== null
+  ) {
+    throw new Error("Admin business type acceptance did not persist correctly");
+  }
+
+  await expectStatus(
+    "custom business shop approval after assignment",
+    await jsonRequest(
+      `/api/admin/shops/${otherRegisteredShopId}/status`,
+      "PATCH",
+      { status: "APPROVED" },
+      adminCookie,
+    ),
+    200,
+  );
 
   await expectStatus(
     "admin business category update",
