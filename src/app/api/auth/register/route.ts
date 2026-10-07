@@ -63,6 +63,7 @@ export async function POST(request: Request) {
           name: input.shopName,
           slug: await createUniqueShopSlug(tx, input.shopName),
           businessCategoryId: input.businessCategoryId ?? null,
+          requestedBusinessType: input.requestedBusinessType ?? null,
           phone: input.phone || input.mobile || null,
           whatsapp: input.whatsapp || input.phone || input.mobile || null,
           email: input.email,
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
           pincode: input.pincode || null,
           status: "PENDING",
         },
-        select: { id: true, name: true, slug: true, status: true, phone: true, whatsapp: true, city: true, state: true, pincode: true, createdAt: true },
+        select: { id: true, name: true, slug: true, status: true, businessCategoryId: true, requestedBusinessType: true, phone: true, whatsapp: true, city: true, state: true, pincode: true, createdAt: true },
       });
 
       const membership = await tx.shopUser.create({
