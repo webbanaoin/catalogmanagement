@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { AdminPaymentManager } from "@/components/admin/admin-payment-manager";
+
 import {
   AdminApiError,
   assignAdminShopBusinessCategory,
@@ -228,6 +230,11 @@ function SubscriptionInspector({
               <Button type="button" onClick={save} disabled={working || !planId}>
                 {working ? "Saving…" : "Save subscription"}
               </Button>
+
+              <AdminPaymentManager
+                shopId={shop.id}
+                onSubscriptionChanged={load}
+              />
             </div>
           ) : null}
 
