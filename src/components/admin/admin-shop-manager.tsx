@@ -4,14 +4,18 @@ import { useEffect, useState } from "react";
 
 import {
   AdminApiError,
+  adminSmartExcelTemplateUrl,
   assignAdminShopBusinessCategory,
+  confirmAdminProductImport,
   getAdminBusinessCategories,
   getAdminPlans,
   getAdminShops,
   getAdminSubscription,
+  previewAdminProductImport,
   updateAdminShopStatus,
   updateAdminSubscription,
   type AdminBusinessCategory,
+  type AdminImportPreview,
   type AdminPlan,
   type AdminShop,
   type AdminShopStatus,
@@ -237,6 +241,312 @@ function SubscriptionInspector({
   );
 }
 
+function ProductOnboardingPanel({
+  shop,
+  onImported,
+}: {
+  shop: AdminShop;
+  onImported: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<AdminImportPreview | null>(null);
+  const [working, setWorking] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const supportedStatus =
+    shop.status === "PENDING" ||
+    shop.status === "APPROVED" ||
+    shop.status === "ACTIVE";
+  const businessReady = Boolean(
+    shop.businessCategory && !shop.requestedBusinessType,
+  );
+
+  if (!supportedStatus) return null;
+
+  async function checkFile() {
+    if (!file) {
+      setMessage("Choose the completed Smart Excel file first.");
+      return;
+    }
+
+    setWorking(true);
+    setMessage(null);
+    setPreview(null);
+
+    try {
+      const response = await previewAdminProductImport(shop.id, file);
+      setPreview(response.data);
+      if (response.data.job.status === "VALIDATION_FAILED") {
+        setMessage(
+          "The workbook was checked, but there are no ready rows to import. Review the row errors below.",
+        );
+      }
+    } catch (error) {
+      setMessage(
+        error instanceof AdminApiError
+          ? error.message
+          : "Unable to check this Excel file.",
+      );
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function importReadyRows() {
+    if (!preview || preview.summary.readyWithinPlan <= 0) return;
+
+    setWorking(true);
+    setMessage(null);
+
+    try {
+      const response = await confirmAdminProductImport(
+        shop.id,
+        preview.job.id,
+      );
+      const plural = response.data.importedCount === 1 ? "" : "s";
+      const skipped =
+        response.data.skippedCount > 0
+          ? " " + response.data.skippedCount + " row(s) were skipped."
+          : "";
+      setMessage(
+        "Imported " +
+          response.data.importedCount +
+          " product" +
+          plural +
+          " for " +
+          shop.name +
+          "." +
+          skipped,
+      );
+      setPreview(null);
+      setFile(null);
+      onImported();
+    } catch (error) {
+      setMessage(
+        error instanceof AdminApiError
+          ? error.message
+          : "Unable to import the ready products.",
+      );
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  return (
+    <div className="border-t border-border pt-4">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => setOpen((value) => !value)}
+      >
+        {open ? "Hide product onboarding" : "Product onboarding / Smart Excel"}
+      </Button>
+
+      {open ? (
+        <div className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-indigo-700">
+                Admin assisted onboarding
+              </p>
+              <p className="mt-1 text-base font-semibold text-foreground">
+                Bulk upload products for {shop.name}
+              </p>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-muted">
+                Use the same shop-specific Smart Excel for first-time onboarding
+                or later bulk product additions. Admin actions are recorded in
+                the audit log.
+              </p>
+            </div>
+            {shop.businessCategory ? (
+              <Badge variant="info">{shop.businessCategory.name}</Badge>
+            ) : null}
+          </div>
+
+          {!businessReady ? (
+            <div className="mt-4">
+              <Alert title="Business type required">
+                Assign the requested/supported business type first. Smart Excel
+                is generated from the shop business type, categories and
+                catalogue fields.
+              </Alert>
+            </div>
+          ) : (
+            <div className="mt-4 space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <a
+                  href={adminSmartExcelTemplateUrl(shop.id)}
+                  className="inline-flex h-10 items-center justify-center rounded-lg bg-foreground px-4 text-sm font-semibold text-background shadow-sm transition hover:opacity-90"
+                >
+                  Download Smart Excel
+                </a>
+                <span className="text-xs text-muted">
+                  Shop-specific categories and business fields are included.
+                </span>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                <label className="text-sm font-medium text-foreground">
+                  Completed Excel file
+                  <input
+                    className="mt-1 block h-11 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                    type="file"
+                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    onChange={(event) => {
+                      setFile(event.target.files?.[0] ?? null);
+                      setPreview(null);
+                      setMessage(null);
+                    }}
+                    disabled={working}
+                  />
+                </label>
+                <Button
+                  type="button"
+                  onClick={checkFile}
+                  disabled={working || !file}
+                >
+                  {working ? "Checking…" : "Check & preview"}
+                </Button>
+              </div>
+
+              {preview ? (
+                <div className="space-y-4 rounded-xl border border-border bg-white p-4">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                    <div>
+                      <p className="text-xs text-muted">Ready</p>
+                      <p className="mt-1 text-lg font-semibold text-foreground">
+                        {preview.summary.readyRows}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted">Duplicates</p>
+                      <p className="mt-1 text-lg font-semibold text-foreground">
+                        {preview.summary.duplicateRows}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted">Invalid</p>
+                      <p className="mt-1 text-lg font-semibold text-foreground">
+                        {preview.summary.invalidRows}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted">Remaining slots</p>
+                      <p className="mt-1 text-lg font-semibold text-foreground">
+                        {preview.summary.remainingProductSlots}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted">Capacity plan</p>
+                      <p className="mt-1 text-sm font-semibold text-foreground">
+                        {preview.summary.capacityPlanName}
+                      </p>
+                    </div>
+                  </div>
+
+                  {preview.rows.length > 0 ? (
+                    <div className="overflow-x-auto rounded-lg border border-border">
+                      <table className="min-w-full text-left text-xs">
+                        <thead className="bg-surface-muted/60 text-muted">
+                          <tr>
+                            <th className="px-3 py-2">Row</th>
+                            <th className="px-3 py-2">Product</th>
+                            <th className="px-3 py-2">Category</th>
+                            <th className="px-3 py-2">Group / Type</th>
+                            <th className="px-3 py-2">Result</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {preview.rows.slice(0, 15).map((row) => (
+                            <tr
+                              key={row.rowNumber}
+                              className="border-t border-border"
+                            >
+                              <td className="px-3 py-2">{row.rowNumber}</td>
+                              <td className="px-3 py-2 font-medium text-foreground">
+                                {row.values["Product Name"] || "—"}
+                              </td>
+                              <td className="px-3 py-2">
+                                {row.values.Category || "—"}
+                              </td>
+                              <td className="px-3 py-2">
+                                {row.values["Product Group"] ||
+                                  row.values["Jewellery Type"] ||
+                                  "—"}
+                              </td>
+                              <td className="px-3 py-2">
+                                <Badge
+                                  variant={
+                                    row.status === "READY"
+                                      ? "success"
+                                      : row.status === "DUPLICATE"
+                                        ? "warning"
+                                        : "danger"
+                                  }
+                                >
+                                  {titleCase(row.status)}
+                                </Badge>
+                                {row.errors[0]?.message ? (
+                                  <p className="mt-1 max-w-sm text-[11px] text-muted">
+                                    {row.errors[0].message}
+                                  </p>
+                                ) : row.duplicate?.message ? (
+                                  <p className="mt-1 max-w-sm text-[11px] text-muted">
+                                    {row.duplicate.message}
+                                  </p>
+                                ) : null}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {preview.rows.length > 15 ? (
+                        <p className="border-t border-border px-3 py-2 text-xs text-muted">
+                          Showing first 15 of {preview.rows.length} checked rows.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button
+                      type="button"
+                      onClick={importReadyRows}
+                      disabled={
+                        working || preview.summary.readyWithinPlan <= 0
+                      }
+                    >
+                      {working
+                        ? "Importing…"
+                        : "Import " +
+                          preview.summary.readyWithinPlan +
+                          " ready product" +
+                          (preview.summary.readyWithinPlan === 1 ? "" : "s")}
+                    </Button>
+                    {preview.summary.readyRows >
+                    preview.summary.readyWithinPlan ? (
+                      <p className="text-xs text-amber-700">
+                        Some ready rows exceed the current product limit and will
+                        not be imported.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {message ? (
+                <Alert title="Product onboarding">{message}</Alert>
+              ) : null}
+            </div>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function ShopCard({
   shop,
   plans,
@@ -427,6 +737,7 @@ function ShopCard({
         ) : null}
 
         {message ? <Alert title="Status update">{message}</Alert> : null}
+        <ProductOnboardingPanel shop={shop} onImported={onChanged} />
         <SubscriptionInspector shop={shop} plans={plans} />
       </CardContent>
     </Card>
