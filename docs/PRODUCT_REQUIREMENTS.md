@@ -84,7 +84,7 @@ Plans are database-driven. Each plan defines product and image limits plus featu
 
 Subscriptions support trial, active, grace, expired and cancelled states. New approved shops receive the configured default trial when no subscription exists. Trial/subscription expiry must not delete merchant catalogue data or silently change shop ownership/status.
 
-Admin controls can assign/change a plan, extend a subscription and update administrative payment state. Payment gateway integration is not required in Phase 1.
+Admin controls can assign/change a plan, extend a subscription and maintain payment state. Manual payments are recorded in an append-only admin ledger with shop, amount, method, reference, payment date, comment, plan snapshot, subscription extension and recording administrator. Payment gateway integration is not required in Phase 1.
 
 ## Initial target verticals
 Jewellery, Toys & Gifts, Furniture & Home Decor, Clothing/Boutique/Saree, Footwear.
