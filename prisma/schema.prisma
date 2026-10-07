@@ -109,6 +109,7 @@ model User {
 model Shop {
   id String @id @default(cuid())
   businessCategoryId String? @map("business_category_id")
+  requestedBusinessType String? @map("requested_business_type") @db.VarChar(160)
   name String @db.VarChar(160)
   slug String @unique @db.VarChar(191)
   tagline String? @db.VarChar(255)
