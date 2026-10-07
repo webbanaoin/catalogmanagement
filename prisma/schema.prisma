@@ -203,8 +203,23 @@ model BusinessCategory {
   status CatalogStatus @default(ACTIVE)
   displayOrder Int @default(0) @map("display_order")
   shops Shop[]
+  categoryMedia BusinessCategoryMedia[]
   @@index([status, displayOrder])
   @@map("business_categories")
+}
+
+model BusinessCategoryMedia {
+  id String @id @default(cuid())
+  businessCategoryId String @map("business_category_id")
+  categorySlug String @map("category_slug") @db.VarChar(160)
+  categoryName String @map("category_name") @db.VarChar(120)
+  imageStorageKey String @map("image_storage_key") @db.VarChar(512)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  businessCategory BusinessCategory @relation(fields: [businessCategoryId], references: [id], onDelete: Cascade)
+  @@unique([businessCategoryId, categorySlug])
+  @@index([businessCategoryId])
+  @@map("business_category_media")
 }
 
 model ShopCategory {
