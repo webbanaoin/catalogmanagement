@@ -92,7 +92,7 @@ export function ProductCard({
             ) : null}
           </div>
 
-          <div className="absolute bottom-2 right-2 rounded-full bg-surface/92 px-2.5 py-1 text-[9px] font-semibold text-muted-strong shadow-sm backdrop-blur sm:bottom-3 sm:right-3 sm:text-[10px]">
+          <div className="absolute bottom-2 right-2 rounded-full bg-surface/90 px-2.5 py-1 text-[9px] font-semibold text-muted-strong shadow-sm backdrop-blur sm:bottom-3 sm:right-3 sm:text-[10px]">
             View details
           </div>
         </div>
