@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import {
@@ -420,22 +421,29 @@ function ShopCard({
           </div>
         </div>
 
-        {transitions[shop.status].length ? (
-          <div className="flex flex-wrap gap-2">
-            {transitions[shop.status].map((next) => (
-              <Button
-                key={next}
-                type="button"
-                size="sm"
-                variant={next === "REJECTED" || next === "SUSPENDED" ? "danger" : "secondary"}
-                disabled={working}
-                onClick={() => changeStatus(next)}
-              >
-                {titleCase(next)}
-              </Button>
-            ))}
-          </div>
-        ) : null}
+        <div className="flex flex-wrap gap-2">
+          {["PENDING", "APPROVED", "ACTIVE"].includes(shop.status) ? (
+            <Link
+              href={`/admin/shops/${shop.id}/onboarding`}
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-surface px-3 text-sm font-semibold text-foreground shadow-sm hover:bg-primary-soft hover:text-primary"
+            >
+              Onboard products
+            </Link>
+          ) : null}
+
+          {transitions[shop.status].map((next) => (
+            <Button
+              key={next}
+              type="button"
+              size="sm"
+              variant={next === "REJECTED" || next === "SUSPENDED" ? "danger" : "secondary"}
+              disabled={working}
+              onClick={() => changeStatus(next)}
+            >
+              {titleCase(next)}
+            </Button>
+          ))}
+        </div>
 
         {message ? <Alert title="Status update">{message}</Alert> : null}
         <SubscriptionInspector shop={shop} plans={plans} />
