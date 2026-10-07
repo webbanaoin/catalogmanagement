@@ -94,6 +94,15 @@ enum PaymentMethod {
   OTHER
 }
 
+enum BillingCycle {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  YEARLY
+  CUSTOM
+}
+
 model User {
   id String @id @default(cuid())
   name String @db.VarChar(120)
@@ -350,6 +359,9 @@ model PaymentRecord {
   amount Decimal @db.Decimal(12, 2)
   currency String @default("INR") @db.Char(3)
   method PaymentMethod
+  billingCycle BillingCycle @default(CUSTOM) @map("billing_cycle")
+  periodStartDate DateTime? @map("period_start_date")
+  periodEndDate DateTime? @map("period_end_date")
   reference String? @db.VarChar(191)
   comment String? @db.Text
   receivedAt DateTime @map("received_at")
@@ -365,6 +377,7 @@ model PaymentRecord {
   @@index([subscriptionId])
   @@index([planId])
   @@index([method, receivedAt])
+  @@index([billingCycle, receivedAt])
   @@index([recordedByUserId, createdAt])
   @@map("payment_records")
 }
