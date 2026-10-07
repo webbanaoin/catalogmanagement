@@ -139,10 +139,15 @@ export class AdminApiError extends Error {
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const isFormData =
+    typeof FormData !== "undefined" && init?.body instanceof FormData;
+
   const response = await fetch(path, {
     ...init,
     headers: {
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...(init?.body && !isFormData
+        ? { "Content-Type": "application/json" }
+        : {}),
       ...init?.headers,
     },
     credentials: "same-origin",
@@ -265,5 +270,110 @@ export async function updateAdminBusinessCategory(
   return requestJson<{ data: Omit<AdminBusinessCategory, "shopCount"> }>(
     "/api/admin/business-categories/" + encodeURIComponent(categoryId),
     { method: "PATCH", body: JSON.stringify(payload) },
+  );
+}
+
+
+export interface AdminImportPreviewRow {
+  rowNumber: number;
+  values: Record<string, string>;
+  valid: boolean;
+  status: "READY" | "DUPLICATE" | "INVALID";
+  errors: Array<{
+    rowNumber: number | null;
+    field: string;
+    message: string;
+  }>;
+  duplicate: {
+    rowNumber: number;
+    reason: "SKU" | "FINGERPRINT";
+    message: string;
+    existingProduct: {
+      id: string;
+      name: string;
+      sku: string | null;
+    } | null;
+  } | null;
+  autoSku: boolean;
+}
+
+export interface AdminImportPreview {
+  job: {
+    id: string;
+    fileName: string;
+    status: "PREVIEW_READY" | "VALIDATION_FAILED";
+    totalRows: number;
+    successfulRows: number;
+    failedRows: number;
+    createdAt: string;
+  };
+  rows: AdminImportPreviewRow[];
+  errors: AdminImportPreviewRow["errors"];
+  summary: {
+    readyRows: number;
+    duplicateRows: number;
+    invalidRows: number;
+    remainingProductSlots: number;
+    readyWithinPlan: number;
+    capacityPlanName: string;
+    capacitySource: "SUBSCRIPTION" | "DEFAULT_TRIAL";
+  };
+}
+
+export function adminSmartExcelTemplateUrl(shopId: string) {
+  return (
+    "/api/admin/shops/" +
+    encodeURIComponent(shopId) +
+    "/imports/products/template"
+  );
+}
+
+export async function previewAdminProductImport(
+  shopId: string,
+  file: File,
+) {
+  const formData = new FormData();
+  formData.set("file", file);
+
+  return requestJson<{ data: AdminImportPreview }>(
+    "/api/admin/shops/" +
+      encodeURIComponent(shopId) +
+      "/imports/products/preview",
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
+}
+
+export async function confirmAdminProductImport(
+  shopId: string,
+  jobId: string,
+) {
+  return requestJson<{
+    data: {
+      jobId: string;
+      status: "COMPLETED";
+      importedCount: number;
+      skippedCount: number;
+      skipped: Array<{
+        rowNumber: number;
+        reason: string;
+        message: string;
+      }>;
+      products: Array<{
+        id: string;
+        name: string;
+        slug: string;
+        sku: string | null;
+      }>;
+    };
+  }>(
+    "/api/admin/shops/" +
+      encodeURIComponent(shopId) +
+      "/imports/products/" +
+      encodeURIComponent(jobId) +
+      "/confirm",
+    { method: "POST" },
   );
 }
