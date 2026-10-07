@@ -30,6 +30,8 @@ function validateRegistration(formData: FormData): FieldErrors {
   const email = rawValue(formData, "email").trim();
   const password = rawValue(formData, "password");
   const shopName = rawValue(formData, "shopName").trim();
+  const businessCategoryId = rawValue(formData, "businessCategoryId").trim();
+  const requestedBusinessType = rawValue(formData, "requestedBusinessType").trim();
 
   if (name.length < 2) {
     errors.name = name ? "Name must contain at least 2 characters." : "Name is required.";
@@ -55,6 +57,17 @@ function validateRegistration(formData: FormData): FieldErrors {
       : "Shop name is required.";
   } else if (shopName.length > 160) {
     errors.shopName = "Shop name must contain at most 160 characters.";
+  }
+
+  if (businessCategoryId === "__OTHER__") {
+    if (requestedBusinessType.length < 2) {
+      errors.requestedBusinessType = requestedBusinessType
+        ? "Business type must contain at least 2 characters."
+        : "Mention your business type.";
+    } else if (requestedBusinessType.length > 160) {
+      errors.requestedBusinessType =
+        "Business type must contain at most 160 characters.";
+    }
   }
 
   const mobile = rawValue(formData, "mobile");
@@ -122,6 +135,7 @@ export function RegisterForm() {
   const [formError, setFormError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [businessCategories, setBusinessCategories] = useState<BusinessCategory[]>([]);
+  const [businessTypeChoice, setBusinessTypeChoice] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -162,7 +176,14 @@ export function RegisterForm() {
         mobile: optionalValue(formData, "mobile"),
         password: rawValue(formData, "password"),
         shopName: rawValue(formData, "shopName").trim(),
-        businessCategoryId: optionalValue(formData, "businessCategoryId"),
+        businessCategoryId:
+          businessTypeChoice && businessTypeChoice !== "__OTHER__"
+            ? businessTypeChoice
+            : undefined,
+        requestedBusinessType:
+          businessTypeChoice === "__OTHER__"
+            ? optionalValue(formData, "requestedBusinessType")
+            : undefined,
         phone: optionalValue(formData, "phone"),
         whatsapp: optionalValue(formData, "whatsapp"),
         city: optionalValue(formData, "city"),
@@ -248,17 +269,25 @@ export function RegisterForm() {
         />
       </Field>
 
-      {businessCategories.length > 0 ? (
+      <div className="space-y-4">
         <Field
           label="Business type"
           htmlFor="businessCategoryId"
-          hint="Recommended. This lets the catalogue suggest the right product groups and details for your shop."
+          hint="Choose the closest match. If your business is not listed, select Other and tell us what you sell."
           error={fieldErrors.businessCategoryId}
         >
           <Select
             id="businessCategoryId"
             name="businessCategoryId"
-            defaultValue=""
+            value={businessTypeChoice}
+            onChange={(event) => {
+              setBusinessTypeChoice(event.target.value);
+              setFieldErrors((current) => ({
+                ...current,
+                businessCategoryId: "",
+                requestedBusinessType: "",
+              }));
+            }}
             aria-invalid={Boolean(fieldErrors.businessCategoryId)}
             aria-describedby={describedBy("businessCategoryId", fieldErrors.businessCategoryId, true)}
           >
@@ -268,9 +297,35 @@ export function RegisterForm() {
                 {category.name}
               </option>
             ))}
+            <option value="__OTHER__">Other</option>
           </Select>
         </Field>
-      ) : null}
+
+        {businessTypeChoice === "__OTHER__" ? (
+          <Field
+            label="Mention your business"
+            htmlFor="requestedBusinessType"
+            hint="We will review the request before approval and map your shop to the best supported business type."
+            error={fieldErrors.requestedBusinessType}
+            required
+          >
+            <Input
+              id="requestedBusinessType"
+              name="requestedBusinessType"
+              placeholder="e.g. Medical equipment shop"
+              minLength={2}
+              maxLength={160}
+              required
+              aria-invalid={Boolean(fieldErrors.requestedBusinessType)}
+              aria-describedby={describedBy(
+                "requestedBusinessType",
+                fieldErrors.requestedBusinessType,
+                true,
+              )}
+            />
+          </Field>
+        ) : null}
+      </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field
