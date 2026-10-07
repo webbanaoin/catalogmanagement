@@ -15,12 +15,13 @@ import { prisma } from "@/server/database/prisma";
 
 export default async function AdminOverviewPage() {
   await requirePlatformAdminPageAccess();
-  const [pending, active, suspended, plans, categories] = await Promise.all([
+  const [pending, active, suspended, plans, categories, paymentPending] = await Promise.all([
     prisma.shop.count({ where: { status: "PENDING" } }),
     prisma.shop.count({ where: { status: "ACTIVE" } }),
     prisma.shop.count({ where: { status: "SUSPENDED" } }),
     prisma.plan.count(),
     prisma.businessCategory.count(),
+    prisma.subscription.count({ where: { paymentStatus: "PENDING" } }),
   ]);
 
   const cards = [
@@ -28,6 +29,7 @@ export default async function AdminOverviewPage() {
     { label: "Active shops", value: active, href: "/admin/shops", description: "Publicly active" },
     { label: "Suspended shops", value: suspended, href: "/admin/shops", description: "Require attention" },
     { label: "Plans", value: plans, href: "/admin/plans", description: "Database-driven plans" },
+    { label: "Payments pending", value: paymentPending, href: "/admin/payments", description: "Subscriptions awaiting payment" },
     { label: "Business categories", value: categories, href: "/admin/categories", description: "Global catalogue verticals" },
   ];
 
