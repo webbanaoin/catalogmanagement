@@ -80,6 +80,21 @@ export async function POST(request: Request) {
         select: { id: true, role: true, shopId: true, createdAt: true },
       });
 
+      if (input.requestedBusinessType) {
+        await tx.auditLog.create({
+          data: {
+            actorUserId: user.id,
+            shopId: shop.id,
+            action: "BUSINESS_TYPE_REQUESTED",
+            entityType: "Shop",
+            entityId: shop.id,
+            metadata: {
+              requestedBusinessType: input.requestedBusinessType,
+            },
+          },
+        });
+      }
+
       if (businessCategory) {
         await ensureDefaultShopCategories(tx, {
           shopId: shop.id,
