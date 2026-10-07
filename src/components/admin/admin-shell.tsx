@@ -7,6 +7,7 @@ const items = [
   { label: "Overview", href: "/admin" },
   { label: "Shops", href: "/admin/shops" },
   { label: "Plans", href: "/admin/plans" },
+  { label: "Payments", href: "/admin/payments" },
   { label: "Business categories", href: "/admin/categories" },
   { label: "Platform analytics", href: "/admin/analytics" },
 ];
