@@ -95,3 +95,60 @@ a {
   background: var(--primary-soft);
   color: var(--foreground);
 }
+
+
+/* Premium public storefront theme. Scoped so admin and merchant dashboards keep their own UI. */
+.storefront-theme {
+  --background: #f7f7f3;
+  --foreground: #17201d;
+  --surface: #ffffff;
+  --surface-muted: #f0f2ee;
+  --muted: #66716d;
+  --muted-strong: #46524e;
+  --border: #e2e6e0;
+  --primary: #174f43;
+  --primary-hover: #103f36;
+  --primary-foreground: #ffffff;
+  --primary-soft: #e5f0eb;
+  --focus: #246d5d;
+  --info: #466478;
+  --info-strong: #334f61;
+  --info-soft: #e9f0f4;
+  --success: #2f6b4f;
+  --success-strong: #245740;
+  --success-soft: #e6f2eb;
+  --warning: #94661e;
+  --warning-strong: #755016;
+  --warning-soft: #fbf2dc;
+  --danger: #a34242;
+  --danger-hover: #853535;
+  --danger-strong: #7b3030;
+  --danger-foreground: #ffffff;
+  --danger-soft: #f8e7e7;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(23, 79, 67, 0.055), transparent 27rem),
+    radial-gradient(circle at 92% 18%, rgba(148, 102, 30, 0.045), transparent 24rem),
+    var(--background);
+  color: var(--foreground);
+  font-family: "Aptos", "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+.storefront-heading {
+  font-family: "Aptos Display", "Segoe UI Variable Display", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.storefront-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd3ce transparent;
+}
+
+.storefront-scroll::-webkit-scrollbar {
+  height: 5px;
+}
+
+.storefront-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #cbd3ce;
+}
