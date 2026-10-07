@@ -2,6 +2,8 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 
+import { AdminCategoryMediaLibrary } from "@/components/admin/admin-category-media-library";
+
 import {
   AdminApiError,
   createAdminBusinessCategory,
@@ -190,6 +192,7 @@ export function AdminBusinessCategoryManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
+  const [mediaCategory, setMediaCategory] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -316,14 +319,39 @@ export function AdminBusinessCategoryManager() {
                       </div>
                     </dl>
 
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setEditing(category.id)}
-                    >
-                      Edit category
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setEditing(category.id)}
+                      >
+                        Edit category
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={mediaCategory === category.id ? "primary" : "secondary"}
+                        size="sm"
+                        onClick={() =>
+                          setMediaCategory((current) =>
+                            current === category.id ? null : category.id,
+                          )
+                        }
+                      >
+                        {mediaCategory === category.id
+                          ? "Hide category images"
+                          : "Manage category images"}
+                      </Button>
+                    </div>
+
+                    {mediaCategory === category.id ? (
+                      <div className="border-t border-border pt-4">
+                        <AdminCategoryMediaLibrary
+                          businessCategoryId={category.id}
+                          businessCategoryName={category.name}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 )}
               </CardContent>
