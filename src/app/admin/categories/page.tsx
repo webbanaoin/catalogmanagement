@@ -10,7 +10,7 @@ export default async function AdminBusinessCategoriesPage() {
       <PageHeader
         eyebrow="Sprint 6"
         title="Business categories"
-        description="Create, order and activate the global verticals available to merchant shops."
+        description="Create, order and activate merchant verticals, and manage shared category images inherited by matching storefronts."
       />
       <AdminBusinessCategoryManager />
     </div>
