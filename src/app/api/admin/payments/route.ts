@@ -1,4 +1,4 @@
-import type { PaymentMethod, Prisma } from "@prisma/client";
+import type { BillingCycle, PaymentMethod, Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { requirePlatformAdmin } from "@/server/auth/admin-access";
@@ -24,13 +24,16 @@ const paymentMethods: PaymentMethod[] = [
   "OTHER",
 ];
 
-function parseOptionalDate(value: string | undefined, field: "from" | "to") {
+function parseOptionalDate(
+  value: string | null | undefined,
+  field: string,
+): Date | undefined {
   if (!value) return undefined;
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
     throw new AppError({
       code: "INVALID_PAYMENT_DATE",
-      message: `${field} must be a valid ISO date`,
+      message: `${field} must be a valid date`,
       status: 400,
     });
   }
@@ -42,6 +45,9 @@ function paymentItem(record: {
   amount: { toString(): string };
   currency: string;
   method: PaymentMethod;
+  billingCycle: BillingCycle;
+  periodStartDate: Date | null;
+  periodEndDate: Date | null;
   reference: string | null;
   comment: string | null;
   receivedAt: Date;
@@ -58,6 +64,9 @@ function paymentItem(record: {
     amount: record.amount.toString(),
     currency: record.currency,
     method: record.method,
+    billingCycle: record.billingCycle,
+    periodStartDate: record.periodStartDate,
+    periodEndDate: record.periodEndDate,
     reference: record.reference,
     comment: record.comment,
     receivedAt: record.receivedAt,
@@ -78,6 +87,7 @@ export async function GET(request: Request) {
     const query = adminPaymentListQuerySchema.parse({
       shopId: url.searchParams.get("shopId") ?? undefined,
       method: url.searchParams.get("method") ?? undefined,
+      billingCycle: url.searchParams.get("billingCycle") ?? undefined,
       from: url.searchParams.get("from") ?? undefined,
       to: url.searchParams.get("to") ?? undefined,
       page: url.searchParams.get("page") ?? undefined,
@@ -97,6 +107,7 @@ export async function GET(request: Request) {
     const where: Prisma.PaymentRecordWhereInput = {
       ...(query.shopId ? { shopId: query.shopId } : {}),
       ...(query.method ? { method: query.method } : {}),
+      ...(query.billingCycle ? { billingCycle: query.billingCycle } : {}),
       ...(from || to
         ? {
             receivedAt: {
@@ -120,6 +131,9 @@ export async function GET(request: Request) {
             amount: true,
             currency: true,
             method: true,
+            billingCycle: true,
+            periodStartDate: true,
+            periodEndDate: true,
             reference: true,
             comment: true,
             receivedAt: true,
@@ -185,12 +199,25 @@ export async function POST(request: Request) {
   try {
     const admin = await requirePlatformAdmin();
     const input = adminPaymentCreateSchema.parse(await readJsonBody(request));
-    const receivedAt = input.receivedAt ? new Date(input.receivedAt) : new Date();
+    const receivedAt =
+      parseOptionalDate(input.receivedAt, "receivedAt") ?? new Date();
+    const requestedPeriodStart = parseOptionalDate(
+      input.periodStartDate,
+      "periodStartDate",
+    );
+    const requestedPeriodEnd = parseOptionalDate(
+      input.periodEndDate,
+      "periodEndDate",
+    );
 
-    if (Number.isNaN(receivedAt.getTime())) {
+    if (
+      requestedPeriodStart &&
+      requestedPeriodEnd &&
+      requestedPeriodStart > requestedPeriodEnd
+    ) {
       throw new AppError({
-        code: "INVALID_PAYMENT_DATE",
-        message: "receivedAt must be a valid date",
+        code: "INVALID_BILLING_PERIOD",
+        message: "Billing period end must be on or after billing period start",
         status: 400,
       });
     }
@@ -257,6 +284,10 @@ export async function POST(request: Request) {
       input.extendDays > 0
         ? datePlusDays(baseEndDate, input.extendDays)
         : current.endDate;
+    const periodStartDate =
+      requestedPeriodStart ?? (input.extendDays > 0 ? baseEndDate : null);
+    const periodEndDate =
+      requestedPeriodEnd ?? (input.extendDays > 0 ? newEndDate : null);
     const graceEndsAt =
       input.extendDays > 0
         ? current.plan.graceDays > 0
@@ -275,6 +306,9 @@ export async function POST(request: Request) {
           amount: input.amount,
           currency: "INR",
           method: input.method,
+          billingCycle: input.billingCycle,
+          periodStartDate,
+          periodEndDate,
           reference: input.reference?.trim() || null,
           comment: input.comment?.trim() || null,
           receivedAt,
@@ -287,6 +321,9 @@ export async function POST(request: Request) {
           amount: true,
           currency: true,
           method: true,
+          billingCycle: true,
+          periodStartDate: true,
+          periodEndDate: true,
           reference: true,
           comment: true,
           receivedAt: true,
@@ -322,6 +359,9 @@ export async function POST(request: Request) {
             amount: input.amount,
             currency: "INR",
             method: input.method,
+            billingCycle: input.billingCycle,
+            periodStartDate: periodStartDate?.toISOString() ?? null,
+            periodEndDate: periodEndDate?.toISOString() ?? null,
             reference: input.reference?.trim() || null,
             receivedAt: receivedAt.toISOString(),
             planId: current.planId,
