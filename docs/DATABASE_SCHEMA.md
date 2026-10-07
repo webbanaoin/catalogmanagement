@@ -71,3 +71,12 @@ Sprint 6 adds `shops(status, created_at)` for admin queues, a password-reset cle
 
 ## Data rules
 Use soft deletion for recoverable merchant catalogue records. Avoid category-specific product columns. Avoid fixed image columns. All tenant access is authorized server-side.
+
+
+## Admin payment ledger
+
+`payment_records` is the append-only manual payment ledger used by platform administrators. Each row is linked to a shop and stores amount/currency, payment method, optional transaction/reference text, comments, received date, plan-name snapshot, the administrator who recorded it, and the before/after subscription-expiry dates when a payment extends service.
+
+Payment methods: `CASH`, `UPI`, `BANK_TRANSFER`, `OTHER`.
+
+The shop foreign key uses RESTRICT so historical payment data cannot be silently removed by deleting a paid shop. Plan, subscription and recording-admin references are nullable historical links; the payment row retains its plan-name snapshot even if those referenced records change later.
