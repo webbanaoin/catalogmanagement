@@ -74,6 +74,11 @@ export const adminPaymentCreateSchema = z
     shopId: z.string().trim().min(1),
     amount: paymentAmountSchema,
     method: z.enum(["CASH", "UPI", "BANK_TRANSFER", "OTHER"]),
+    billingCycle: z
+      .enum(["WEEKLY", "MONTHLY", "QUARTERLY", "HALF_YEARLY", "YEARLY", "CUSTOM"])
+      .default("CUSTOM"),
+    periodStartDate: z.string().trim().min(1).max(64).nullable().optional(),
+    periodEndDate: z.string().trim().min(1).max(64).nullable().optional(),
     reference: z.string().trim().max(191).nullable().optional(),
     comment: z.string().trim().max(2000).nullable().optional(),
     receivedAt: z.string().trim().min(1).max(64).optional(),
@@ -88,11 +93,30 @@ export const adminPaymentCreateSchema = z
         message: "Comment is required when payment method is Other",
       });
     }
+
+    if (value.periodStartDate && value.periodEndDate) {
+      const start = new Date(value.periodStartDate);
+      const end = new Date(value.periodEndDate);
+      if (
+        Number.isNaN(start.getTime()) ||
+        Number.isNaN(end.getTime()) ||
+        start > end
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["periodEndDate"],
+          message: "Billing period end must be on or after billing period start",
+        });
+      }
+    }
   });
 
 export const adminPaymentListQuerySchema = z.object({
   shopId: z.string().trim().min(1).optional(),
   method: z.enum(["CASH", "UPI", "BANK_TRANSFER", "OTHER"]).optional(),
+  billingCycle: z
+    .enum(["WEEKLY", "MONTHLY", "QUARTERLY", "HALF_YEARLY", "YEARLY", "CUSTOM"])
+    .optional(),
   from: z.string().trim().min(1).max(64).optional(),
   to: z.string().trim().min(1).max(64).optional(),
   page: z.coerce.number().int().min(1).default(1),
