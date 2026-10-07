@@ -166,13 +166,13 @@ function ShopHero({
 
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <a
-                    href="#storefront-categories"
+                    href={`/s/${shop.slug}#storefront-categories`}
                     className="rounded-xl border border-border bg-surface px-3 py-2.5 text-center text-xs font-bold text-foreground shadow-sm transition hover:border-primary/30 hover:text-primary"
                   >
                     Browse categories
                   </a>
                   <a
-                    href="#storefront-products"
+                    href={`/s/${shop.slug}#storefront-products`}
                     className="rounded-xl bg-foreground px-3 py-2.5 text-center text-xs font-bold text-surface shadow-sm transition hover:bg-primary"
                   >
                     View collection
