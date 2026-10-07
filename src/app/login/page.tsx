@@ -6,8 +6,8 @@ import { LoginForm } from "@/components/auth/login-form";
 export default function LoginPage() {
   return (
     <AuthShell
-      title="Merchant sign in"
-      description="Sign in to continue managing your Digital Showroom."
+      title="Sign in"
+      description="Sign in to your merchant or platform administrator account."
       footer={
         <div className="space-y-2">
           <p>

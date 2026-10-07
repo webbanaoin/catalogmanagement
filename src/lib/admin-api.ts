@@ -32,6 +32,13 @@ export interface AdminShop {
   phone?: string | null;
   city?: string | null;
   state?: string | null;
+  requestedBusinessType?: string | null;
+  businessCategory?: {
+    id: string;
+    name: string;
+    slug: string;
+    status: "ACTIVE" | "INACTIVE";
+  } | null;
   createdAt: string;
   updatedAt: string;
   owners: AdminShopOwner[];
@@ -78,6 +85,36 @@ export interface AdminSubscription {
     status: "ACTIVE" | "INACTIVE";
   };
   usage: { products?: number };
+}
+
+export interface AdminPaymentRecord {
+  id: string;
+  shopId: string;
+  subscriptionId?: string | null;
+  planId?: string | null;
+  amount: string;
+  status: "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "WAIVED";
+  method: "CASH" | "UPI" | "BANK_TRANSFER" | "ONLINE" | "OTHER";
+  paymentDate: string;
+  referenceId?: string | null;
+  gatewayOrderId?: string | null;
+  gatewayPaymentId?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  plan?: { id: string; name: string } | null;
+  receivedBy?: { id: string; name: string; email: string } | null;
+}
+
+export interface AdminPaymentPayload {
+  amount: number;
+  status: AdminPaymentRecord["status"];
+  method: AdminPaymentRecord["method"];
+  paymentDate: string;
+  referenceId?: string;
+  gatewayOrderId?: string;
+  gatewayPaymentId?: string;
+  notes?: string;
+  extendDays?: number;
 }
 
 export interface AdminPlanPayload {
@@ -172,6 +209,31 @@ export async function updateAdminShopStatus(shopId: string, status: AdminShopSta
   );
 }
 
+export async function assignAdminShopBusinessCategory(
+  shopId: string,
+  businessCategoryId: string,
+) {
+  return requestJson<{
+    data: {
+      id: string;
+      businessCategoryId: string;
+      requestedBusinessType: null;
+      businessCategory: {
+        id: string;
+        name: string;
+        slug: string;
+        status: "ACTIVE" | "INACTIVE";
+      };
+    };
+  }>(
+    "/api/admin/shops/" + encodeURIComponent(shopId) + "/business-category",
+    {
+      method: "PATCH",
+      body: JSON.stringify({ businessCategoryId }),
+    },
+  );
+}
+
 export async function getAdminPlans() {
   return requestJson<{ items: AdminPlan[] }>("/api/admin/plans");
 }
@@ -234,4 +296,31 @@ export async function updateAdminBusinessCategory(
     "/api/admin/business-categories/" + encodeURIComponent(categoryId),
     { method: "PATCH", body: JSON.stringify(payload) },
   );
+}
+
+export async function getAdminPayments(shopId: string) {
+  return requestJson<{ items: AdminPaymentRecord[] }>(
+    "/api/admin/shops/" + encodeURIComponent(shopId) + "/payments",
+  );
+}
+
+export async function createAdminPayment(
+  shopId: string,
+  payload: AdminPaymentPayload,
+) {
+  return requestJson<{
+    data: {
+      payment: AdminPaymentRecord;
+      subscription: {
+        id: string;
+        status: AdminSubscription["storedStatus"];
+        paymentStatus: AdminSubscription["paymentStatus"];
+        endDate: string;
+        graceEndsAt?: string | null;
+      };
+    };
+  }>("/api/admin/shops/" + encodeURIComponent(shopId) + "/payments", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }

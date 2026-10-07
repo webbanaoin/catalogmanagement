@@ -44,27 +44,36 @@ const optionalIndianPincode = z
   .refine(isValidIndianPincode, "Enter a valid 6-digit Indian PIN")
   .optional();
 
-export const registerSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(2, "Name must contain at least 2 characters")
-    .max(120, "Name must contain at most 120 characters"),
-  email,
-  mobile: optionalIndianMobile("mobile number"),
-  password,
-  shopName: z
-    .string()
-    .trim()
-    .min(2, "Shop name must contain at least 2 characters")
-    .max(160, "Shop name must contain at most 160 characters"),
-  businessCategoryId: z.string().trim().min(1).optional(),
-  phone: optionalIndianPhone,
-  whatsapp: optionalIndianMobile("WhatsApp number"),
-  city: optionalNonBlankText("City", 120),
-  state: optionalNonBlankText("State", 120),
-  pincode: optionalIndianPincode,
-});
+export const registerSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(2, "Name must contain at least 2 characters")
+      .max(120, "Name must contain at most 120 characters"),
+    email,
+    mobile: optionalIndianMobile("mobile number"),
+    password,
+    shopName: z
+      .string()
+      .trim()
+      .min(2, "Shop name must contain at least 2 characters")
+      .max(160, "Shop name must contain at most 160 characters"),
+    businessCategoryId: z.string().trim().min(1).optional(),
+    requestedBusinessType: optionalNonBlankText("Business type", 160),
+    phone: optionalIndianPhone,
+    whatsapp: optionalIndianMobile("WhatsApp number"),
+    city: optionalNonBlankText("City", 120),
+    state: optionalNonBlankText("State", 120),
+    pincode: optionalIndianPincode,
+  })
+  .refine(
+    (value) => !(value.businessCategoryId && value.requestedBusinessType),
+    {
+      message: "Choose a listed business type or request another business type, not both",
+      path: ["requestedBusinessType"],
+    },
+  );
 
 export const loginSchema = z.object({
   email,

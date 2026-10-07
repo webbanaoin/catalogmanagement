@@ -1061,3 +1061,27 @@ Before `staging -> main`:
 - [ ] production backup/rollback target prepared
 
 Only after the checklist is complete should staging be promoted to `main` / production.
+
+
+## Admin Assisted Onboarding and Payments
+
+### Admin Smart Excel onboarding
+1. Sign in as a platform administrator and open **Admin → Shops**.
+2. For a Pending, Approved or Active shop, select **Onboard products**.
+3. If the shop has an unresolved “Other” business-type request, assign a supported business type first.
+4. Download the shop-specific Smart Excel and verify business-specific categories and product fields.
+5. Add a few products, upload the workbook, and select **Check & preview**.
+6. Confirm Ready / Duplicate / Invalid counts before importing.
+7. Select **Confirm & import** and verify only ready rows are created for the selected shop.
+8. Confirm the merchant can see the imported products after approval/login.
+9. Confirm the action is isolated to the selected shop and appears in audit logs.
+
+### Admin payment management
+1. Open **Admin → Shops → Inspect subscription → Manage payments**.
+2. Record a **Paid** UPI payment with amount, date and reference ID.
+3. Use +30 days or +365 days and confirm subscription validity extends from the existing future expiry, not from today.
+4. Confirm subscription Payment Status becomes **Paid** and Stored Status becomes **Active** when an extension is applied.
+5. Verify the payment appears in the shop payment history and **Admin → Payments**.
+6. Record Pending, Failed, Refunded and Waived entries and confirm history remains append-only.
+7. For Online payments, verify optional gateway order/payment IDs are accepted.
+8. Confirm all payment actions create audit-log entries.

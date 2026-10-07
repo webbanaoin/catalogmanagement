@@ -83,6 +83,7 @@ export interface RegisterPayload {
   password: string;
   shopName: string;
   businessCategoryId?: string;
+  requestedBusinessType?: string;
   phone?: string;
   whatsapp?: string;
   city?: string;
@@ -104,7 +105,22 @@ export function registerMerchant(payload: RegisterPayload) {
 }
 
 export function loginMerchant(payload: LoginPayload) {
-  return postJson<{ data: unknown }>("/api/auth/login", payload);
+  return postJson<{
+    data: {
+      id: string;
+      name: string;
+      email: string;
+      status: string;
+      platformRole: "USER" | "ADMIN";
+      shops: Array<{
+        id: string;
+        name: string;
+        slug: string;
+        status: string;
+        role: string;
+      }>;
+    };
+  }>("/api/auth/login", payload);
 }
 
 export function requestPasswordReset(payload: ForgotPasswordPayload) {

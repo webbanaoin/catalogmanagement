@@ -1,14 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
+
+import { AdminPaymentManager } from "@/components/admin/admin-payment-manager";
 
 import {
   AdminApiError,
+  assignAdminShopBusinessCategory,
+  getAdminBusinessCategories,
   getAdminPlans,
   getAdminShops,
   getAdminSubscription,
   updateAdminShopStatus,
   updateAdminSubscription,
+  type AdminBusinessCategory,
   type AdminPlan,
   type AdminShop,
   type AdminShopStatus,
@@ -224,6 +230,11 @@ function SubscriptionInspector({
               <Button type="button" onClick={save} disabled={working || !planId}>
                 {working ? "Saving…" : "Save subscription"}
               </Button>
+
+              <AdminPaymentManager
+                shopId={shop.id}
+                onSubscriptionChanged={load}
+              />
             </div>
           ) : null}
 
@@ -237,16 +248,43 @@ function SubscriptionInspector({
 function ShopCard({
   shop,
   plans,
+  businessCategories,
   onChanged,
 }: {
   shop: AdminShop;
   plans: AdminPlan[];
+  businessCategories: AdminBusinessCategory[];
   onChanged: () => void;
 }) {
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [businessCategoryId, setBusinessCategoryId] = useState(
+    shop.businessCategory?.id ?? "",
+  );
   const owner = shop.owners[0];
   const location = [shop.city, shop.state].filter(Boolean).join(", ");
+
+  async function assignRequestedBusinessType() {
+    if (!businessCategoryId) {
+      setMessage("Select the supported business type to assign.");
+      return;
+    }
+
+    setWorking(true);
+    setMessage(null);
+    try {
+      await assignAdminShopBusinessCategory(shop.id, businessCategoryId);
+      onChanged();
+    } catch (error) {
+      setMessage(
+        error instanceof AdminApiError
+          ? error.message
+          : "Unable to assign business type.",
+      );
+    } finally {
+      setWorking(false);
+    }
+  }
 
   async function changeStatus(next: AdminShopStatus) {
     setWorking(true);
@@ -281,6 +319,61 @@ function ShopCard({
           <div><dt className="text-muted">Shop contact</dt><dd className="mt-1 text-foreground">{shop.phone ?? shop.email ?? "—"}</dd></div>
           <div><dt className="text-muted">Registered</dt><dd className="mt-1 text-foreground">{formatDate(shop.createdAt)}</dd></div>
         </dl>
+
+        {shop.requestedBusinessType ? (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-800">
+              Business type request
+            </p>
+            <p className="mt-2 text-base font-semibold text-foreground">
+              {shop.requestedBusinessType}
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              Review this request before approving the shop. If Webbanao supports it,
+              map the shop to an active business type below. If a new global type is
+              needed, create it under Business Categories first.
+            </p>
+
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end">
+              <label className="flex-1 text-sm font-medium text-foreground">
+                Assign supported business type
+                <select
+                  className="mt-1 h-10 w-full rounded-lg border border-border bg-white px-3"
+                  value={businessCategoryId}
+                  onChange={(event) => setBusinessCategoryId(event.target.value)}
+                  disabled={working}
+                >
+                  <option value="">Select business type</option>
+                  {businessCategories
+                    .filter((category) => category.status === "ACTIVE")
+                    .map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+
+              <Button
+                type="button"
+                size="sm"
+                onClick={assignRequestedBusinessType}
+                disabled={working || !businessCategoryId}
+              >
+                {working ? "Assigning…" : "Accept & assign"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-border bg-surface-muted/30 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+              Business type
+            </p>
+            <p className="mt-1 font-semibold text-foreground">
+              {shop.businessCategory?.name ?? "Not selected"}
+            </p>
+          </div>
+        )}
 
         <div className="rounded-xl border border-border bg-surface-muted/40 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -324,8 +417,18 @@ function ShopCard({
           </div>
         </div>
 
-        {transitions[shop.status].length ? (
-          <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
+          {["PENDING", "APPROVED", "ACTIVE"].includes(shop.status) ? (
+            <Link
+              href={`/admin/shops/${shop.id}/onboarding`}
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-surface px-3 text-sm font-semibold text-foreground shadow-sm hover:bg-primary-soft hover:text-primary"
+            >
+              Onboard products
+            </Link>
+          ) : null}
+
+          {transitions[shop.status].length ? (
+            <>
             {transitions[shop.status].map((next) => (
               <Button
                 key={next}
@@ -338,8 +441,9 @@ function ShopCard({
                 {titleCase(next)}
               </Button>
             ))}
-          </div>
-        ) : null}
+            </>
+          ) : null}
+        </div>
 
         {message ? <Alert title="Status update">{message}</Alert> : null}
         <SubscriptionInspector shop={shop} plans={plans} />
@@ -352,6 +456,9 @@ export function AdminShopManager() {
   const [status, setStatus] = useState<AdminShopStatus>("PENDING");
   const [shops, setShops] = useState<AdminShop[]>([]);
   const [plans, setPlans] = useState<AdminPlan[]>([]);
+  const [businessCategories, setBusinessCategories] = useState<
+    AdminBusinessCategory[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -359,11 +466,16 @@ export function AdminShopManager() {
   useEffect(() => {
     let active = true;
 
-    Promise.all([getAdminShops(status), getAdminPlans()])
-      .then(([shopResponse, planResponse]) => {
+    Promise.all([
+      getAdminShops(status),
+      getAdminPlans(),
+      getAdminBusinessCategories(),
+    ])
+      .then(([shopResponse, planResponse, businessCategoryResponse]) => {
         if (!active) return;
         setShops(shopResponse.items);
         setPlans(planResponse.items);
+        setBusinessCategories(businessCategoryResponse.items);
       })
       .catch((error) => {
         if (!active) return;
@@ -421,6 +533,7 @@ export function AdminShopManager() {
               key={shop.id}
               shop={shop}
               plans={plans}
+              businessCategories={businessCategories}
               onChanged={reload}
             />
           ))}
