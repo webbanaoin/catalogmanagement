@@ -64,3 +64,37 @@ export const adminSubscriptionUpdateSchema = z
   .refine((value) => Object.keys(value).length > 0, {
     message: "At least one subscription field must be provided",
   });
+
+
+const paymentAmountSchema = z.coerce.number().finite().positive().max(100000000);
+const paymentExtendDaysSchema = z.coerce.number().int().min(0).max(3660);
+
+export const adminPaymentCreateSchema = z
+  .object({
+    shopId: z.string().trim().min(1),
+    amount: paymentAmountSchema,
+    method: z.enum(["CASH", "UPI", "BANK_TRANSFER", "OTHER"]),
+    reference: z.string().trim().max(191).nullable().optional(),
+    comment: z.string().trim().max(2000).nullable().optional(),
+    receivedAt: z.string().trim().min(1).max(64).optional(),
+    extendDays: paymentExtendDaysSchema.default(0),
+    activateSubscription: z.boolean().default(true),
+  })
+  .superRefine((value, ctx) => {
+    if (value.method === "OTHER" && !value.comment?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["comment"],
+        message: "Comment is required when payment method is Other",
+      });
+    }
+  });
+
+export const adminPaymentListQuerySchema = z.object({
+  shopId: z.string().trim().min(1).optional(),
+  method: z.enum(["CASH", "UPI", "BANK_TRANSFER", "OTHER"]).optional(),
+  from: z.string().trim().min(1).max(64).optional(),
+  to: z.string().trim().min(1).max(64).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(25),
+});

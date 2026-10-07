@@ -169,6 +169,15 @@ export async function PATCH(
     await requireShop(shopId);
 
     const input = adminSubscriptionUpdateSchema.parse(await readJsonBody(request));
+    if (input.paymentStatus === "PAID") {
+      throw new AppError({
+        code: "PAYMENT_RECORD_REQUIRED",
+        message:
+          "Paid status must be created through Admin Payments so amount, method, reference and audit history are preserved",
+        status: 409,
+      });
+    }
+
     const current = await prisma.subscription.findUnique({
       where: { shopId },
       include: { plan: true },
