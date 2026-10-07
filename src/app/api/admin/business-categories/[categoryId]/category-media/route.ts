@@ -194,6 +194,10 @@ export async function POST(
       data: {
         categoryName: data.categoryName,
         categorySlug: data.categorySlug,
+        displayOrder:
+          ((preset.preset?.categories.findIndex(
+            (item) => toSlug(item) === preset.slug,
+          ) ?? -1) + 1) * 10,
         imageStorageKey: data.imageStorageKey,
         imageUrl: await mediaUrl(data.imageStorageKey),
         updatedAt: data.updatedAt,
