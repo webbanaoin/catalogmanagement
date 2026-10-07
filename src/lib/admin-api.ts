@@ -256,6 +256,26 @@ export interface AdminBusinessCategoryPayload {
   displayOrder: number;
 }
 
+
+export interface AdminCategoryMediaItem {
+  categoryName: string;
+  categorySlug: string;
+  displayOrder: number;
+  imageStorageKey?: string | null;
+  imageUrl?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface AdminCategoryMediaLibrary {
+  businessCategory: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  presetKey: string | null;
+  items: AdminCategoryMediaItem[];
+}
+
 interface ErrorEnvelope {
   error?: { code?: string; message?: string };
 }
@@ -440,5 +460,95 @@ export async function updateAdminBusinessCategory(
   return requestJson<{ data: Omit<AdminBusinessCategory, "shopCount"> }>(
     "/api/admin/business-categories/" + encodeURIComponent(categoryId),
     { method: "PATCH", body: JSON.stringify(payload) },
+  );
+}
+
+
+export async function getAdminCategoryMediaLibrary(categoryId: string) {
+  return requestJson<AdminCategoryMediaLibrary>(
+    "/api/admin/business-categories/" +
+      encodeURIComponent(categoryId) +
+      "/category-media",
+  );
+}
+
+export async function uploadAdminCategoryMedia(
+  categoryId: string,
+  categorySlug: string,
+  file: File,
+) {
+  const upload = await requestJson<{
+    data: {
+      url: string;
+      key: string;
+      expiresInSeconds: number;
+      headers: Record<string, string>;
+      categoryName: string;
+      categorySlug: string;
+    };
+  }>(
+    "/api/admin/business-categories/" +
+      encodeURIComponent(categoryId) +
+      "/category-media/upload-url",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        categorySlug,
+        fileName: file.name,
+        mimeType: file.type,
+        fileSize: file.size,
+      }),
+    },
+  );
+
+  let put: Response;
+  try {
+    put = await fetch(upload.data.url, {
+      method: "PUT",
+      headers: upload.data.headers,
+      body: file,
+    });
+  } catch {
+    throw new AdminApiError(
+      "CATEGORY_IMAGE_UPLOAD_NETWORK_ERROR",
+      "The browser could not upload the category image to object storage.",
+      0,
+    );
+  }
+
+  if (!put.ok) {
+    throw new AdminApiError(
+      "CATEGORY_IMAGE_UPLOAD_FAILED",
+      "Object storage rejected the category image upload.",
+      put.status,
+    );
+  }
+
+  return requestJson<{ data: AdminCategoryMediaItem }>(
+    "/api/admin/business-categories/" +
+      encodeURIComponent(categoryId) +
+      "/category-media",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        categorySlug,
+        storageKey: upload.data.key,
+      }),
+    },
+  );
+}
+
+export async function removeAdminCategoryMedia(
+  categoryId: string,
+  categorySlug: string,
+) {
+  return requestJson<{ data: { removed: boolean } }>(
+    "/api/admin/business-categories/" +
+      encodeURIComponent(categoryId) +
+      "/category-media",
+    {
+      method: "DELETE",
+      body: JSON.stringify({ categorySlug }),
+    },
   );
 }
