@@ -25,9 +25,34 @@ export async function PATCH(request: Request, context: { params: Promise<{ shopI
 
     const shop = await prisma.shop.findUnique({
       where: { id: shopId },
-      select: { id: true, name: true, slug: true, status: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        status: true,
+        businessCategoryId: true,
+        requestedBusinessType: true,
+      },
     });
     if (!shop) throw new AppError({ code: "SHOP_NOT_FOUND", message: "Shop not found", status: 404 });
+
+    if (
+      (input.status === "APPROVED" || input.status === "ACTIVE") &&
+      shop.requestedBusinessType &&
+      !shop.businessCategoryId
+    ) {
+      throw new AppError({
+        code: "BUSINESS_TYPE_REQUEST_PENDING",
+        message:
+          "Review and assign the requested business type before approving this shop",
+        status: 409,
+        fields: {
+          businessCategoryId: [
+            `Requested business type: ${shop.requestedBusinessType}`,
+          ],
+        },
+      });
+    }
 
     if (shop.status === input.status) {
       if (input.status === "APPROVED" || input.status === "ACTIVE") {

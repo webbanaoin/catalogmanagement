@@ -32,6 +32,13 @@ export interface AdminShop {
   phone?: string | null;
   city?: string | null;
   state?: string | null;
+  requestedBusinessType?: string | null;
+  businessCategory?: {
+    id: string;
+    name: string;
+    slug: string;
+    status: "ACTIVE" | "INACTIVE";
+  } | null;
   createdAt: string;
   updatedAt: string;
   owners: AdminShopOwner[];
@@ -169,6 +176,31 @@ export async function updateAdminShopStatus(shopId: string, status: AdminShopSta
   return requestJson<{ data: { id: string; status: AdminShopStatus } }>(
     "/api/admin/shops/" + encodeURIComponent(shopId) + "/status",
     { method: "PATCH", body: JSON.stringify({ status }) },
+  );
+}
+
+export async function assignAdminShopBusinessCategory(
+  shopId: string,
+  businessCategoryId: string,
+) {
+  return requestJson<{
+    data: {
+      id: string;
+      businessCategoryId: string;
+      requestedBusinessType: null;
+      businessCategory: {
+        id: string;
+        name: string;
+        slug: string;
+        status: "ACTIVE" | "INACTIVE";
+      };
+    };
+  }>(
+    "/api/admin/shops/" + encodeURIComponent(shopId) + "/business-category",
+    {
+      method: "PATCH",
+      body: JSON.stringify({ businessCategoryId }),
+    },
   );
 }
 

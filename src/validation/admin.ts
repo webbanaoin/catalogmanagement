@@ -10,6 +10,9 @@ export const adminShopListQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(25),
 });
 
+export const adminShopBusinessCategorySchema = z.object({
+  businessCategoryId: z.string().trim().min(1, "Select a business type"),
+});
 
 const adminBusinessCategoryBaseSchema = z.object({
   name: z

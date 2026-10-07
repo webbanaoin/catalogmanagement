@@ -32,6 +32,15 @@ export async function GET(request: Request) {
           phone: true,
           city: true,
           state: true,
+          requestedBusinessType: true,
+          businessCategory: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              status: true,
+            },
+          },
           createdAt: true,
           updatedAt: true,
           shopUsers: {

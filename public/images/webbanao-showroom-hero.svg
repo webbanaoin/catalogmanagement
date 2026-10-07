@@ -1,0 +1,190 @@
+<svg width="1200" height="720" viewBox="0 0 1200 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="60" y1="30" x2="1140" y2="690" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FBFF"/>
+      <stop offset=".48" stop-color="#EEF4FF"/>
+      <stop offset="1" stop-color="#F7F5FF"/>
+    </linearGradient>
+    <linearGradient id="screen" x1="340" y1="110" x2="840" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#08142E"/>
+      <stop offset="1" stop-color="#131B48"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FFD86B"/>
+      <stop offset=".55" stop-color="#DFA735"/>
+      <stop offset="1" stop-color="#9F6D16"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#2563EB"/>
+      <stop offset=".55" stop-color="#4F46E5"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#10B981"/>
+      <stop offset="1" stop-color="#0F766E"/>
+    </linearGradient>
+    <filter id="shadowLg" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="28" stdDeviation="26" flood-color="#0F172A" flood-opacity=".18"/>
+    </filter>
+    <filter id="shadowSm" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#0F172A" flood-opacity=".12"/>
+    </filter>
+    <clipPath id="laptopScreen">
+      <rect x="250" y="120" width="650" height="390" rx="18"/>
+    </clipPath>
+    <clipPath id="phoneScreen">
+      <rect x="116" y="248" width="190" height="348" rx="24"/>
+    </clipPath>
+  </defs>
+
+  <rect width="1200" height="720" rx="44" fill="url(#bg)"/>
+  <circle cx="1080" cy="90" r="170" fill="#C7D2FE" opacity=".28"/>
+  <circle cx="130" cy="600" r="220" fill="#BAE6FD" opacity=".2"/>
+
+  <g filter="url(#shadowLg)">
+    <rect x="222" y="92" width="710" height="458" rx="30" fill="#09101F"/>
+    <rect x="244" y="114" width="666" height="414" rx="20" fill="white"/>
+    <g clip-path="url(#laptopScreen)">
+      <rect x="244" y="114" width="666" height="414" fill="#FFFFFF"/>
+      <rect x="244" y="114" width="666" height="62" fill="#FFFFFF"/>
+      <rect x="270" y="132" width="30" height="30" rx="9" fill="url(#brand)"/>
+      <path d="M277 143h6l4 13 4-10h5l3 10 4-13h6l-7 21h-6l-3-9-4 9h-6l-6-21Z" fill="white"/>
+      <text x="312" y="145" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#0F172A">Aarav Jewellers</text>
+      <text x="312" y="161" font-family="Arial, sans-serif" font-size="9" fill="#64748B">Elegance for Every Occasion</text>
+
+      <text x="642" y="150" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#334155">Home</text>
+      <text x="686" y="150" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#334155">Products</text>
+      <text x="744" y="150" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#334155">About</text>
+      <rect x="790" y="130" width="95" height="28" rx="14" fill="url(#green)"/>
+      <text x="837" y="148" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="700" fill="white">Enquire on WhatsApp</text>
+
+      <rect x="264" y="194" width="626" height="170" rx="20" fill="url(#screen)"/>
+      <circle cx="785" cy="278" r="94" fill="#7C3AED" opacity=".12"/>
+      <circle cx="850" cy="232" r="72" fill="#0EA5E9" opacity=".10"/>
+      <text x="305" y="240" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#93C5FD">TIMELESS COLLECTION</text>
+      <text x="305" y="275" font-family="Arial, sans-serif" font-size="30" font-weight="800" fill="white">Jewellery that feels</text>
+      <text x="305" y="309" font-family="Arial, sans-serif" font-size="30" font-weight="800" fill="white">as special as the moment.</text>
+      <text x="305" y="334" font-family="Arial, sans-serif" font-size="11" fill="#CBD5E1">Gold • Silver • Diamond • Curated designs</text>
+      <rect x="305" y="350" width="110" height="30" rx="15" fill="url(#gold)"/>
+      <text x="360" y="369" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="800" fill="#2A1900">View Catalogue</text>
+
+      <g transform="translate(690 214)">
+        <path d="M0 0 C 20 44, 56 74, 94 78 C132 74,168 44,188 0" stroke="url(#gold)" stroke-width="8" fill="none"/>
+        <path d="M14 5 C 34 40, 62 61, 94 65 C126 61,154 40,174 5" stroke="#F7D060" stroke-width="3" fill="none"/>
+        <circle cx="94" cy="78" r="18" fill="#F8D47A" stroke="#8C611C" stroke-width="3"/>
+        <circle cx="94" cy="78" r="7" fill="#FFFFFF" opacity=".9"/>
+        <g fill="#E2B94C">
+          <circle cx="28" cy="24" r="5"/><circle cx="48" cy="42" r="5"/><circle cx="68" cy="56" r="5"/>
+          <circle cx="120" cy="56" r="5"/><circle cx="140" cy="42" r="5"/><circle cx="160" cy="24" r="5"/>
+        </g>
+      </g>
+
+      <text x="270" y="397" font-family="Arial, sans-serif" font-size="11" font-weight="800" fill="#0F172A">Shop by category</text>
+      <g>
+        <rect x="270" y="412" width="112" height="92" rx="16" fill="#F8FAFC" stroke="#E2E8F0"/>
+        <circle cx="326" cy="447" r="17" fill="none" stroke="url(#gold)" stroke-width="7"/>
+        <circle cx="326" cy="447" r="5" fill="#FFFFFF" stroke="#DFA735" stroke-width="3"/>
+        <text x="326" y="486" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#334155">Rings</text>
+
+        <rect x="394" y="412" width="112" height="92" rx="16" fill="#F8FAFC" stroke="#E2E8F0"/>
+        <path d="M432 440 C 442 458 458 468 470 468 C482 468 498 458 508 440" stroke="#94A3B8" stroke-width="5" fill="none"/>
+        <circle cx="470" cy="468" r="6" fill="#CBD5E1"/>
+        <text x="450" y="486" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#334155">Necklaces</text>
+
+        <rect x="518" y="412" width="112" height="92" rx="16" fill="#F8FAFC" stroke="#E2E8F0"/>
+        <circle cx="552" cy="448" r="7" fill="url(#gold)"/>
+        <circle cx="596" cy="448" r="7" fill="url(#gold)"/>
+        <path d="M552 456v13M596 456v13" stroke="#B7791F" stroke-width="3"/>
+        <circle cx="552" cy="474" r="6" fill="#F8D47A"/><circle cx="596" cy="474" r="6" fill="#F8D47A"/>
+        <text x="574" y="486" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#334155">Earrings</text>
+
+        <rect x="642" y="412" width="112" height="92" rx="16" fill="#F8FAFC" stroke="#E2E8F0"/>
+        <circle cx="698" cy="450" r="19" fill="none" stroke="url(#gold)" stroke-width="8"/>
+        <text x="698" y="486" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#334155">Bangles</text>
+
+        <rect x="766" y="412" width="112" height="92" rx="16" fill="#F8FAFC" stroke="#E2E8F0"/>
+        <path d="M822 431 C804 445 806 470 822 478 C838 470 840 445 822 431Z" fill="url(#gold)"/>
+        <circle cx="822" cy="452" r="6" fill="white" opacity=".85"/>
+        <text x="822" y="486" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#334155">Pendants</text>
+      </g>
+    </g>
+    <path d="M180 550H970L916 600H234L180 550Z" fill="#CBD5E1"/>
+    <path d="M220 557H930L904 581H246L220 557Z" fill="#E2E8F0"/>
+  </g>
+
+  <g filter="url(#shadowLg)">
+    <rect x="70" y="216" width="260" height="420" rx="42" fill="#07101F"/>
+    <rect x="88" y="242" width="224" height="376" rx="28" fill="white"/>
+    <g clip-path="url(#phoneScreen)">
+      <rect x="88" y="242" width="224" height="376" fill="#F8FAFC"/>
+      <rect x="88" y="242" width="224" height="74" fill="url(#screen)"/>
+      <circle cx="116" cy="272" r="14" fill="url(#gold)"/>
+      <text x="140" y="270" font-family="Arial, sans-serif" font-size="12" font-weight="800" fill="white">Aarav Jewellers</text>
+      <text x="140" y="285" font-family="Arial, sans-serif" font-size="8" fill="#CBD5E1">Digital Showroom</text>
+      <rect x="104" y="328" width="192" height="34" rx="17" fill="white" stroke="#E2E8F0"/>
+      <circle cx="120" cy="345" r="6" fill="none" stroke="#94A3B8" stroke-width="2"/>
+      <path d="M125 350l5 5" stroke="#94A3B8" stroke-width="2"/>
+      <text x="139" y="349" font-family="Arial, sans-serif" font-size="9" fill="#94A3B8">Search products...</text>
+
+      <g>
+        <rect x="104" y="376" width="42" height="24" rx="12" fill="#0F172A"/><text x="125" y="391" text-anchor="middle" font-family="Arial" font-size="8" font-weight="700" fill="white">All</text>
+        <rect x="152" y="376" width="48" height="24" rx="12" fill="#E0E7FF"/><text x="176" y="391" text-anchor="middle" font-family="Arial" font-size="8" font-weight="700" fill="#4338CA">Gold</text>
+        <rect x="206" y="376" width="50" height="24" rx="12" fill="#F1F5F9"/><text x="231" y="391" text-anchor="middle" font-family="Arial" font-size="8" font-weight="700" fill="#64748B">Silver</text>
+      </g>
+
+      <g>
+        <rect x="104" y="416" width="88" height="118" rx="14" fill="white" stroke="#E2E8F0"/>
+        <circle cx="148" cy="454" r="16" fill="none" stroke="url(#gold)" stroke-width="7"/>
+        <text x="116" y="491" font-family="Arial" font-size="9" font-weight="800" fill="#0F172A">Gold Ring</text>
+        <text x="116" y="506" font-family="Arial" font-size="8" fill="#64748B">22K • Ring</text>
+        <rect x="116" y="514" width="64" height="14" rx="7" fill="#0F172A"/>
+        <text x="148" y="524" text-anchor="middle" font-family="Arial" font-size="7" font-weight="700" fill="white">Request Price</text>
+
+        <rect x="204" y="416" width="88" height="118" rx="14" fill="white" stroke="#E2E8F0"/>
+        <circle cx="248" cy="454" r="14" fill="none" stroke="#94A3B8" stroke-width="6"/>
+        <circle cx="248" cy="454" r="5" fill="#E2E8F0"/>
+        <text x="216" y="491" font-family="Arial" font-size="9" font-weight="800" fill="#0F172A">Silver Ring</text>
+        <text x="216" y="506" font-family="Arial" font-size="8" fill="#64748B">925 • Ring</text>
+        <rect x="216" y="514" width="64" height="14" rx="7" fill="#0F172A"/>
+        <text x="248" y="524" text-anchor="middle" font-family="Arial" font-size="7" font-weight="700" fill="white">Request Price</text>
+
+        <rect x="104" y="546" width="188" height="44" rx="14" fill="url(#green)"/>
+        <text x="198" y="572" text-anchor="middle" font-family="Arial" font-size="10" font-weight="800" fill="white">Enquire on WhatsApp</text>
+      </g>
+    </g>
+  </g>
+
+  <g filter="url(#shadowSm)">
+    <rect x="938" y="126" width="202" height="76" rx="18" fill="white"/>
+    <rect x="954" y="142" width="42" height="42" rx="12" fill="#E0F2FE"/>
+    <path d="M966 151h18v18h-18zM968 153h5v5h-5zM979 153h3v3h-3zM968 163h3v3h-3zM976 160h6v6h-6z" fill="#2563EB"/>
+    <text x="1010" y="155" font-family="Arial" font-size="11" font-weight="800" fill="#0F172A">QR Code</text>
+    <text x="1010" y="171" font-family="Arial" font-size="10" fill="#64748B">for your shop</text>
+
+    <rect x="938" y="214" width="202" height="76" rx="18" fill="white"/>
+    <rect x="954" y="230" width="42" height="42" rx="12" fill="#DCFCE7"/>
+    <circle cx="975" cy="251" r="11" fill="none" stroke="#16A34A" stroke-width="2.5"/>
+    <path d="M970 246c2 5 5 8 10 10" stroke="#16A34A" stroke-width="2.5" stroke-linecap="round"/>
+    <text x="1010" y="243" font-family="Arial" font-size="11" font-weight="800" fill="#0F172A">Share Link</text>
+    <text x="1010" y="259" font-family="Arial" font-size="10" fill="#64748B">on WhatsApp</text>
+
+    <rect x="938" y="302" width="202" height="76" rx="18" fill="white"/>
+    <rect x="954" y="318" width="42" height="42" rx="12" fill="#EDE9FE"/>
+    <path d="M964 331h21l-3 14h-14l-4-17h-5" stroke="#7C3AED" stroke-width="2.5" stroke-linejoin="round"/>
+    <circle cx="971" cy="350" r="2.5" fill="#7C3AED"/><circle cx="980" cy="350" r="2.5" fill="#7C3AED"/>
+    <text x="1010" y="331" font-family="Arial" font-size="11" font-weight="800" fill="#0F172A">Customers</text>
+    <text x="1010" y="347" font-family="Arial" font-size="10" fill="#64748B">browse products</text>
+
+    <rect x="938" y="390" width="202" height="76" rx="18" fill="white"/>
+    <rect x="954" y="406" width="42" height="42" rx="12" fill="#F3E8FF"/>
+    <path d="M964 417h20v14h-12l-7 6v-6h-1z" stroke="#7C3AED" stroke-width="2.5" stroke-linejoin="round"/>
+    <text x="1010" y="419" font-family="Arial" font-size="11" font-weight="800" fill="#0F172A">Direct enquiries</text>
+    <text x="1010" y="435" font-family="Arial" font-size="10" fill="#64748B">to your shop</text>
+  </g>
+
+  <path d="M946 506c34 5 62 0 84-22" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+  <path d="m1020 477 13 3-4 13" stroke="#334155" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="1034" y="510" font-family="Arial" font-size="13" font-weight="800" fill="#334155">Your shop.</text>
+  <text x="1034" y="529" font-family="Arial" font-size="13" font-weight="800" fill="#334155">Your products.</text>
+  <text x="1034" y="548" font-family="Arial" font-size="13" font-weight="800" fill="#334155">Your brand.</text>
+</svg>

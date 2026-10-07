@@ -63,6 +63,7 @@ export async function POST(request: Request) {
           name: input.shopName,
           slug: await createUniqueShopSlug(tx, input.shopName),
           businessCategoryId: input.businessCategoryId ?? null,
+          requestedBusinessType: input.requestedBusinessType ?? null,
           phone: input.phone || input.mobile || null,
           whatsapp: input.whatsapp || input.phone || input.mobile || null,
           email: input.email,
@@ -71,13 +72,28 @@ export async function POST(request: Request) {
           pincode: input.pincode || null,
           status: "PENDING",
         },
-        select: { id: true, name: true, slug: true, status: true, phone: true, whatsapp: true, city: true, state: true, pincode: true, createdAt: true },
+        select: { id: true, name: true, slug: true, status: true, businessCategoryId: true, requestedBusinessType: true, phone: true, whatsapp: true, city: true, state: true, pincode: true, createdAt: true },
       });
 
       const membership = await tx.shopUser.create({
         data: { userId: user.id, shopId: shop.id, role: "OWNER" },
         select: { id: true, role: true, shopId: true, createdAt: true },
       });
+
+      if (input.requestedBusinessType) {
+        await tx.auditLog.create({
+          data: {
+            actorUserId: user.id,
+            shopId: shop.id,
+            action: "BUSINESS_TYPE_REQUESTED",
+            entityType: "Shop",
+            entityId: shop.id,
+            metadata: {
+              requestedBusinessType: input.requestedBusinessType,
+            },
+          },
+        });
+      }
 
       if (businessCategory) {
         await ensureDefaultShopCategories(tx, {
