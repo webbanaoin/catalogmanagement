@@ -56,8 +56,10 @@ export function LoginForm() {
     setFieldErrors({});
 
     try {
-      await loginMerchant({ email, password });
-      router.push("/onboarding");
+      const response = await loginMerchant({ email, password });
+      router.push(
+        response.data.platformRole === "ADMIN" ? "/admin" : "/onboarding",
+      );
     } catch (error) {
       if (error instanceof AuthApiError) {
         if (error.code === "SHOP_PENDING_APPROVAL") {
