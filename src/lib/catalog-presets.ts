@@ -112,6 +112,25 @@ const PRESETS: Array<{
     },
   },
   {
+    matches: ["utensil", "kitchenware", "cookware", "steel utensil"],
+    preset: {
+      key: "utensils-kitchenware",
+      groupLabel: "Collection",
+      groups: ["Cookware", "Dining", "Serveware", "Storage", "Kitchen Tools"],
+      primaryFilterAttribute: "Material",
+      attributes: [
+        {
+          name: "Material",
+          label: "Material",
+          options: ["Stainless Steel", "Aluminium", "Cast Iron", "Copper", "Brass", "Non-stick", "Glass", "Plastic"],
+        },
+        { name: "Capacity", label: "Capacity", placeholder: "e.g. 2 L" },
+        { name: "Size", label: "Size", placeholder: "e.g. 24 cm" },
+        { name: "Brand", label: "Brand", placeholder: "Optional brand" },
+      ],
+    },
+  },
+  {
     matches: ["electronic", "mobile", "computer", "appliance"],
     preset: {
       key: "electronics",
