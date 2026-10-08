@@ -31,6 +31,7 @@ export class S3StorageService implements StorageService {
       Key: input.key,
       ContentType: input.contentType,
       ContentLength: input.contentLength,
+      CacheControl: "public, max-age=31536000, immutable",
     });
 
     return {
