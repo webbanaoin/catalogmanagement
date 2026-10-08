@@ -37,9 +37,14 @@ function validateFile(file: File) {
 export function AdminCategoryMediaLibrary({
   businessCategoryId,
   businessCategoryName,
+  onSetupChange,
 }: {
   businessCategoryId: string;
   businessCategoryName: string;
+  onSetupChange?: (value: {
+    defaultCoverConfigured?: boolean;
+    sharedCategoryImageCount?: number;
+  }) => void;
 }) {
   const [items, setItems] = useState<AdminCategoryMediaItem[]>([]);
   const [presetKey, setPresetKey] = useState<string | null>(null);
@@ -102,6 +107,7 @@ export function AdminCategoryMediaLibrary({
         file,
       );
       setDefaultCoverUrl(response.data.defaultCoverUrl ?? null);
+      onSetupChange?.({ defaultCoverConfigured: true });
       setFeedback(
         `${businessCategoryName} default cover saved. Every matching shop without its own cover will use it automatically.`,
       );
@@ -132,6 +138,7 @@ export function AdminCategoryMediaLibrary({
     try {
       await removeAdminBusinessCategoryCover(businessCategoryId);
       setDefaultCoverUrl(null);
+      onSetupChange?.({ defaultCoverConfigured: false });
       setFeedback(
         `${businessCategoryName} default cover removed. Matching shops will now use the platform fallback when they have no custom cover.`,
       );
@@ -170,6 +177,13 @@ export function AdminCategoryMediaLibrary({
         item.categorySlug,
         file,
       );
+      const configuredBefore = items.filter(
+        (currentItem) => Boolean(currentItem.imageUrl),
+      ).length;
+      const nextConfiguredCount = item.imageUrl
+        ? configuredBefore
+        : configuredBefore + 1;
+
       setItems((current) =>
         current.map((currentItem) =>
           currentItem.categorySlug === item.categorySlug
@@ -177,6 +191,9 @@ export function AdminCategoryMediaLibrary({
             : currentItem,
         ),
       );
+      onSetupChange?.({
+        sharedCategoryImageCount: nextConfiguredCount,
+      });
       setFeedback(
         `${item.categoryName} image saved. It will automatically appear for matching shops unless a shop has its own category image.`,
       );
@@ -209,6 +226,11 @@ export function AdminCategoryMediaLibrary({
         businessCategoryId,
         item.categorySlug,
       );
+      const configuredBefore = items.filter(
+        (currentItem) => Boolean(currentItem.imageUrl),
+      ).length;
+      const nextConfiguredCount = Math.max(0, configuredBefore - 1);
+
       setItems((current) =>
         current.map((currentItem) =>
           currentItem.categorySlug === item.categorySlug
@@ -221,6 +243,9 @@ export function AdminCategoryMediaLibrary({
             : currentItem,
         ),
       );
+      onSetupChange?.({
+        sharedCategoryImageCount: nextConfiguredCount,
+      });
       setFeedback(`${item.categoryName} global image removed.`);
     } catch (removeError) {
       setError(
