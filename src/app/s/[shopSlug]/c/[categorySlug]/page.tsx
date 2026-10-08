@@ -92,7 +92,12 @@ export default async function CategoryPage({
   if (!category || !data) notFound();
 
   return (
-    <StorefrontShell homeHref={`/s/${shopSlug}`} label={data.shop.name} shopSlug={shopSlug}>
+    <StorefrontShell
+      homeHref={`/s/${shopSlug}`}
+      label={data.shop.name}
+      logoUrl={data.shop.logoUrl}
+      shopSlug={shopSlug}
+    >
       <StorefrontView
         data={data}
         q={q}
