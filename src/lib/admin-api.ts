@@ -276,6 +276,25 @@ export interface AdminCategoryMediaLibrary {
   items: AdminCategoryMediaItem[];
 }
 
+
+export interface AdminPlatformStorefrontBranding {
+  defaultLogoStorageKey?: string | null;
+  defaultLogoUrl?: string | null;
+  defaultCoverStorageKey?: string | null;
+  defaultCoverUrl?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface AdminBusinessCategoryBranding {
+  businessCategory: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  defaultCoverStorageKey?: string | null;
+  defaultCoverUrl?: string | null;
+}
+
 interface ErrorEnvelope {
   error?: { code?: string; message?: string };
 }
@@ -550,5 +569,130 @@ export async function removeAdminCategoryMedia(
       method: "DELETE",
       body: JSON.stringify({ categorySlug }),
     },
+  );
+}
+
+
+async function uploadAdminBrandingFile(
+  uploadPath: string,
+  confirmPath: string,
+  payload: Record<string, unknown>,
+  file: File,
+) {
+  const upload = await requestJson<{
+    data: {
+      url: string;
+      key: string;
+      expiresInSeconds: number;
+      headers: Record<string, string>;
+    };
+  }>(uploadPath, {
+    method: "POST",
+    body: JSON.stringify({
+      ...payload,
+      fileName: file.name,
+      mimeType: file.type,
+      fileSize: file.size,
+    }),
+  });
+
+  let put: Response;
+  try {
+    put = await fetch(upload.data.url, {
+      method: "PUT",
+      headers: upload.data.headers,
+      body: file,
+    });
+  } catch {
+    throw new AdminApiError(
+      "STOREFRONT_BRANDING_UPLOAD_NETWORK_ERROR",
+      "The browser could not upload the branding image to object storage.",
+      0,
+    );
+  }
+
+  if (!put.ok) {
+    throw new AdminApiError(
+      "STOREFRONT_BRANDING_UPLOAD_FAILED",
+      "Object storage rejected the branding image upload.",
+      put.status,
+    );
+  }
+
+  return requestJson<{ data: Record<string, unknown> }>(confirmPath, {
+    method: "POST",
+    body: JSON.stringify({
+      ...payload,
+      storageKey: upload.data.key,
+    }),
+  });
+}
+
+export async function getAdminPlatformStorefrontBranding() {
+  return requestJson<{ data: AdminPlatformStorefrontBranding }>(
+    "/api/admin/storefront-branding",
+  );
+}
+
+export async function uploadAdminPlatformStorefrontBranding(
+  kind: "logo" | "cover",
+  file: File,
+) {
+  return uploadAdminBrandingFile(
+    "/api/admin/storefront-branding/upload-url",
+    "/api/admin/storefront-branding",
+    { kind },
+    file,
+  ) as Promise<{
+    data: {
+      kind: "logo" | "cover";
+      storageKey: string | null;
+      url: string | null;
+    };
+  }>;
+}
+
+export async function removeAdminPlatformStorefrontBranding(
+  kind: "logo" | "cover",
+) {
+  return requestJson<{ data: { kind: "logo" | "cover"; removed: boolean } }>(
+    "/api/admin/storefront-branding",
+    {
+      method: "DELETE",
+      body: JSON.stringify({ kind }),
+    },
+  );
+}
+
+export async function getAdminBusinessCategoryBranding(categoryId: string) {
+  return requestJson<{ data: AdminBusinessCategoryBranding }>(
+    "/api/admin/business-categories/" +
+      encodeURIComponent(categoryId) +
+      "/branding",
+  );
+}
+
+export async function uploadAdminBusinessCategoryCover(
+  categoryId: string,
+  file: File,
+) {
+  return uploadAdminBrandingFile(
+    "/api/admin/business-categories/" +
+      encodeURIComponent(categoryId) +
+      "/branding/upload-url",
+    "/api/admin/business-categories/" +
+      encodeURIComponent(categoryId) +
+      "/branding",
+    {},
+    file,
+  ) as Promise<{ data: AdminBusinessCategoryBranding }>;
+}
+
+export async function removeAdminBusinessCategoryCover(categoryId: string) {
+  return requestJson<{ data: { removed: boolean } }>(
+    "/api/admin/business-categories/" +
+      encodeURIComponent(categoryId) +
+      "/branding",
+    { method: "DELETE" },
   );
 }
