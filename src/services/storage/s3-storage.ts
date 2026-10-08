@@ -38,7 +38,10 @@ export class S3StorageService implements StorageService {
       url: await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds }),
       key: input.key,
       expiresInSeconds,
-      headers: { "Content-Type": input.contentType },
+      headers: {
+        "Content-Type": input.contentType,
+        "Cache-Control": "public, max-age=31536000, immutable",
+      },
     };
   }
 
