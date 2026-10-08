@@ -97,6 +97,9 @@ export async function getAdminOnboardingCapacity(
     });
   }
 
+  const capacitySource: "SUBSCRIPTION" | "DEFAULT_TRIAL" = shop.subscription
+    ? "SUBSCRIPTION"
+    : "DEFAULT_TRIAL";
   let plan = shop.subscription?.plan ?? null;
 
   if (!plan) {
@@ -129,6 +132,7 @@ export async function getAdminOnboardingCapacity(
 
   return {
     plan,
+    capacitySource,
     currentProducts,
     limit: plan.productLimit,
     remaining: Math.max(0, plan.productLimit - currentProducts),

@@ -44,6 +44,7 @@ export async function POST(
           skippedCount: result.skippedCount,
           onboardingPlanName: capacity.plan.name,
           productLimit: capacity.limit,
+          capacitySource: capacity.capacitySource,
         },
       },
     });
