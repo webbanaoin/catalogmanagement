@@ -206,8 +206,6 @@ export function AdminPaymentManager() {
 
   useEffect(() => {
     let active = true;
-    setAnalyticsLoading(true);
-    setAnalyticsError(null);
 
     Promise.all([
       ...shopStatuses.map((status) => getAdminShops(status)),
@@ -232,6 +230,7 @@ export function AdminPaymentManager() {
         setShops(unique);
         setShopId((current) => current || unique[0]?.id || "");
         setAnalytics(analyticsResponse.data);
+        setAnalyticsError(null);
       })
       .catch((loadError) => {
         if (!active) return;
@@ -252,8 +251,6 @@ export function AdminPaymentManager() {
 
   useEffect(() => {
     let active = true;
-    setHistoryLoading(true);
-    setHistoryError(null);
 
     const dates = historyDates(historyRange, customFrom, customTo);
 
@@ -268,6 +265,7 @@ export function AdminPaymentManager() {
         if (!active) return;
         setPayments(response.items);
         setSummary(response.summary);
+        setHistoryError(null);
       })
       .catch((loadError) => {
         if (!active) return;
@@ -318,6 +316,8 @@ export function AdminPaymentManager() {
   }
 
   function resetHistoryFilters() {
+    setHistoryLoading(true);
+    setHistoryError(null);
     setFilterShopId("");
     setFilterMethod("");
     setFilterCycle("");
@@ -356,6 +356,10 @@ export function AdminPaymentManager() {
       setMessage(
         "Payment recorded successfully. Revenue analytics, history and subscription validity were updated.",
       );
+      setAnalyticsLoading(true);
+      setAnalyticsError(null);
+      setHistoryLoading(true);
+      setHistoryError(null);
       setReloadKey((value) => value + 1);
     } catch (saveError) {
       setFormError(
