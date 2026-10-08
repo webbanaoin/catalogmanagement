@@ -118,6 +118,13 @@ export async function GET(request: Request) {
         : {}),
     };
     const skip = (query.page - 1) * query.pageSize;
+    const methodGroupsQuery = prisma.paymentRecord.groupBy({
+      by: ["method"],
+      where,
+      orderBy: { method: "asc" },
+      _count: { _all: true },
+      _sum: { amount: true },
+    });
 
     const [records, total, amountAggregate, methodGroups] =
       await prisma.$transaction([
@@ -153,12 +160,7 @@ export async function GET(request: Request) {
           where,
           _sum: { amount: true },
         }),
-        prisma.paymentRecord.groupBy({
-          by: ["method"],
-          where,
-          _count: { _all: true },
-          _sum: { amount: true },
-        }),
+        methodGroupsQuery,
       ]);
 
     const byMethod = Object.fromEntries(
