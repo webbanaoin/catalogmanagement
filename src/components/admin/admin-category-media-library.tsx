@@ -5,6 +5,7 @@ import { type ChangeEvent, useEffect, useState } from "react";
 import { StorefrontMedia } from "@/components/storefront/storefront-media";
 import {
   Alert,
+  Badge,
   Button,
   EmptyState,
   ErrorState,
@@ -262,6 +263,12 @@ export function AdminCategoryMediaLibrary({
     return <LoadingState title="Loading storefront media defaults" />;
   }
 
+  const configuredCategoryCount = items.filter((item) =>
+    Boolean(item.imageUrl),
+  ).length;
+  const categorySetupComplete =
+    items.length > 0 && configuredCategoryCount === items.length;
+
   return (
     <div className="space-y-5">
       {feedback ? <Alert title="Storefront media">{feedback}</Alert> : null}
@@ -317,14 +324,29 @@ export function AdminCategoryMediaLibrary({
       </div>
 
       <div className="rounded-xl border border-border bg-primary-soft/40 p-4">
-        <p className="text-sm font-semibold text-foreground">
-          Shared category image library
-        </p>
-        <p className="mt-1 text-xs leading-5 text-muted">
-          Upload once here. The image is inherited by every {businessCategoryName}
-          shop using the same preset category. A shop-specific category image,
-          when present, always takes priority.
-        </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              Shared default category images
+            </p>
+            <p className="mt-1 max-w-3xl text-xs leading-5 text-muted">
+              Upload each image once for {businessCategoryName}. Ring, Earring,
+              Necklace and the other preset categories will automatically use the
+              same admin image across every existing and future matching shop.
+              A shop-specific category image always takes priority.
+            </p>
+          </div>
+          {items.length > 0 ? (
+            <div className="flex shrink-0 items-center gap-2">
+              <Badge variant={categorySetupComplete ? "success" : "warning"}>
+                {categorySetupComplete ? "All ready" : "Setup in progress"}
+              </Badge>
+              <span className="text-xs font-semibold text-muted">
+                {configuredCategoryCount} / {items.length}
+              </span>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {!presetKey || items.length === 0 ? (
@@ -345,10 +367,24 @@ export function AdminCategoryMediaLibrary({
                 className="aspect-[4/3] w-full"
               />
               <div className="p-4">
-                <p className="font-semibold text-foreground">
-                  {item.categoryName}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground">
+                      {item.categoryName}
+                    </p>
+                    <p className="mt-1 truncate text-xs text-muted">
+                      {item.categorySlug}
+                    </p>
+                  </div>
+                  <Badge variant={item.imageUrl ? "success" : "warning"}>
+                    {item.imageUrl ? "Default ready" : "Image pending"}
+                  </Badge>
+                </div>
+
+                <p className="mt-2 text-[11px] leading-5 text-muted">
+                  Shared by all {businessCategoryName} shops unless a merchant
+                  uploads an override for this category.
                 </p>
-                <p className="mt-1 text-xs text-muted">{item.categorySlug}</p>
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary-hover">
