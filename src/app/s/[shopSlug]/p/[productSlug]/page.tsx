@@ -171,6 +171,7 @@ export default async function ProductPage({
     <StorefrontShell
       homeHref={`/s/${shopSlug}`}
       label={shop.name}
+      logoUrl={shop.logoUrl}
       shopSlug={shopSlug}
     >
       <StorefrontAnalytics
