@@ -6,6 +6,7 @@ import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
 import { readJsonBody } from "@/server/http/json-body";
 import { shopBrandingStoragePrefix } from "@/server/media/shop-branding";
+import { resolveShopBranding } from "@/server/media/shop-branding-resolver";
 import { S3StorageService } from "@/services/storage/s3-storage";
 import {
   shopBrandingConfirmSchema,
@@ -49,7 +50,13 @@ export async function POST(
 
     const existing = await prisma.shop.findUnique({
       where: { id: shopId },
-      select: { logoStorageKey: true, coverStorageKey: true },
+      select: {
+        logoStorageKey: true,
+        coverStorageKey: true,
+        businessCategory: {
+          select: { defaultCoverStorageKey: true },
+        },
+      },
     });
     if (!existing) {
       throw new AppError({
@@ -71,7 +78,6 @@ export async function POST(
     });
 
     const storage = await storageService();
-    const url = await storage.getMediaUrl(input.storageKey);
 
     if (previousKey && previousKey !== input.storageKey) {
       try {
@@ -81,11 +87,25 @@ export async function POST(
       }
     }
 
+    const branding = await resolveShopBranding({
+      logoStorageKey:
+        input.kind === "logo" ? input.storageKey : existing.logoStorageKey,
+      coverStorageKey:
+        input.kind === "cover" ? input.storageKey : existing.coverStorageKey,
+      businessCategoryDefaultCoverStorageKey:
+        existing.businessCategory?.defaultCoverStorageKey ?? null,
+    });
+
     return NextResponse.json({
       data: {
         kind: input.kind,
         storageKey: input.storageKey,
-        url,
+        url: input.kind === "logo" ? branding.logoUrl : branding.coverUrl,
+        source: "SHOP",
+        effectiveLogoUrl: branding.logoUrl,
+        effectiveCoverUrl: branding.coverUrl,
+        logoSource: branding.logoSource,
+        coverSource: branding.coverSource,
       },
     });
   } catch (error) {
@@ -107,7 +127,13 @@ export async function DELETE(
     const input = shopBrandingRemoveSchema.parse(await readJsonBody(request));
     const existing = await prisma.shop.findUnique({
       where: { id: shopId },
-      select: { logoStorageKey: true, coverStorageKey: true },
+      select: {
+        logoStorageKey: true,
+        coverStorageKey: true,
+        businessCategory: {
+          select: { defaultCoverStorageKey: true },
+        },
+      },
     });
     if (!existing) {
       throw new AppError({
@@ -137,8 +163,24 @@ export async function DELETE(
       }
     }
 
+    const branding = await resolveShopBranding({
+      logoStorageKey:
+        input.kind === "logo" ? null : existing.logoStorageKey,
+      coverStorageKey:
+        input.kind === "cover" ? null : existing.coverStorageKey,
+      businessCategoryDefaultCoverStorageKey:
+        existing.businessCategory?.defaultCoverStorageKey ?? null,
+    });
+
     return NextResponse.json({
-      data: { kind: input.kind, removed: true },
+      data: {
+        kind: input.kind,
+        removed: true,
+        effectiveLogoUrl: branding.logoUrl,
+        effectiveCoverUrl: branding.coverUrl,
+        logoSource: branding.logoSource,
+        coverSource: branding.coverSource,
+      },
     });
   } catch (error) {
     return errorResponse(error);
