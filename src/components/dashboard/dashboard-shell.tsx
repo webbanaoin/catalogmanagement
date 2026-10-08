@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { MerchantLogoutButton } from "@/components/auth/merchant-logout-button";
 import { PwaInstallPrompt } from "@/components/pwa/pwa-install-prompt";
 import { Badge, Container } from "@/components/ui";
 import { cn } from "@/lib/cn";
@@ -64,6 +65,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             </summary>
             <div className="absolute right-0 mt-2 w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-border bg-surface p-2 shadow-lg">
               <DashboardNavigation compact />
+              <div className="mt-2 border-t border-border pt-2">
+                <MerchantLogoutButton className="w-full justify-center" />
+              </div>
             </div>
           </details>
         </Container>
@@ -78,8 +82,11 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           <div className="flex-1 p-4">
             <DashboardNavigation />
           </div>
-          <div className="border-t border-border p-4 text-xs leading-5 text-muted">
-            Sprint 6 staging validation: merchant catalogue, sharing, analytics and subscription workflows are connected for final production testing.
+          <div className="border-t border-border p-4">
+            <MerchantLogoutButton className="w-full justify-center" />
+            <p className="mt-3 text-xs leading-5 text-muted">
+              Sprint 6 staging validation: merchant catalogue, sharing, analytics and subscription workflows are connected for final production testing.
+            </p>
           </div>
         </aside>
 
