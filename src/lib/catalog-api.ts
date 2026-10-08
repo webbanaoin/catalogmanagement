@@ -108,6 +108,12 @@ export interface BusinessCategory {
   displayOrder: number;
 }
 
+export type ShopBrandingSource =
+  | "SHOP"
+  | "BUSINESS_DEFAULT"
+  | "PLATFORM_DEFAULT"
+  | "NONE";
+
 export interface ShopProfile {
   id: string;
   name: string;
@@ -127,6 +133,10 @@ export interface ShopProfile {
   showProductPrices: boolean;
   logoUrl?: string | null;
   coverUrl?: string | null;
+  customLogoUrl?: string | null;
+  customCoverUrl?: string | null;
+  logoSource?: ShopBrandingSource;
+  coverSource?: ShopBrandingSource;
   businessCategory?: BusinessCategory | null;
 }
 
@@ -306,6 +316,11 @@ export async function uploadShopBranding(
       kind: ShopBrandingKind;
       storageKey: string;
       url: string | null;
+      source: "SHOP";
+      effectiveLogoUrl: string | null;
+      effectiveCoverUrl: string | null;
+      logoSource: ShopBrandingSource;
+      coverSource: ShopBrandingSource;
     };
   }>(`/api/shops/${encodeURIComponent(shopId)}/branding`, {
     method: "POST",
@@ -320,7 +335,16 @@ export async function removeShopBranding(
   shopId: string,
   kind: ShopBrandingKind,
 ) {
-  return requestJson<{ data: { kind: ShopBrandingKind; removed: boolean } }>(
+  return requestJson<{
+    data: {
+      kind: ShopBrandingKind;
+      removed: boolean;
+      effectiveLogoUrl: string | null;
+      effectiveCoverUrl: string | null;
+      logoSource: ShopBrandingSource;
+      coverSource: ShopBrandingSource;
+    };
+  }>(
     `/api/shops/${encodeURIComponent(shopId)}/branding`,
     {
       method: "DELETE",
