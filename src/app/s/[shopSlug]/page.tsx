@@ -95,7 +95,12 @@ export default async function StorefrontPage({
   if (!data) notFound();
 
   return (
-    <StorefrontShell homeHref={`/s/${shopSlug}`} label={data.shop.name} shopSlug={shopSlug}>
+    <StorefrontShell
+      homeHref={`/s/${shopSlug}`}
+      label={data.shop.name}
+      logoUrl={data.shop.logoUrl}
+      shopSlug={shopSlug}
+    >
       <StorefrontAnalytics shopSlug={shopSlug} eventType="CATALOG_VISIT" />
       <StorefrontView
         data={data}
