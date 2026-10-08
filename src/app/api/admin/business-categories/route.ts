@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { requirePlatformAdmin } from "@/server/auth/admin-access";
+import { getDefaultCategoryPreset } from "@/lib/default-category-presets";
 import { toSlug } from "@/server/catalog/slug";
 import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
@@ -17,16 +18,25 @@ export async function GET() {
       orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
       include: {
         _count: {
-          select: { shops: true },
+          select: {
+            shops: true,
+            categoryMedia: true,
+          },
         },
       },
     });
 
     return NextResponse.json({
-      items: items.map(({ _count, ...category }) => ({
-        ...category,
-        shopCount: _count.shops,
-      })),
+      items: items.map(({ _count, ...category }) => {
+        const preset = getDefaultCategoryPreset(category);
+        return {
+          ...category,
+          shopCount: _count.shops,
+          defaultCoverConfigured: Boolean(category.defaultCoverStorageKey),
+          sharedCategoryImageCount: _count.categoryMedia,
+          presetCategoryCount: preset?.categories.length ?? 0,
+        };
+      }),
     });
   } catch (error) {
     return errorResponse(error);
