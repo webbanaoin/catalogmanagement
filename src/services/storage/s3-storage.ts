@@ -31,17 +31,13 @@ export class S3StorageService implements StorageService {
       Key: input.key,
       ContentType: input.contentType,
       ContentLength: input.contentLength,
-      CacheControl: "public, max-age=31536000, immutable",
     });
 
     return {
       url: await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds }),
       key: input.key,
       expiresInSeconds,
-      headers: {
-        "Content-Type": input.contentType,
-        "Cache-Control": "public, max-age=31536000, immutable",
-      },
+      headers: { "Content-Type": input.contentType },
     };
   }
 
