@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { MerchantLogoutButton } from "@/components/auth/merchant-logout-button";
+
 import { Alert, Badge, buttonClassName, Card, CardContent, CardHeader, CardTitle, Container } from "@/components/ui";
 
 export default function PendingApprovalPage() {
@@ -21,9 +23,10 @@ export default function PendingApprovalPage() {
               No approval time is promised here. This screen intentionally avoids inventing an SLA that is not defined in the product requirements.
             </Alert>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Link href="/login" className={buttonClassName("primary")}>
-                Try sign in
-              </Link>
+              <MerchantLogoutButton
+                className="w-full sm:w-auto"
+                label="Sign out"
+              />
               <Link href="/" className={buttonClassName("secondary")}>
                 Back to home
               </Link>
