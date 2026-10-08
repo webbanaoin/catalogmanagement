@@ -11,7 +11,7 @@ export default async function AdminBusinessCategoriesPage() {
       <PageHeader
         eyebrow="Sprint 6"
         title="Business categories"
-        description="Create, order and activate merchant verticals, and manage shared category images inherited by matching storefronts."
+        description="Manage platform branding, business-type covers and shared category images inherited by matching storefronts."
       />
       <AdminStorefrontDefaults />
       <AdminBusinessCategoryManager />
