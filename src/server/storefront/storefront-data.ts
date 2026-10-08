@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/server/database/prisma";
 import { getCatalogPreset } from "@/lib/catalog-presets";
+import { resolveShopBranding } from "@/server/media/shop-branding-resolver";
 import { S3StorageService } from "@/services/storage/s3-storage";
 
 export interface PublicShopHour {
@@ -158,13 +159,21 @@ async function mapShop(shop: {
   showProductPrices: boolean;
   logoStorageKey: string | null;
   coverStorageKey: string | null;
-  businessCategory: { name: string; slug: string } | null;
+  businessCategory:
+    | {
+        name: string;
+        slug: string;
+        defaultCoverStorageKey: string | null;
+      }
+    | null;
   hours: PublicShopHour[];
 }): Promise<PublicShop> {
-  const [logoUrl, coverUrl] = await Promise.all([
-    mediaUrl(shop.logoStorageKey),
-    mediaUrl(shop.coverStorageKey),
-  ]);
+  const branding = await resolveShopBranding({
+    logoStorageKey: shop.logoStorageKey,
+    coverStorageKey: shop.coverStorageKey,
+    businessCategoryDefaultCoverStorageKey:
+      shop.businessCategory?.defaultCoverStorageKey ?? null,
+  });
   const preset = getCatalogPreset(shop.businessCategory);
 
   return {
@@ -183,8 +192,8 @@ async function mapShop(shop: {
     businessCategorySlug: shop.businessCategory?.slug ?? null,
     catalogGroupLabel: preset.groupLabel,
     primaryFilterAttribute: preset.primaryFilterAttribute ?? null,
-    logoUrl,
-    coverUrl,
+    logoUrl: branding.logoUrl,
+    coverUrl: branding.coverUrl,
     hours: shop.hours,
   };
 }
@@ -243,7 +252,12 @@ async function getActiveShopRecord(shopSlug: string) {
       logoStorageKey: true,
       coverStorageKey: true,
       businessCategory: {
-        select: { id: true, name: true, slug: true },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          defaultCoverStorageKey: true,
+        },
       },
       hours: {
         orderBy: { dayOfWeek: "asc" },
