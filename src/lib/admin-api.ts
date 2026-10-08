@@ -573,12 +573,12 @@ export async function removeAdminCategoryMedia(
 }
 
 
-async function uploadAdminBrandingFile(
+async function uploadAdminBrandingFile<T>(
   uploadPath: string,
   confirmPath: string,
   payload: Record<string, unknown>,
   file: File,
-) {
+): Promise<{ data: T }> {
   const upload = await requestJson<{
     data: {
       url: string;
@@ -619,7 +619,7 @@ async function uploadAdminBrandingFile(
     );
   }
 
-  return requestJson<{ data: Record<string, unknown> }>(confirmPath, {
+  return requestJson<{ data: T }>(confirmPath, {
     method: "POST",
     body: JSON.stringify({
       ...payload,
@@ -638,18 +638,16 @@ export async function uploadAdminPlatformStorefrontBranding(
   kind: "logo" | "cover",
   file: File,
 ) {
-  return uploadAdminBrandingFile(
+  return uploadAdminBrandingFile<{
+    kind: "logo" | "cover";
+    storageKey: string | null;
+    url: string | null;
+  }>(
     "/api/admin/storefront-branding/upload-url",
     "/api/admin/storefront-branding",
     { kind },
     file,
-  ) as Promise<{
-    data: {
-      kind: "logo" | "cover";
-      storageKey: string | null;
-      url: string | null;
-    };
-  }>;
+  );
 }
 
 export async function removeAdminPlatformStorefrontBranding(
@@ -676,7 +674,7 @@ export async function uploadAdminBusinessCategoryCover(
   categoryId: string,
   file: File,
 ) {
-  return uploadAdminBrandingFile(
+  return uploadAdminBrandingFile<AdminBusinessCategoryBranding>(
     "/api/admin/business-categories/" +
       encodeURIComponent(categoryId) +
       "/branding/upload-url",
@@ -685,7 +683,7 @@ export async function uploadAdminBusinessCategoryCover(
       "/branding",
     {},
     file,
-  ) as Promise<{ data: AdminBusinessCategoryBranding }>;
+  );
 }
 
 export async function removeAdminBusinessCategoryCover(categoryId: string) {
