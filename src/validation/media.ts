@@ -48,3 +48,30 @@ export const globalCategoryMediaConfirmSchema = z.object({
 export const globalCategoryMediaRemoveSchema = z.object({
   categorySlug: z.string().trim().min(1).max(160),
 });
+
+
+export const storefrontDefaultBrandingUploadSchema = z.object({
+  kind: z.enum(["logo", "cover"]),
+  fileName: z.string().trim().min(1).max(255),
+  mimeType: z.enum(PRODUCT_IMAGE_MIME_TYPES),
+  fileSize: z.number().int().positive().max(PRODUCT_IMAGE_MAX_BYTES),
+});
+
+export const storefrontDefaultBrandingConfirmSchema = z.object({
+  kind: z.enum(["logo", "cover"]),
+  storageKey: z.string().trim().min(1).max(512),
+});
+
+export const storefrontDefaultBrandingRemoveSchema = z.object({
+  kind: z.enum(["logo", "cover"]),
+});
+
+export const businessCategoryCoverUploadSchema = z.object({
+  fileName: z.string().trim().min(1).max(255),
+  mimeType: z.enum(PRODUCT_IMAGE_MIME_TYPES),
+  fileSize: z.number().int().positive().max(PRODUCT_IMAGE_MAX_BYTES),
+});
+
+export const businessCategoryCoverConfirmSchema = z.object({
+  storageKey: z.string().trim().min(1).max(512),
+});
