@@ -97,7 +97,7 @@ export async function getAdminOnboardingCapacity(
     });
   }
 
-  let capacitySource: "SUBSCRIPTION" | "DEFAULT_TRIAL" = shop.subscription
+  const capacitySource: "SUBSCRIPTION" | "DEFAULT_TRIAL" = shop.subscription
     ? "SUBSCRIPTION"
     : "DEFAULT_TRIAL";
   let plan = shop.subscription?.plan ?? null;
