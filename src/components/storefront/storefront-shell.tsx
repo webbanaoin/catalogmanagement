@@ -33,12 +33,18 @@ export function StorefrontShell({
             href={homeHref}
             className="group flex min-w-0 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           >
-            <StorefrontMedia
-              src={logoUrl ?? null}
-              alt={`${label} logo`}
-              className="size-9 shrink-0 rounded-xl border border-border bg-surface shadow-sm transition-transform group-hover:-translate-y-0.5 sm:size-10"
-              eager
-            />
+            {logoUrl ? (
+              <StorefrontMedia
+                src={logoUrl}
+                alt={`${label} logo`}
+                className="size-9 shrink-0 rounded-xl border border-border bg-surface shadow-sm transition-transform group-hover:-translate-y-0.5 sm:size-10"
+                eager
+              />
+            ) : (
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-foreground text-sm font-bold text-surface shadow-sm transition-transform group-hover:-translate-y-0.5 sm:size-10">
+                {label.trim().charAt(0).toUpperCase() || "D"}
+              </span>
+            )}
             <span className="min-w-0">
               <span className="block truncate text-sm font-bold tracking-[-0.02em] text-foreground sm:text-[15px]">
                 {label}
@@ -71,11 +77,17 @@ export function StorefrontShell({
           ) : null}
 
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center">
-            <StorefrontMedia
-              src={logoUrl ?? null}
-              alt={`${label} logo`}
-              className="size-10 rounded-xl border border-border bg-surface shadow-sm"
-            />
+            {logoUrl ? (
+              <StorefrontMedia
+                src={logoUrl}
+                alt={`${label} logo`}
+                className="size-10 rounded-xl border border-border bg-surface shadow-sm"
+              />
+            ) : (
+              <div className="flex size-10 items-center justify-center rounded-xl bg-foreground text-sm font-bold text-surface">
+                {label.trim().charAt(0).toUpperCase() || "D"}
+              </div>
+            )}
             <div>
               <p className="text-sm font-semibold text-foreground">{label}</p>
               <p className="mt-1 text-xs leading-5 text-muted">
