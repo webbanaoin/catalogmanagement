@@ -37,14 +37,13 @@ export function AdminCategoryMediaLibrary({
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError(null);
 
     getAdminCategoryMediaLibrary(businessCategoryId)
       .then((response) => {
         if (!active) return;
         setItems(response.items);
         setPresetKey(response.presetKey);
+        setError(null);
       })
       .catch((loadError) => {
         if (!active) return;
