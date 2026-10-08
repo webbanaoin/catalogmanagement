@@ -217,6 +217,7 @@ export async function POST(
           ),
           onboardingPlanName: capacity.plan.name,
           productLimit: capacity.limit,
+          capacitySource: capacity.capacitySource,
         },
       },
     });
