@@ -195,11 +195,21 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+model PlatformBranding {
+  id String @id @db.VarChar(32)
+  defaultLogoStorageKey String? @map("default_logo_storage_key") @db.VarChar(512)
+  defaultCoverStorageKey String? @map("default_cover_storage_key") @db.VarChar(512)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@map("platform_branding")
+}
+
 model BusinessCategory {
   id String @id @default(cuid())
   name String @db.VarChar(120)
   slug String @unique @db.VarChar(160)
   icon String? @db.VarChar(255)
+  defaultCoverStorageKey String? @map("default_cover_storage_key") @db.VarChar(512)
   status CatalogStatus @default(ACTIVE)
   displayOrder Int @default(0) @map("display_order")
   shops Shop[]
