@@ -31,10 +31,8 @@ async function mediaUrl(storageKey: string | null | undefined) {
 }
 
 export async function getPlatformBrandingRecord() {
-  return prisma.platformBranding.upsert({
+  return prisma.platformBranding.findUnique({
     where: { id: "default" },
-    create: { id: "default" },
-    update: {},
   });
 }
 
@@ -46,23 +44,23 @@ export async function resolveShopBranding(input: {
   const platform = await getPlatformBrandingRecord();
 
   const effectiveLogoKey =
-    input.logoStorageKey ?? platform.defaultLogoStorageKey ?? null;
+    input.logoStorageKey ?? platform?.defaultLogoStorageKey ?? null;
   const logoSource: ShopBrandingSource = input.logoStorageKey
     ? "SHOP"
-    : platform.defaultLogoStorageKey
+    : platform?.defaultLogoStorageKey
       ? "PLATFORM_DEFAULT"
       : "NONE";
 
   const effectiveCoverKey =
     input.coverStorageKey ??
     input.businessCategoryDefaultCoverStorageKey ??
-    platform.defaultCoverStorageKey ??
+    platform?.defaultCoverStorageKey ??
     null;
   const coverSource: ShopBrandingSource = input.coverStorageKey
     ? "SHOP"
     : input.businessCategoryDefaultCoverStorageKey
       ? "BUSINESS_DEFAULT"
-      : platform.defaultCoverStorageKey
+      : platform?.defaultCoverStorageKey
         ? "PLATFORM_DEFAULT"
         : "NONE";
 
