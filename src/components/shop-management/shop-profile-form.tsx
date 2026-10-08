@@ -238,12 +238,25 @@ export function ShopProfileForm() {
     return <Alert variant="error">{feedback?.message ?? "Shop profile is unavailable."}</Alert>;
   }
 
-  function handleBrandingChange(kind: "logo" | "cover", url: string | null) {
+  function handleBrandingChange(value: {
+    kind: "logo" | "cover";
+    effectiveLogoUrl: string | null;
+    effectiveCoverUrl: string | null;
+    logoSource: "SHOP" | "BUSINESS_DEFAULT" | "PLATFORM_DEFAULT" | "NONE";
+    coverSource: "SHOP" | "BUSINESS_DEFAULT" | "PLATFORM_DEFAULT" | "NONE";
+    customUrl: string | null;
+  }) {
     setProfile((current) =>
       current
         ? {
             ...current,
-            ...(kind === "logo" ? { logoUrl: url } : { coverUrl: url }),
+            logoUrl: value.effectiveLogoUrl,
+            coverUrl: value.effectiveCoverUrl,
+            logoSource: value.logoSource,
+            coverSource: value.coverSource,
+            ...(value.kind === "logo"
+              ? { customLogoUrl: value.customUrl }
+              : { customCoverUrl: value.customUrl }),
           }
         : current,
     );
@@ -325,6 +338,10 @@ export function ShopProfileForm() {
         shopId={shopId}
         logoUrl={profile.logoUrl}
         coverUrl={profile.coverUrl}
+        customLogoUrl={profile.customLogoUrl}
+        customCoverUrl={profile.customCoverUrl}
+        logoSource={profile.logoSource}
+        coverSource={profile.coverSource}
         onChange={handleBrandingChange}
       />
 
