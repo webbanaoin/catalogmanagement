@@ -246,6 +246,9 @@ export interface AdminBusinessCategory {
   status: "ACTIVE" | "INACTIVE";
   displayOrder: number;
   shopCount: number;
+  defaultCoverConfigured: boolean;
+  sharedCategoryImageCount: number;
+  presetCategoryCount: number;
 }
 
 export interface AdminBusinessCategoryPayload {
@@ -466,7 +469,15 @@ export async function getAdminBusinessCategories() {
 export async function createAdminBusinessCategory(
   payload: AdminBusinessCategoryPayload,
 ) {
-  return requestJson<{ data: Omit<AdminBusinessCategory, "shopCount"> }>(
+  return requestJson<{
+    data: Omit<
+      AdminBusinessCategory,
+      | "shopCount"
+      | "defaultCoverConfigured"
+      | "sharedCategoryImageCount"
+      | "presetCategoryCount"
+    >;
+  }>(
     "/api/admin/business-categories",
     { method: "POST", body: JSON.stringify(payload) },
   );
@@ -476,7 +487,15 @@ export async function updateAdminBusinessCategory(
   categoryId: string,
   payload: Partial<AdminBusinessCategoryPayload>,
 ) {
-  return requestJson<{ data: Omit<AdminBusinessCategory, "shopCount"> }>(
+  return requestJson<{
+    data: Omit<
+      AdminBusinessCategory,
+      | "shopCount"
+      | "defaultCoverConfigured"
+      | "sharedCategoryImageCount"
+      | "presetCategoryCount"
+    >;
+  }>(
     "/api/admin/business-categories/" + encodeURIComponent(categoryId),
     { method: "PATCH", body: JSON.stringify(payload) },
   );

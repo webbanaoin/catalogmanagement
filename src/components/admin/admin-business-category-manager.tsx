@@ -241,6 +241,20 @@ export function AdminBusinessCategoryManager() {
     refresh();
   }
 
+  function updateSetupStatus(
+    id: string,
+    value: {
+      defaultCoverConfigured?: boolean;
+      sharedCategoryImageCount?: number;
+    },
+  ) {
+    setCategories((current) =>
+      current.map((category) =>
+        category.id === id ? { ...category, ...value } : category,
+      ),
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -301,7 +315,7 @@ export function AdminBusinessCategoryManager() {
                   />
                 ) : (
                   <div className="space-y-4">
-                    <dl className="grid gap-3 text-sm sm:grid-cols-3">
+                    <dl className="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
                       <div>
                         <dt className="text-muted">Display order</dt>
                         <dd className="mt-1 font-medium text-foreground">
@@ -315,9 +329,27 @@ export function AdminBusinessCategoryManager() {
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-muted">Icon</dt>
+                        <dt className="text-muted">Default cover</dt>
+                        <dd className="mt-1">
+                          <Badge
+                            variant={
+                              category.defaultCoverConfigured
+                                ? "success"
+                                : "warning"
+                            }
+                          >
+                            {category.defaultCoverConfigured
+                              ? "Cover ready"
+                              : "Cover pending"}
+                          </Badge>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted">Shared category images</dt>
                         <dd className="mt-1 font-medium text-foreground">
-                          {category.icon || "—"}
+                          {category.presetCategoryCount > 0
+                            ? `${category.sharedCategoryImageCount} / ${category.presetCategoryCount}`
+                            : "No preset"}
                         </dd>
                       </div>
                     </dl>
@@ -342,8 +374,8 @@ export function AdminBusinessCategoryManager() {
                         }
                       >
                         {mediaCategory === category.id
-                          ? "Hide category images"
-                          : "Manage category images"}
+                          ? "Hide storefront defaults"
+                          : "Manage storefront defaults"}
                       </Button>
                     </div>
 
@@ -352,6 +384,9 @@ export function AdminBusinessCategoryManager() {
                         <AdminCategoryMediaLibrary
                           businessCategoryId={category.id}
                           businessCategoryName={category.name}
+                          onSetupChange={(value) =>
+                            updateSetupStatus(category.id, value)
+                          }
                         />
                       </div>
                     ) : null}
