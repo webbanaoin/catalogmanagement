@@ -1,10 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui";
 
 export function AdminLogoutButton() {
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
 
   async function logout() {
@@ -15,7 +17,7 @@ export function AdminLogoutButton() {
         credentials: "same-origin",
       });
     } finally {
-      window.location.assign("/login");
+      router.replace("/login");
     }
   }
 
