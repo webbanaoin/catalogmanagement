@@ -12,12 +12,14 @@ Webbanao can onboard marketing partners who refer merchants to Digital Showroom.
 
 Partner accounts reuse the secure User/session infrastructure but use the `PARTNER` platform role and a separate ReferralPartner lifecycle.
 
+The public landing page includes an **Earn with Webbanao** section with current commission guidance, referral steps, Partner Registration and Partner Login entry points.
+
 ## Partner lifecycle
 
 1. Partner self-registers with name, email, mobile, password and optional city/state/marketing area.
 2. ReferralPartner is created in `PENDING`.
 3. Admin reviews under **Admin -> Referrals**.
-4. Approval changes status to `ACTIVE` and automatically generates a unique referral code.
+4. Approval changes status to `ACTIVE` and automatically generates a short unique referral code such as `WB-48271`.
 5. Suspended/rejected partners cannot sign in or create valid new referral attribution.
 6. Existing historical shops, commission and payout records remain preserved.
 
@@ -106,7 +108,7 @@ Admin -> Referrals includes:
 
 An approved partner can see:
 
-- referral code
+- short referral code
 - referral URL
 - copy/share controls
 - number of referred shops
