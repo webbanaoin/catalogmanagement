@@ -69,6 +69,22 @@ Safeguards:
 - first-paid mode verifies there was no previous shop payment
 - `payment_record_id` is unique in ReferralCommission, preventing duplicate commission for one payment
 
+## Missing commission reconciliation
+
+If a shop was already referred and has an eligible Monthly/Yearly payment but no ReferralCommission row (for example, test data where the referral rate was configured after the payment), admin can use **Reconcile missing commissions** from Admin -> Referrals.
+
+The reconciliation:
+
+- considers only referred shops with an active partner
+- considers only Monthly and Yearly payment records
+- does not duplicate an existing payment-linked commission
+- respects the current commission mode
+- ignores payments recorded before referral attribution
+- uses the current configured commission amount for the repaired missing record
+- writes an audit log with source `ADMIN_RECONCILIATION`
+
+For `FIRST_PAID_SUBSCRIPTION`, earlier non-commissionable Weekly/Quarterly/Custom payments do not incorrectly block the first eligible Monthly/Yearly referral commission.
+
 ## Payout lifecycle
 
 ReferralCommission statuses:
