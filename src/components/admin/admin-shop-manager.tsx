@@ -33,6 +33,7 @@ import {
   EmptyState,
   ErrorState,
   LoadingState,
+  PaginationControls,
 } from "@/components/ui";
 
 const statuses: AdminShopStatus[] = [
@@ -247,6 +248,20 @@ function SubscriptionInspector({
 
           {message ? <p className="mt-3 text-sm text-muted" role="status">{message}</p> : null}
         </div>
+      ) : null}
+
+      {!loading && !error ? (
+        <PaginationControls
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          pageSize={pagination.pageSize}
+          itemLabel="shops"
+          onPageChange={(nextPage) => {
+            setLoading(true);
+            setPage(nextPage);
+          }}
+        />
       ) : null}
     </div>
   );
@@ -552,12 +567,19 @@ export function AdminShopManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 20,
+    total: 0,
+    totalPages: 0,
+  });
 
   useEffect(() => {
     let active = true;
 
     Promise.all([
-      getAdminShops(status),
+      getAdminShops(status, { page, pageSize: 20 }),
       getAdminPlans(),
       getAdminBusinessCategories(),
       getAdminReferralPartners("ACTIVE"),
@@ -570,6 +592,7 @@ export function AdminShopManager() {
       ]) => {
         if (!active) return;
         setShops(shopResponse.items);
+        setPagination(shopResponse.pagination);
         setPlans(planResponse.items);
         setBusinessCategories(businessCategoryResponse.items);
         setReferralPartners(referralPartnerResponse.items);
@@ -585,12 +608,13 @@ export function AdminShopManager() {
     return () => {
       active = false;
     };
-  }, [reloadKey, status]);
+  }, [page, reloadKey, status]);
 
   function changeFilter(next: AdminShopStatus) {
     setLoading(true);
     setError(null);
     setShops([]);
+    setPage(1);
     setStatus(next);
   }
 
