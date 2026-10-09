@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Webbanao Digital Showroom | Take Your Shop Online",
   description:
-    "Launch your shop's own digital showroom. Share products by QR, link and WhatsApp, get onboarding support, and start your first month free.",
+    "Launch your shop's own digital showroom. Share products by QR, link and WhatsApp, get onboarding support, and start with a free trial.",
 };
 
 const whatsappUrl =
@@ -130,7 +130,7 @@ const faqs = [
   {
     question: "Will Webbanao help with first-time setup?",
     answer:
-      "Yes. Your first month is free and includes shop onboarding plus initial product onboarding assistance.",
+      "Yes. Your free trial includes shop onboarding plus initial product onboarding assistance. The current trial duration is shown in the pricing section.",
   },
 ];
 
