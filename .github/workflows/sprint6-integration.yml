@@ -14,22 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
-    services:
-      mysql:
-        image: mysql:8.4
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: catalog_sprint6
-          MYSQL_USER: catalog
-          MYSQL_PASSWORD: catalog
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
-
     env:
       DATABASE_URL: mysql://catalog:catalog@127.0.0.1:3306/catalog_sprint6
       SHADOW_DATABASE_URL: mysql://catalog:catalog@127.0.0.1:3306/catalog_sprint6_shadow
@@ -57,9 +41,27 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Create shadow database
+      - name: Start MySQL and create test databases
         run: |
-          docker exec ${{ job.services.mysql.id }} mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS catalog_sprint6_shadow; GRANT ALL PRIVILEGES ON catalog_sprint6_shadow.* TO 'catalog'@'%'; FLUSH PRIVILEGES;"
+          sudo systemctl start mysql.service
+          for i in {1..30}; do
+            if sudo mysqladmin ping --silent; then
+              break
+            fi
+            sleep 1
+          done
+          sudo mysql <<'SQL'
+          CREATE DATABASE IF NOT EXISTS catalog_sprint6;
+          CREATE DATABASE IF NOT EXISTS catalog_sprint6_shadow;
+          CREATE USER IF NOT EXISTS 'catalog'@'%' IDENTIFIED BY 'catalog';
+          CREATE USER IF NOT EXISTS 'catalog'@'localhost' IDENTIFIED BY 'catalog';
+          GRANT ALL PRIVILEGES ON catalog_sprint6.* TO 'catalog'@'%';
+          GRANT ALL PRIVILEGES ON catalog_sprint6_shadow.* TO 'catalog'@'%';
+          GRANT ALL PRIVILEGES ON catalog_sprint6.* TO 'catalog'@'localhost';
+          GRANT ALL PRIVILEGES ON catalog_sprint6_shadow.* TO 'catalog'@'localhost';
+          FLUSH PRIVILEGES;
+          SQL
+          mysqladmin -h 127.0.0.1 -ucatalog -pcatalog ping
 
       - name: Prisma validate and generate
         run: |
