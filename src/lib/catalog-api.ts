@@ -455,6 +455,84 @@ export interface ShopProductPayload {
   }>;
 }
 
+export type MerchantPaymentMethod =
+  | "CASH"
+  | "UPI"
+  | "BANK_TRANSFER"
+  | "OTHER";
+
+export type MerchantPaymentBillingCycle =
+  | "WEEKLY"
+  | "MONTHLY"
+  | "QUARTERLY"
+  | "HALF_YEARLY"
+  | "YEARLY"
+  | "CUSTOM";
+
+export type MerchantPaymentSubmissionStatus =
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED";
+
+export type MerchantPaymentRecipientType =
+  | "WEBBANAO"
+  | "REFERRAL_PARTNER"
+  | "OTHER";
+
+export interface MerchantVerifiedPayment {
+  id: string;
+  amount: string;
+  currency: string;
+  method: MerchantPaymentMethod;
+  billingCycle: MerchantPaymentBillingCycle;
+  reference?: string | null;
+  comment?: string | null;
+  receivedAt: string;
+  extendDays: number;
+  periodStartDate?: string | null;
+  periodEndDate?: string | null;
+  previousEndDate?: string | null;
+  newEndDate?: string | null;
+  planName: string;
+  createdAt: string;
+  source: "ADMIN_RECORDED" | "MERCHANT_SUBMISSION_APPROVED";
+  submittedPayment?: {
+    id: string;
+    recipientType: MerchantPaymentRecipientType;
+    recipientName: string;
+    submittedAt: string;
+  } | null;
+}
+
+export interface MerchantPaymentSubmission {
+  id: string;
+  amount: string;
+  currency: string;
+  method: MerchantPaymentMethod;
+  billingCycle: MerchantPaymentBillingCycle;
+  paidAt: string;
+  recipientType: MerchantPaymentRecipientType;
+  recipientName: string;
+  reference?: string | null;
+  comment?: string | null;
+  status: MerchantPaymentSubmissionStatus;
+  submittedAt: string;
+  reviewedAt?: string | null;
+  reviewComment?: string | null;
+  paymentRecordId?: string | null;
+}
+
+export interface MerchantPaymentWorkspace {
+  shop: { id: string; name: string };
+  referralPartner?: {
+    id: string;
+    name: string;
+    referralCode: string;
+  } | null;
+  payments: MerchantVerifiedPayment[];
+  submissions: MerchantPaymentSubmission[];
+}
+
 export interface MerchantSubscription {
   id: string;
   status: "TRIAL" | "ACTIVE" | "GRACE" | "EXPIRED" | "CANCELLED";
@@ -603,5 +681,34 @@ export async function uploadProductImage(
 export async function getShopSubscription(shopId: string) {
   return requestJson<{ data: MerchantSubscription | null }>(
     `/api/shops/${encodeURIComponent(shopId)}/subscription`,
+  );
+}
+
+
+export async function getShopPayments(shopId: string) {
+  return requestJson<{ data: MerchantPaymentWorkspace }>(
+    `/api/shops/${encodeURIComponent(shopId)}/payments`,
+  );
+}
+
+export async function submitShopPayment(
+  shopId: string,
+  payload: {
+    amount: number;
+    method: MerchantPaymentMethod;
+    billingCycle: "MONTHLY" | "YEARLY";
+    paidAt: string;
+    recipientType: MerchantPaymentRecipientType;
+    recipientName?: string | null;
+    reference?: string | null;
+    comment?: string | null;
+  },
+) {
+  return requestJson<{ data: MerchantPaymentSubmission }>(
+    `/api/shops/${encodeURIComponent(shopId)}/payments`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
   );
 }
