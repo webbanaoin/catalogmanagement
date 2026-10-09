@@ -87,6 +87,45 @@ export async function recordVerifiedShopPayment(input: VerifiedPaymentInput) {
       }
     }
 
+    const normalizedReference = input.reference?.trim() || null;
+    if (!input.paymentSubmissionId && normalizedReference) {
+      const [existingPayment, pendingSubmission] = await Promise.all([
+        tx.paymentRecord.findFirst({
+          where: {
+            shopId: input.shopId,
+            reference: normalizedReference,
+          },
+          select: { id: true },
+        }),
+        tx.paymentSubmission.findFirst({
+          where: {
+            shopId: input.shopId,
+            reference: normalizedReference,
+            status: "PENDING",
+          },
+          select: { id: true },
+        }),
+      ]);
+
+      if (existingPayment) {
+        throw new AppError({
+          code: "DUPLICATE_PAYMENT_REFERENCE",
+          message:
+            "A verified payment with this reference already exists for the shop",
+          status: 409,
+        });
+      }
+
+      if (pendingSubmission) {
+        throw new AppError({
+          code: "PENDING_PAYMENT_SUBMISSION_EXISTS",
+          message:
+            "A merchant-submitted payment with this reference is pending verification. Approve that submission instead of recording a duplicate payment.",
+          status: 409,
+        });
+      }
+    }
+
     const shop = await tx.shop.findUnique({
       where: { id: input.shopId },
       select: {
@@ -176,7 +215,7 @@ export async function recordVerifiedShopPayment(input: VerifiedPaymentInput) {
         billingCycle: input.billingCycle,
         periodStartDate,
         periodEndDate,
-        reference: input.reference?.trim() || null,
+        reference: normalizedReference,
         comment: input.comment?.trim() || null,
         receivedAt: input.receivedAt,
         extendDays: input.extendDays,
