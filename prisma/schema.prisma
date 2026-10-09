@@ -37,6 +37,18 @@ enum ReferralCommissionStatus {
   CANCELLED
 }
 
+enum PaymentSubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PaymentRecipientType {
+  WEBBANAO
+  REFERRAL_PARTNER
+  OTHER
+}
+
 enum ShopStatus {
   PENDING
   APPROVED
@@ -137,6 +149,8 @@ model User {
   passwordResetTokens PasswordResetToken[]
   auditLogs AuditLog[]
   paymentsRecorded PaymentRecord[] @relation("PaymentRecordedBy")
+  paymentSubmissions PaymentSubmission[] @relation("PaymentSubmittedBy")
+  paymentSubmissionsReviewed PaymentSubmission[] @relation("PaymentReviewedBy")
   referralPartner ReferralPartner?
   referralCommissionsPaid ReferralCommission[] @relation("ReferralCommissionPaidBy")
   @@index([status])
@@ -181,6 +195,7 @@ model Shop {
   customerActions CustomerAction[]
   subscription Subscription?
   payments PaymentRecord[]
+  paymentSubmissions PaymentSubmission[]
   auditLogs AuditLog[]
   referralPartner ReferralPartner? @relation(fields: [referralPartnerId], references: [id], onDelete: SetNull)
   referralCommissions ReferralCommission[]
@@ -427,6 +442,7 @@ model ReferralPartner {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   shops Shop[]
   commissions ReferralCommission[]
+  paymentSubmissions PaymentSubmission[]
 
   @@index([status, createdAt])
   @@index([city])
@@ -494,6 +510,7 @@ model PaymentRecord {
   plan Plan? @relation(fields: [planId], references: [id], onDelete: SetNull)
   recordedByUser User? @relation("PaymentRecordedBy", fields: [recordedByUserId], references: [id], onDelete: SetNull)
   referralCommission ReferralCommission?
+  paymentSubmission PaymentSubmission?
   @@index([shopId, receivedAt])
   @@index([subscriptionId])
   @@index([planId])
@@ -501,6 +518,43 @@ model PaymentRecord {
   @@index([billingCycle, receivedAt])
   @@index([recordedByUserId, createdAt])
   @@map("payment_records")
+}
+
+model PaymentSubmission {
+  id String @id @default(cuid())
+  shopId String @map("shop_id")
+  submittedByUserId String @map("submitted_by_user_id")
+  reviewedByUserId String? @map("reviewed_by_user_id")
+  paymentRecordId String? @unique @map("payment_record_id")
+  referralPartnerId String? @map("referral_partner_id")
+  amount Decimal @db.Decimal(12, 2)
+  currency String @default("INR") @db.Char(3)
+  method PaymentMethod
+  billingCycle BillingCycle @map("billing_cycle")
+  paidAt DateTime @map("paid_at")
+  recipientType PaymentRecipientType @map("recipient_type")
+  recipientNameSnapshot String @map("recipient_name_snapshot") @db.VarChar(160)
+  reference String? @db.VarChar(191)
+  comment String? @db.Text
+  status PaymentSubmissionStatus @default(PENDING)
+  submittedAt DateTime @default(now()) @map("submitted_at")
+  reviewedAt DateTime? @map("reviewed_at")
+  reviewComment String? @map("review_comment") @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  submittedByUser User @relation("PaymentSubmittedBy", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  reviewedByUser User? @relation("PaymentReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  paymentRecord PaymentRecord? @relation(fields: [paymentRecordId], references: [id], onDelete: SetNull)
+  referralPartner ReferralPartner? @relation(fields: [referralPartnerId], references: [id], onDelete: SetNull)
+
+  @@index([shopId, submittedAt])
+  @@index([status, submittedAt])
+  @@index([submittedByUserId, submittedAt])
+  @@index([referralPartnerId, submittedAt])
+  @@index([method, paidAt])
+  @@index([billingCycle, paidAt])
+  @@map("payment_submissions")
 }
 
 model ImportJob {
