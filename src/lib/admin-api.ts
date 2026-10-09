@@ -1000,3 +1000,23 @@ export async function settleAdminReferralCommission(
     { method: "PATCH", body: JSON.stringify(payload) },
   );
 }
+
+export async function reconcileAdminReferralCommissions() {
+  return requestJson<{
+    data: {
+      createdCount: number;
+      skippedBeforeAttribution: number;
+      skippedByRule: number;
+      created: Array<{
+        commissionId: string;
+        shopId: string;
+        shopName: string;
+        paymentRecordId: string;
+        amount: string;
+      }>;
+      message: string;
+    };
+  }>("/api/admin/referrals/reconcile", {
+    method: "POST",
+  });
+}
