@@ -59,7 +59,7 @@ export async function PATCH(
       const referralCode =
         input.status === "ACTIVE"
           ? input.regenerateCode || !current.referralCode
-            ? await createUniqueReferralCode(tx, current.user.name)
+            ? await createUniqueReferralCode(tx)
             : current.referralCode
           : current.referralCode;
 
