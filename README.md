@@ -60,6 +60,10 @@ Open <http://localhost:3000>. Server liveness is available at `GET /api/health` 
 | `AWS_ACCESS_KEY_ID` | Server-only least-privilege AWS access key ID |
 | `AWS_SECRET_ACCESS_KEY` | Server-only least-privilege AWS secret |
 | `MEDIA_BASE_URL` | Optional HTTPS media/CDN origin; records still store object keys |
+| `RESEND_API_KEY` | Server-only Resend API key used to deliver password reset emails in production |
+| `PASSWORD_RESET_FROM_EMAIL` | Verified sender, e.g. `Webbanao Digital Showroom <no-reply@yourdomain.com>` |
+| `PASSWORD_RESET_REPLY_TO` | Optional support/reply-to address for reset emails |
+| `PASSWORD_RESET_EXPOSE_URL` | Test-only flag. Must be `false` in production; local dev exposes a reset link automatically |
 
 Environment groups are validated lazily when their application, database, or storage subsystem is used. This keeps static tooling and the public health check usable without production secrets while ensuring a subsystem fails clearly when its required configuration is absent. None of the sensitive settings use the `NEXT_PUBLIC_` prefix.
 
