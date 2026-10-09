@@ -16,6 +16,25 @@ enum UserStatus {
 enum PlatformRole {
   USER
   ADMIN
+  PARTNER
+}
+
+enum ReferralPartnerStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+enum ReferralCommissionMode {
+  FIRST_PAID_SUBSCRIPTION
+  EVERY_ELIGIBLE_PAYMENT
+}
+
+enum ReferralCommissionStatus {
+  EARNED
+  PAID
+  CANCELLED
 }
 
 enum ShopStatus {
@@ -118,6 +137,8 @@ model User {
   passwordResetTokens PasswordResetToken[]
   auditLogs AuditLog[]
   paymentsRecorded PaymentRecord[] @relation("PaymentRecordedBy")
+  referralPartner ReferralPartner?
+  referralCommissionsPaid ReferralCommission[] @relation("ReferralCommissionPaidBy")
   @@index([status])
   @@index([platformRole])
   @@map("users")
@@ -144,6 +165,8 @@ model Shop {
   instagramUrl String? @map("instagram_url") @db.VarChar(1024)
   facebookUrl String? @map("facebook_url") @db.VarChar(1024)
   showProductPrices Boolean @default(true) @map("show_product_prices")
+  referralPartnerId String? @map("referral_partner_id")
+  referralAssignedAt DateTime? @map("referral_assigned_at")
   status ShopStatus @default(PENDING)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -159,11 +182,14 @@ model Shop {
   subscription Subscription?
   payments PaymentRecord[]
   auditLogs AuditLog[]
+  referralPartner ReferralPartner? @relation(fields: [referralPartnerId], references: [id], onDelete: SetNull)
+  referralCommissions ReferralCommission[]
   @@index([businessCategoryId])
   @@index([status])
   @@index([city])
   @@index([createdAt])
   @@index([status, createdAt])
+  @@index([referralPartnerId])
   @@map("shops")
 }
 
@@ -374,6 +400,75 @@ model Subscription {
   @@map("subscriptions")
 }
 
+model ReferralProgramSettings {
+  id String @id @db.VarChar(32)
+  isEnabled Boolean @default(true) @map("is_enabled")
+  commissionMode ReferralCommissionMode @default(FIRST_PAID_SUBSCRIPTION) @map("commission_mode")
+  monthlyCommission Decimal @default(0) @map("monthly_commission") @db.Decimal(12, 2)
+  yearlyCommission Decimal @default(0) @map("yearly_commission") @db.Decimal(12, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("referral_program_settings")
+}
+
+model ReferralPartner {
+  id String @id @default(cuid())
+  userId String @unique @map("user_id")
+  referralCode String? @unique @map("referral_code") @db.VarChar(80)
+  status ReferralPartnerStatus @default(PENDING)
+  city String? @db.VarChar(120)
+  state String? @db.VarChar(120)
+  marketingArea String? @map("marketing_area") @db.VarChar(255)
+  notes String? @db.Text
+  approvedAt DateTime? @map("approved_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shops Shop[]
+  commissions ReferralCommission[]
+
+  @@index([status, createdAt])
+  @@index([city])
+  @@map("referral_partners")
+}
+
+model ReferralCommission {
+  id String @id @default(cuid())
+  paymentRecordId String @unique @map("payment_record_id")
+  referralPartnerId String @map("referral_partner_id")
+  shopId String @map("shop_id")
+  paidByUserId String? @map("paid_by_user_id")
+  billingCycle BillingCycle @map("billing_cycle")
+  status ReferralCommissionStatus @default(EARNED)
+  commissionAmount Decimal @map("commission_amount") @db.Decimal(12, 2)
+  currency String @default("INR") @db.Char(3)
+  paymentAmountSnapshot Decimal @map("payment_amount_snapshot") @db.Decimal(12, 2)
+  planNameSnapshot String @map("plan_name_snapshot") @db.VarChar(120)
+  partnerNameSnapshot String @map("partner_name_snapshot") @db.VarChar(120)
+  partnerCodeSnapshot String @map("partner_code_snapshot") @db.VarChar(80)
+  shopNameSnapshot String @map("shop_name_snapshot") @db.VarChar(160)
+  earnedAt DateTime @map("earned_at")
+  paidAt DateTime? @map("paid_at")
+  payoutMethod PaymentMethod? @map("payout_method")
+  payoutReference String? @map("payout_reference") @db.VarChar(191)
+  payoutComment String? @map("payout_comment") @db.Text
+  cancelledAt DateTime? @map("cancelled_at")
+  cancelComment String? @map("cancel_comment") @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  paymentRecord PaymentRecord @relation(fields: [paymentRecordId], references: [id], onDelete: Restrict)
+  referralPartner ReferralPartner @relation(fields: [referralPartnerId], references: [id], onDelete: Restrict)
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  paidByUser User? @relation("ReferralCommissionPaidBy", fields: [paidByUserId], references: [id], onDelete: SetNull)
+
+  @@index([referralPartnerId, status, earnedAt])
+  @@index([shopId, earnedAt])
+  @@index([status, earnedAt])
+  @@index([billingCycle, earnedAt])
+  @@map("referral_commissions")
+}
+
 model PaymentRecord {
   id String @id @default(cuid())
   shopId String @map("shop_id")
@@ -398,6 +493,7 @@ model PaymentRecord {
   subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   plan Plan? @relation(fields: [planId], references: [id], onDelete: SetNull)
   recordedByUser User? @relation("PaymentRecordedBy", fields: [recordedByUserId], references: [id], onDelete: SetNull)
+  referralCommission ReferralCommission?
   @@index([shopId, receivedAt])
   @@index([subscriptionId])
   @@index([planId])
