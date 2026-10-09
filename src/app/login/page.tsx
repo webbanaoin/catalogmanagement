@@ -42,11 +42,13 @@ async function redirectAuthenticatedUser() {
   }
 
   if (user.platformRole === "PARTNER") {
-    redirect(
-      user.referralPartner?.status === "ACTIVE"
-        ? "/partner/dashboard"
-        : "/partner/pending",
-    );
+    if (user.referralPartner?.status === "ACTIVE") {
+      redirect("/partner/dashboard");
+    }
+    if (user.referralPartner?.status === "PENDING") {
+      redirect("/partner/pending");
+    }
+    return;
   }
 
   const usableShop = user.shopUsers.some(
