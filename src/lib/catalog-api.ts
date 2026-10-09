@@ -531,6 +531,30 @@ export interface MerchantPaymentWorkspace {
   } | null;
   payments: MerchantVerifiedPayment[];
   submissions: MerchantPaymentSubmission[];
+  summary: {
+    verifiedPaymentCount: number;
+    verifiedPaymentAmount: string;
+    submissionCount: number;
+    submissionByStatus: Record<
+      MerchantPaymentSubmissionStatus,
+      { count: number; amount: string }
+    >;
+    currency: string;
+  };
+  pagination: {
+    payments: {
+      page: number;
+      pageSize: number;
+      total: number;
+      totalPages: number;
+    };
+    submissions: {
+      page: number;
+      pageSize: number;
+      total: number;
+      totalPages: number;
+    };
+  };
 }
 
 export interface MerchantSubscription {
@@ -685,9 +709,21 @@ export async function getShopSubscription(shopId: string) {
 }
 
 
-export async function getShopPayments(shopId: string) {
+export async function getShopPayments(
+  shopId: string,
+  options?: {
+    paymentPage?: number;
+    submissionPage?: number;
+    pageSize?: number;
+  },
+) {
+  const params = new URLSearchParams();
+  params.set("paymentPage", String(options?.paymentPage ?? 1));
+  params.set("submissionPage", String(options?.submissionPage ?? 1));
+  params.set("pageSize", String(options?.pageSize ?? 10));
+
   return requestJson<{ data: MerchantPaymentWorkspace }>(
-    `/api/shops/${encodeURIComponent(shopId)}/payments`,
+    `/api/shops/${encodeURIComponent(shopId)}/payments?${params.toString()}`,
   );
 }
 
