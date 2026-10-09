@@ -18,7 +18,7 @@ The merchant can see:
 
 - total verified payments
 - pending self-submitted payment claims
-- current monthly and yearly plan prices
+- current monthly, quarterly, half-yearly and yearly plan prices
 - complete verified payment history
 - all submitted claims with Pending / Approved / Rejected status
 - admin rejection/review comment
@@ -27,7 +27,7 @@ The merchant can submit:
 
 - amount paid
 - payment date
-- Monthly or Yearly billing cycle
+- Monthly, Quarterly, Half-Yearly or Yearly billing cycle
 - Cash / UPI / Bank Transfer / Other
 - paid to:
   - Webbanao / Direct
@@ -47,7 +47,7 @@ Admin can review:
 - shop
 - amount
 - payment date
-- Monthly / Yearly cycle
+- Monthly / Quarterly / Half-Yearly / Yearly cycle
 - payment method
 - who the merchant says received the money
 - merchant identity
@@ -67,7 +67,7 @@ Approval creates the official `PaymentRecord` and, in the same financial workflo
 - creates applicable referral commission
 - writes audit logs
 
-Monthly merchant submissions default to 30 extension days and Yearly submissions default to 365 days. Admin can adjust extension days before approval.
+Default subscription extensions are Monthly 30 days, Quarterly 90 days, Half-Yearly 182 days and Yearly 365 days. Admin can adjust extension days before approval.
 
 ### Reject
 
