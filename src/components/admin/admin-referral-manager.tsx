@@ -32,6 +32,7 @@ import {
   EmptyState,
   ErrorState,
   LoadingState,
+  PaginationControls,
 } from "@/components/ui";
 
 const payoutMethods: AdminPaymentMethod[] = [
@@ -111,6 +112,13 @@ export function AdminReferralManager() {
   const [working, setWorking] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [commissionPage, setCommissionPage] = useState(1);
+  const [commissionPagination, setCommissionPagination] = useState({
+    page: 1,
+    pageSize: 20,
+    total: 0,
+    totalPages: 0,
+  });
 
   const [settingsEnabled, setSettingsEnabled] = useState(true);
   const [settingsMode, setSettingsMode] =
@@ -128,7 +136,8 @@ export function AdminReferralManager() {
       getAdminReferralCommissions({
         status: commissionStatus || undefined,
         partnerId: partnerFilter || undefined,
-        pageSize: 100,
+        page: commissionPage,
+        pageSize: 20,
       }),
     ])
       .then(([overviewResponse, settingsResponse, partnerResponse, commissionResponse]) => {
@@ -137,6 +146,7 @@ export function AdminReferralManager() {
         setSettings(settingsResponse.data);
         setPartners(partnerResponse.items);
         setCommissions(commissionResponse.items);
+        setCommissionPagination(commissionResponse.pagination);
         setSettingsEnabled(settingsResponse.data.isEnabled);
         setSettingsMode(settingsResponse.data.commissionMode);
         setMonthlyCommission(settingsResponse.data.monthlyCommission);
@@ -158,7 +168,7 @@ export function AdminReferralManager() {
     return () => {
       active = false;
     };
-  }, [reloadKey, commissionStatus, partnerFilter]);
+  }, [commissionPage, reloadKey, commissionStatus, partnerFilter]);
 
   function reload(successMessage?: string) {
     setLoading(true);
@@ -705,6 +715,7 @@ export function AdminReferralManager() {
                       size="sm"
                       variant="secondary"
                       onClick={() => {
+                        setCommissionPage(1);
                         setPartnerFilter(partner.id);
                         setCommissionStatus("");
                       }}
@@ -736,6 +747,7 @@ export function AdminReferralManager() {
               value={commissionStatus}
               onChange={(event) => {
                 setLoading(true);
+                setCommissionPage(1);
                 setCommissionStatus(
                   event.target.value as AdminReferralCommissionStatus | "",
                 );
@@ -751,6 +763,7 @@ export function AdminReferralManager() {
               value={partnerFilter}
               onChange={(event) => {
                 setLoading(true);
+                setCommissionPage(1);
                 setPartnerFilter(event.target.value);
               }}
             >
@@ -767,6 +780,7 @@ export function AdminReferralManager() {
                 variant="secondary"
                 onClick={() => {
                   setLoading(true);
+                  setCommissionPage(1);
                   setPartnerFilter("");
                 }}
               >
@@ -884,6 +898,18 @@ export function AdminReferralManager() {
             ))}
           </div>
         )}
+
+        <PaginationControls
+          page={commissionPagination.page}
+          totalPages={commissionPagination.totalPages}
+          total={commissionPagination.total}
+          pageSize={commissionPagination.pageSize}
+          itemLabel="commission records"
+          onPageChange={(page) => {
+            setLoading(true);
+            setCommissionPage(page);
+          }}
+        />
       </section>
     </div>
   );
