@@ -165,6 +165,11 @@ async function main() {
   const approvePayload = await approve.json();
   const referralCode = approvePayload?.data?.referralCode;
   if (!referralCode) throw new Error("Approval did not generate a referral code");
+  if (!/^WB-\d{5,6}$/.test(referralCode)) {
+    throw new Error(
+      `Referral code is not in the expected short format: ${referralCode}`,
+    );
+  }
 
   const partnerCookie = await loginPartner(
     partnerEmail,
@@ -378,6 +383,17 @@ async function main() {
     partnerCookie,
   );
   await expectStatus("partner dashboard", partnerDashboard, 200);
+
+  const landingPage = await request("/");
+  await expectStatus("landing page referral section", landingPage, 200);
+  const landingHtml = await landingPage.text();
+  if (
+    !landingHtml.includes("Earn with Webbanao") ||
+    !landingHtml.includes("/partner/register") ||
+    !landingHtml.includes("/partner/login")
+  ) {
+    throw new Error("Landing page does not expose the marketing partner entry flow");
+  }
 
   process.stdout.write(
     "Referral registration, approval, attribution, commission, payout and partner dashboard regression checks passed.\n",
