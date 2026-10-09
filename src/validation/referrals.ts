@@ -52,6 +52,7 @@ export const adminReferralSettingsSchema = z.object({
 export const adminReferralPartnerStatusSchema = z.object({
   status: z.enum(["ACTIVE", "SUSPENDED", "REJECTED"]),
   note: z.string().trim().max(1000).optional().nullable(),
+  regenerateCode: z.boolean().optional().default(false),
 });
 
 export const adminShopReferralSchema = z.object({
