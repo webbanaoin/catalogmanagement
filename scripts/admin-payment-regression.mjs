@@ -97,6 +97,8 @@ async function main() {
       name: `Payment Regression Plan ${suffix}`,
       slug: `payment-regression-plan-${suffix}`,
       monthlyPrice: "999.00",
+      quarterlyPrice: "2799.00",
+      halfYearlyPrice: "5299.00",
       annualPrice: "9999.00",
       productLimit: 100,
       imageLimitPerProduct: 5,
@@ -153,6 +155,7 @@ async function main() {
       shopId: shop.id,
       amount: 999,
       method: "UPI",
+      billingCycle: "MONTHLY",
       reference,
       comment: "Monthly renewal regression payment",
       extendDays: 30,
@@ -189,6 +192,36 @@ async function main() {
   const expectedEndDate = new Date(previousEndDate.getTime() + 30 * 24 * 60 * 60 * 1000);
   if (Math.abs(subscription.endDate.getTime() - expectedEndDate.getTime()) > 1000) {
     throw new Error("Early renewal did not extend from the existing expiry date");
+  }
+
+  const quarterlyReference = `QTR-${suffix}`;
+  const quarterlyResponse = await jsonRequest(
+    "/api/admin/payments",
+    "POST",
+    {
+      shopId: shop.id,
+      amount: 2799,
+      method: "BANK_TRANSFER",
+      billingCycle: "QUARTERLY",
+      reference: quarterlyReference,
+      comment: "Quarterly renewal regression payment",
+      extendDays: 90,
+      activateSubscription: true,
+    },
+    cookie,
+  );
+  await expectStatus("record quarterly payment", quarterlyResponse, 201);
+  const quarterlyPayload = await quarterlyResponse.json();
+  const quarterlyRecord = await prisma.paymentRecord.findUnique({
+    where: { id: quarterlyPayload?.data?.id },
+  });
+  if (
+    !quarterlyRecord ||
+    quarterlyRecord.billingCycle !== "QUARTERLY" ||
+    quarterlyRecord.extendDays !== 90 ||
+    Number(quarterlyRecord.amount) !== 2799
+  ) {
+    throw new Error("Quarterly admin payment was not persisted correctly");
   }
 
   const listResponse = await request(
