@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,6 +15,7 @@ import {
   EmptyState,
   LoadingState,
   PageHeader,
+  buttonClassName,
 } from "@/components/ui";
 import {
   CatalogApiError,
@@ -183,8 +186,26 @@ export default function SubscriptionPage() {
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment history & verification</CardTitle>
+              <CardDescription>
+                Review payments Webbanao has verified, or report an offline/direct
+                payment for admin confirmation.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link
+                href="/dashboard/payments"
+                className={buttonClassName("secondary", "sm")}
+              >
+                View payments
+              </Link>
+            </CardContent>
+          </Card>
+
           <Alert title="Renewal management">
-            Sprint 6 includes subscription visibility, plan limits and server-side enforcement. Plan changes, extensions and payment-status updates are controlled by the platform administrator; an online payment gateway is not part of this release.
+            Plan changes and payment verification are controlled by the platform administrator. No online payment gateway is required for this workflow.
           </Alert>
         </>
       )}
