@@ -575,6 +575,33 @@ async function main() {
   );
   await expectStatus("partner dashboard", partnerDashboard, 200);
 
+  const landingPlan = await prisma.plan.findFirst({
+    where: { isDefaultTrial: true, status: "ACTIVE" },
+    select: {
+      id: true,
+      quarterlyPrice: true,
+      halfYearlyPrice: true,
+    },
+  });
+  if (!landingPlan) {
+    throw new Error("Default commercial plan is missing for landing test");
+  }
+
+  const updateLandingPricing = await jsonRequest(
+    `/api/admin/plans/${landingPlan.id}`,
+    "PATCH",
+    {
+      quarterlyPrice: 888,
+      halfYearlyPrice: 1666,
+    },
+    adminCookie,
+  );
+  await expectStatus(
+    "admin updates public cycle pricing",
+    updateLandingPricing,
+    200,
+  );
+
   const landingPage = await request("/");
   await expectStatus("landing page referral section", landingPage, 200);
   const landingHtml = await landingPage.text();
@@ -584,13 +611,23 @@ async function main() {
     !landingHtml.includes("/partner/login") ||
     !landingHtml.includes("Quarterly") ||
     !landingHtml.includes("Half-Yearly") ||
-    !landingHtml.includes("837") ||
-    !landingHtml.includes("1,614")
+    !landingHtml.includes("888") ||
+    !landingHtml.includes("1,666") ||
+    !landingHtml.includes("135") ||
+    !landingHtml.includes("260")
   ) {
     throw new Error(
       "Landing page does not expose dynamic four-cycle pricing/referral content",
     );
   }
+
+  await prisma.plan.update({
+    where: { id: landingPlan.id },
+    data: {
+      quarterlyPrice: landingPlan.quarterlyPrice,
+      halfYearlyPrice: landingPlan.halfYearlyPrice,
+    },
+  });
 
   const partnerPageResponse = await request(
     "/api/admin/referrals/partners?page=1&pageSize=1",
