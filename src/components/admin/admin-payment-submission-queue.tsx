@@ -86,7 +86,6 @@ export function AdminPaymentSubmissionQueue({
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
 
     getAdminPaymentSubmissions({
       status: status || undefined,
@@ -127,6 +126,7 @@ export function AdminPaymentSubmissionQueue({
   );
 
   function reload(message?: string) {
+    setLoading(true);
     if (message) {
       setFeedback(message);
       setFeedbackError(false);
@@ -225,11 +225,12 @@ export function AdminPaymentSubmissionQueue({
           <Select
             className="w-full lg:w-56"
             value={status}
-            onChange={(event) =>
+            onChange={(event) => {
+              setLoading(true);
               setStatus(
                 event.target.value as AdminPaymentSubmissionStatus | "",
-              )
-            }
+              );
+            }}
           >
             <option value="PENDING">Pending verification</option>
             <option value="APPROVED">Approved</option>
