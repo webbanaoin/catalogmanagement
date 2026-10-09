@@ -21,9 +21,19 @@ export async function GET(request: Request) {
       ...(query.status ? { status: query.status } : {}),
       ...(query.shopId ? { shopId: query.shopId } : {}),
     };
+    const summaryWhere: Prisma.PaymentSubmissionWhereInput = {
+      ...(query.shopId ? { shopId: query.shopId } : {}),
+    };
     const skip = (query.page - 1) * query.pageSize;
+    const statusGroupsQuery = prisma.paymentSubmission.groupBy({
+      by: ["status"],
+      where: summaryWhere,
+      orderBy: { status: "asc" },
+      _count: { _all: true },
+      _sum: { amount: true },
+    });
 
-    const [items, total, groups] = await prisma.$transaction([
+    const [items, total, summaryTotal, groups] = await prisma.$transaction([
       prisma.paymentSubmission.findMany({
         where,
         orderBy: [{ submittedAt: "desc" }, { createdAt: "desc" }],
@@ -62,13 +72,8 @@ export async function GET(request: Request) {
         },
       }),
       prisma.paymentSubmission.count({ where }),
-      prisma.paymentSubmission.groupBy({
-        by: ["status"],
-        where,
-        orderBy: { status: "asc" },
-        _count: { _all: true },
-        _sum: { amount: true },
-      }),
+      prisma.paymentSubmission.count({ where: summaryWhere }),
+      statusGroupsQuery,
     ]);
 
     const byStatus = {
@@ -90,7 +95,7 @@ export async function GET(request: Request) {
         amount: item.amount.toString(),
         recipientName: item.recipientNameSnapshot,
       })),
-      summary: { total, byStatus, currency: "INR" },
+      summary: { total: summaryTotal, byStatus, currency: "INR" },
       pagination: {
         page: query.page,
         pageSize: query.pageSize,
