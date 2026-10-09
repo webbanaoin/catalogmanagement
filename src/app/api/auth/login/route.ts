@@ -21,11 +21,59 @@ export async function POST(request: Request) {
         shopUsers: {
           select: { role: true, shop: { select: { id: true, name: true, slug: true, status: true } } },
         },
+        referralPartner: {
+          select: { id: true, status: true, referralCode: true },
+        },
       },
     });
 
     if (!user || !(await verifyPassword(input.password, user.passwordHash)) || user.status !== "ACTIVE") {
       throw new AppError({ code: "INVALID_CREDENTIALS", message: "Invalid email or password", status: 401 });
+    }
+
+    if (user.platformRole === "PARTNER") {
+      if (!user.referralPartner) {
+        await clearSessionCookie();
+        throw new AppError({
+          code: "PARTNER_ACCESS_UNAVAILABLE",
+          message: "Marketing partner profile is unavailable",
+          status: 403,
+        });
+      }
+      if (user.referralPartner.status === "PENDING") {
+        await clearSessionCookie();
+        throw new AppError({
+          code: "PARTNER_PENDING_APPROVAL",
+          message: "Your marketing partner registration is pending admin approval",
+          status: 403,
+        });
+      }
+      if (
+        user.referralPartner.status !== "ACTIVE" ||
+        !user.referralPartner.referralCode
+      ) {
+        await clearSessionCookie();
+        throw new AppError({
+          code: "PARTNER_ACCESS_UNAVAILABLE",
+          message: "Your marketing partner account is not currently active",
+          status: 403,
+        });
+      }
+
+      await setSessionCookie(user.id, user.sessionVersion);
+      return NextResponse.json({
+        data: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          mobile: user.mobile,
+          status: user.status,
+          platformRole: user.platformRole,
+          createdAt: user.createdAt,
+          shops: [],
+          partner: user.referralPartner,
+        },
+      });
     }
 
     const usableMemberships = user.shopUsers.filter(
