@@ -65,6 +65,7 @@ export async function createCommissionForPayment(
       where: {
         shopId: input.shopId,
         id: { not: input.paymentRecordId },
+        billingCycle: { in: ["MONTHLY", "YEARLY"] },
         ...(shop?.referralAssignedAt
           ? { receivedAt: { gte: shop.referralAssignedAt } }
           : {}),
