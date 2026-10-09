@@ -14,6 +14,8 @@ export async function GET() {
         slug: true,
         description: true,
         monthlyPrice: true,
+        quarterlyPrice: true,
+        halfYearlyPrice: true,
         annualPrice: true,
         productLimit: true,
         imageLimitPerProduct: true,
@@ -29,6 +31,8 @@ export async function GET() {
       items: items.map((plan) => ({
         ...plan,
         monthlyPrice: plan.monthlyPrice.toString(),
+        quarterlyPrice: plan.quarterlyPrice.toString(),
+        halfYearlyPrice: plan.halfYearlyPrice.toString(),
         annualPrice: plan.annualPrice.toString(),
       })),
     });
