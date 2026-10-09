@@ -18,6 +18,7 @@
     "db:studio": "prisma studio",
     "admin:grant": "node scripts/grant-platform-admin.mjs",
     "admin:create": "node scripts/create-platform-admin.mjs",
+    "subscriptions:send-reminders": "node scripts/send-subscription-reminders.mjs",
     "security:cleanup-reset-tokens": "node scripts/cleanup-password-reset-tokens.mjs",
     "db:migrate:deploy": "prisma migrate deploy",
     "release:check": "npm run prisma:validate && npm run prisma:generate && npm run lint && npm run typecheck && npm run build",
