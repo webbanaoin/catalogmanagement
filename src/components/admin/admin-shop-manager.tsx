@@ -6,7 +6,9 @@ import { useEffect, useState } from "react";
 import {
   AdminApiError,
   assignAdminShopBusinessCategory,
+  assignAdminShopReferral,
   getAdminBusinessCategories,
+  getAdminReferralPartners,
   getAdminPlans,
   getAdminShops,
   getAdminSubscription,
@@ -14,6 +16,7 @@ import {
   updateAdminSubscription,
   type AdminBusinessCategory,
   type AdminPlan,
+  type AdminReferralPartner,
   type AdminShop,
   type AdminShopStatus,
   type AdminSubscription,
@@ -253,11 +256,13 @@ function ShopCard({
   shop,
   plans,
   businessCategories,
+  referralPartners,
   onChanged,
 }: {
   shop: AdminShop;
   plans: AdminPlan[];
   businessCategories: AdminBusinessCategory[];
+  referralPartners: AdminReferralPartner[];
   onChanged: () => void;
 }) {
   const [working, setWorking] = useState(false);
@@ -265,8 +270,36 @@ function ShopCard({
   const [businessCategoryId, setBusinessCategoryId] = useState(
     shop.businessCategory?.id ?? "",
   );
+  const [referralPartnerId, setReferralPartnerId] = useState(
+    shop.referralPartner?.id ?? "",
+  );
   const owner = shop.owners[0];
   const location = [shop.city, shop.state].filter(Boolean).join(", ");
+
+  async function saveReferralPartner() {
+    setWorking(true);
+    setMessage(null);
+    try {
+      await assignAdminShopReferral(
+        shop.id,
+        referralPartnerId || null,
+      );
+      setMessage(
+        referralPartnerId
+          ? "Referral partner assigned."
+          : "Referral attribution removed.",
+      );
+      onChanged();
+    } catch (error) {
+      setMessage(
+        error instanceof AdminApiError
+          ? error.message
+          : "Unable to update referral attribution.",
+      );
+    } finally {
+      setWorking(false);
+    }
+  }
 
   async function assignRequestedBusinessType() {
     if (!businessCategoryId) {
@@ -380,6 +413,60 @@ function ShopCard({
         )}
 
         <div className="rounded-xl border border-border bg-surface-muted/40 p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+                Referred / onboarded by
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-foreground">
+                  {shop.referralPartner?.user.name ?? "Direct / No referral"}
+                </span>
+                {shop.referralPartner?.referralCode ? (
+                  <Badge variant="info">
+                    {shop.referralPartner.referralCode}
+                  </Badge>
+                ) : null}
+              </div>
+              <p className="mt-1 text-xs text-muted">
+                {shop.referralAssignedAt
+                  ? `Assigned ${formatDate(shop.referralAssignedAt)}. Attribution locks after the first earned commission.`
+                  : "Assign an approved marketing partner before the first eligible paid subscription."}
+              </p>
+            </div>
+
+            <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+              <select
+                className="h-10 min-w-60 rounded-lg border border-border bg-surface px-3 text-sm"
+                value={referralPartnerId}
+                onChange={(event) => setReferralPartnerId(event.target.value)}
+                disabled={working}
+              >
+                <option value="">Direct / No referral</option>
+                {referralPartners.map((partner) => (
+                  <option key={partner.id} value={partner.id}>
+                    {partner.user.name}
+                    {partner.referralCode ? ` · ${partner.referralCode}` : ""}
+                  </option>
+                ))}
+              </select>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={
+                  working ||
+                  referralPartnerId === (shop.referralPartner?.id ?? "")
+                }
+                onClick={() => void saveReferralPartner()}
+              >
+                Save referral
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border bg-surface-muted/40 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
@@ -459,6 +546,9 @@ export function AdminShopManager() {
   const [businessCategories, setBusinessCategories] = useState<
     AdminBusinessCategory[]
   >([]);
+  const [referralPartners, setReferralPartners] = useState<
+    AdminReferralPartner[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -470,12 +560,19 @@ export function AdminShopManager() {
       getAdminShops(status),
       getAdminPlans(),
       getAdminBusinessCategories(),
+      getAdminReferralPartners("ACTIVE"),
     ])
-      .then(([shopResponse, planResponse, businessCategoryResponse]) => {
+      .then(([
+        shopResponse,
+        planResponse,
+        businessCategoryResponse,
+        referralPartnerResponse,
+      ]) => {
         if (!active) return;
         setShops(shopResponse.items);
         setPlans(planResponse.items);
         setBusinessCategories(businessCategoryResponse.items);
+        setReferralPartners(referralPartnerResponse.items);
       })
       .catch((error) => {
         if (!active) return;
@@ -534,6 +631,7 @@ export function AdminShopManager() {
               shop={shop}
               plans={plans}
               businessCategories={businessCategories}
+              referralPartners={referralPartners}
               onChanged={reload}
             />
           ))}
