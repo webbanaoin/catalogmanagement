@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import "./globals.css";
@@ -46,6 +47,12 @@ export default function RootLayout({
           `}
         </Script>
         {children}
+        <footer className="border-t border-border px-5 py-6 text-center text-xs text-muted" aria-label="Legal and support links">
+          <nav className="flex flex-wrap items-center justify-center gap-4">
+            <Link href="/privacy">Privacy Policy</Link><Link href="/terms">Terms of Service</Link><Link href="/refund-policy">Refund & Cancellation</Link><Link href="/support">Support</Link>
+          </nav>
+          <p className="mt-2">© Webbanao Digital Showroom</p>
+        </footer>
       </body>
     </html>
   );

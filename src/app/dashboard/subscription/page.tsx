@@ -20,8 +20,10 @@ import {
   CatalogApiError,
   getCurrentMerchantShop,
   getShopSubscription,
+  getShopPayments,
   type MerchantShop,
   type MerchantSubscription,
+  type MerchantPaymentSubmissionStatus,
 } from "@/lib/catalog-api";
 import {
   PAID_BILLING_CYCLES,
@@ -54,6 +56,7 @@ export default function SubscriptionPage() {
   const [shop, setShop] = useState<MerchantShop | null>(null);
   const [subscription, setSubscription] = useState<MerchantSubscription | null>(null);
   const [loading, setLoading] = useState(true);
+  const [latestSubmission, setLatestSubmission] = useState<MerchantPaymentSubmissionStatus | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
@@ -62,7 +65,8 @@ export default function SubscriptionPage() {
     async function load() {
       try {
         const currentShop = await getCurrentMerchantShop();
-        const response = await getShopSubscription(currentShop.id);
+        const [response, payments] = await Promise.all([getShopSubscription(currentShop.id), getShopPayments(currentShop.id, { paymentPage: 1, submissionPage: 1, pageSize: 10 })]);
+        setLatestSubmission(payments.data.submissions[0]?.status ?? null);
         if (!active) return;
         setShop(currentShop);
         setSubscription(response.data);
@@ -107,6 +111,25 @@ export default function SubscriptionPage() {
       />
 
       {feedback ? <Alert variant="error">{feedback}</Alert> : null}
+      {subscription && subscription.status !== "CANCELLED" && (() => {
+        const expiry = new Date(subscription.endDate);
+        const today = new Date();
+        const daysLeft = Math.ceil((expiry.getTime() - today.getTime()) / 86400000);
+        if (daysLeft > 7 && subscription.status !== "EXPIRED" && subscription.status !== "GRACE") return null;
+        const expired = daysLeft <= 0 || subscription.status === "EXPIRED" || subscription.status === "GRACE";
+        const pending = latestSubmission === "PENDING";
+        const rejected = latestSubmission === "REJECTED";
+        return (
+          <Alert variant={expired ? "error" : "warning"} title={pending ? "Payment verification in progress" : rejected ? "Payment verification failed" : expired ? "Subscription renewal required" : "Your subscription is ending soon"}>
+            <div className="space-y-2">
+              <p>{pending ? "Your payment was submitted and awaits admin approval. Your subscription extends only after verification." : rejected ? "Your most recent payment submission was rejected. Check the payment details and submit corrected information." : expired ? "Your plan has reached its end date. Renew to avoid restrictions on catalogue management." : `Your current plan ends in ${daysLeft} day${daysLeft === 1 ? "" : "s"}. Renew now to keep your showroom active.`}</p>
+              <Link href="/dashboard/payments" className="inline-block font-semibold underline underline-offset-4">
+                View renewal and payment options
+              </Link>
+            </div>
+          </Alert>
+        );
+      })()}
 
       {!subscription ? (
         <EmptyState
