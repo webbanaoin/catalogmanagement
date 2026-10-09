@@ -37,6 +37,7 @@ import {
   ErrorState,
   Input,
   LoadingState,
+  PaginationControls,
   Select,
   Textarea,
 } from "@/components/ui";
@@ -186,6 +187,13 @@ export function AdminPaymentManager() {
   const [formError, setFormError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPagination, setHistoryPagination] = useState({
+    page: 1,
+    pageSize: 25,
+    total: 0,
+    totalPages: 0,
+  });
 
   const [filterShopId, setFilterShopId] = useState("");
   const [filterMethod, setFilterMethod] = useState<AdminPaymentMethod | "">("");
@@ -260,12 +268,14 @@ export function AdminPaymentManager() {
       ...(filterMethod ? { method: filterMethod } : {}),
       ...(filterCycle ? { billingCycle: filterCycle } : {}),
       ...dates,
-      pageSize: 100,
+      page: historyPage,
+      pageSize: 25,
     })
       .then((response) => {
         if (!active) return;
         setPayments(response.items);
         setSummary(response.summary);
+        setHistoryPagination(response.pagination);
         setHistoryError(null);
       })
       .catch((loadError) => {
@@ -289,6 +299,7 @@ export function AdminPaymentManager() {
     filterCycle,
     filterMethod,
     filterShopId,
+    historyPage,
     historyRange,
     reloadKey,
   ]);
@@ -319,6 +330,7 @@ export function AdminPaymentManager() {
   function resetHistoryFilters() {
     setHistoryLoading(true);
     setHistoryError(null);
+    setHistoryPage(1);
     setFilterShopId("");
     setFilterMethod("");
     setFilterCycle("");
@@ -634,7 +646,11 @@ export function AdminPaymentManager() {
               <Select
                 className="mt-1"
                 value={filterShopId}
-                onChange={(event) => setFilterShopId(event.target.value)}
+                onChange={(event) => {
+                  setHistoryLoading(true);
+                  setHistoryPage(1);
+                  setFilterShopId(event.target.value);
+                }}
               >
                 <option value="">All shops</option>
                 {shops.map((item) => (
@@ -650,11 +666,13 @@ export function AdminPaymentManager() {
               <Select
                 className="mt-1"
                 value={filterMethod}
-                onChange={(event) =>
+                onChange={(event) => {
+                  setHistoryLoading(true);
+                  setHistoryPage(1);
                   setFilterMethod(
                     event.target.value as AdminPaymentMethod | "",
-                  )
-                }
+                  );
+                }}
               >
                 <option value="">All methods</option>
                 {methods.map((item) => (
@@ -670,11 +688,13 @@ export function AdminPaymentManager() {
               <Select
                 className="mt-1"
                 value={filterCycle}
-                onChange={(event) =>
+                onChange={(event) => {
+                  setHistoryLoading(true);
+                  setHistoryPage(1);
                   setFilterCycle(
                     event.target.value as AdminBillingCycle | "",
-                  )
-                }
+                  );
+                }}
               >
                 <option value="">All cycles</option>
                 {cycles.map((item) => (
@@ -690,9 +710,11 @@ export function AdminPaymentManager() {
               <Select
                 className="mt-1"
                 value={historyRange}
-                onChange={(event) =>
-                  setHistoryRange(event.target.value as HistoryRange)
-                }
+                onChange={(event) => {
+                  setHistoryLoading(true);
+                  setHistoryPage(1);
+                  setHistoryRange(event.target.value as HistoryRange);
+                }}
               >
                 <option value="ALL">All time</option>
                 <option value="THIS_WEEK">This week</option>
@@ -712,7 +734,11 @@ export function AdminPaymentManager() {
                   className="mt-1"
                   type="date"
                   value={customFrom}
-                  onChange={(event) => setCustomFrom(event.target.value)}
+                  onChange={(event) => {
+                    setHistoryLoading(true);
+                    setHistoryPage(1);
+                    setCustomFrom(event.target.value);
+                  }}
                 />
               </label>
               <label className="text-sm font-medium text-foreground">
@@ -721,7 +747,11 @@ export function AdminPaymentManager() {
                   className="mt-1"
                   type="date"
                   value={customTo}
-                  onChange={(event) => setCustomTo(event.target.value)}
+                  onChange={(event) => {
+                    setHistoryLoading(true);
+                    setHistoryPage(1);
+                    setCustomTo(event.target.value);
+                  }}
                 />
               </label>
             </div>
@@ -866,6 +896,18 @@ export function AdminPaymentManager() {
               ))}
             </div>
           ) : null}
+
+          <PaginationControls
+            page={historyPagination.page}
+            totalPages={historyPagination.totalPages}
+            total={historyPagination.total}
+            pageSize={historyPagination.pageSize}
+            itemLabel="official payments"
+            onPageChange={(page) => {
+              setHistoryLoading(true);
+              setHistoryPage(page);
+            }}
+          />
         </CardContent>
       </Card>
     </div>
