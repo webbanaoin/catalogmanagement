@@ -15,6 +15,7 @@ import {
   Input,
   LoadingState,
   PageHeader,
+  PaginationControls,
   Select,
   Textarea,
 } from "@/components/ui";
@@ -88,6 +89,8 @@ export default function MerchantPaymentsPage() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [paymentPage, setPaymentPage] = useState(1);
+  const [submissionPage, setSubmissionPage] = useState(1);
 
   const [amount, setAmount] = useState("");
   const [billingCycle, setBillingCycle] =
@@ -107,7 +110,11 @@ export default function MerchantPaymentsPage() {
       try {
         const currentShop = await getCurrentMerchantShop();
         const [paymentResponse, subscriptionResponse] = await Promise.all([
-          getShopPayments(currentShop.id),
+          getShopPayments(currentShop.id, {
+            paymentPage,
+            submissionPage,
+            pageSize: 10,
+          }),
           getShopSubscription(currentShop.id),
         ]);
         if (!active) return;
@@ -132,27 +139,13 @@ export default function MerchantPaymentsPage() {
     return () => {
       active = false;
     };
-  }, [reloadKey]);
+  }, [paymentPage, reloadKey, submissionPage]);
 
-  const verifiedTotal = useMemo(
-    () =>
-      workspace?.payments.reduce(
-        (total, payment) => total + Number(payment.amount),
-        0,
-      ) ?? 0,
-    [workspace],
-  );
-
-  const pendingSubmissions = useMemo(
-    () =>
-      workspace?.submissions.filter((submission) => submission.status === "PENDING") ??
-      [],
-    [workspace],
-  );
-
-  const pendingTotal = pendingSubmissions.reduce(
-    (total, submission) => total + Number(submission.amount),
-    0,
+  const verifiedTotal = Number(workspace?.summary.verifiedPaymentAmount ?? 0);
+  const verifiedCount = workspace?.summary.verifiedPaymentCount ?? 0;
+  const pendingCount = workspace?.summary.submissionByStatus.PENDING.count ?? 0;
+  const pendingTotal = Number(
+    workspace?.summary.submissionByStatus.PENDING.amount ?? 0,
   );
 
   function applyPlanPrice(cycle: "MONTHLY" | "YEARLY") {
@@ -193,6 +186,7 @@ export default function MerchantPaymentsPage() {
       setSuccess(
         "Payment information submitted. It is pending Webbanao verification and will become an official payment only after admin approval.",
       );
+      setSubmissionPage(1);
       setLoading(true);
       setReloadKey((value) => value + 1);
     } catch (error) {
@@ -236,7 +230,7 @@ export default function MerchantPaymentsPage() {
               {money(verifiedTotal)}
             </p>
             <p className="mt-1 text-xs text-muted">
-              {workspace?.payments.length ?? 0} official payment records
+              {verifiedCount} official payment records
             </p>
           </CardContent>
         </Card>
@@ -249,8 +243,8 @@ export default function MerchantPaymentsPage() {
               {money(pendingTotal)}
             </p>
             <p className="mt-1 text-xs text-muted">
-              {pendingSubmissions.length} submitted payment
-              {pendingSubmissions.length === 1 ? "" : "s"}
+              {pendingCount} submitted payment
+              {pendingCount === 1 ? "" : "s"}
             </p>
           </CardContent>
         </Card>
@@ -539,6 +533,22 @@ export default function MerchantPaymentsPage() {
               ))}
             </div>
           )}
+
+          {workspace ? (
+            <div className="mt-4">
+              <PaginationControls
+                page={workspace.pagination.submissions.page}
+                totalPages={workspace.pagination.submissions.totalPages}
+                total={workspace.pagination.submissions.total}
+                pageSize={workspace.pagination.submissions.pageSize}
+                itemLabel="payment submissions"
+                onPageChange={(page) => {
+                  setLoading(true);
+                  setSubmissionPage(page);
+                }}
+              />
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -624,6 +634,22 @@ export default function MerchantPaymentsPage() {
               ))}
             </div>
           )}
+
+          {workspace ? (
+            <div className="mt-4">
+              <PaginationControls
+                page={workspace.pagination.payments.page}
+                totalPages={workspace.pagination.payments.totalPages}
+                total={workspace.pagination.payments.total}
+                pageSize={workspace.pagination.payments.pageSize}
+                itemLabel="verified payments"
+                onPageChange={(page) => {
+                  setLoading(true);
+                  setPaymentPage(page);
+                }}
+              />
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>
