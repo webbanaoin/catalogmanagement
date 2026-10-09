@@ -21,6 +21,7 @@ import {
   EmptyState,
   Input,
   LoadingState,
+  PaginationControls,
   Select,
 } from "@/components/ui";
 
@@ -83,18 +84,27 @@ export function AdminPaymentSubmissionQueue({
   const [feedback, setFeedback] = useState<string | null>(null);
   const [feedbackError, setFeedbackError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 20,
+    total: 0,
+    totalPages: 0,
+  });
 
   useEffect(() => {
     let active = true;
 
     getAdminPaymentSubmissions({
       status: status || undefined,
-      pageSize: 100,
+      page,
+      pageSize: 20,
     })
       .then((response) => {
         if (!active) return;
         setItems(response.items);
         setSummary(response.summary);
+        setPagination(response.pagination);
         setFeedback(null);
         setFeedbackError(false);
       })
@@ -114,7 +124,7 @@ export function AdminPaymentSubmissionQueue({
     return () => {
       active = false;
     };
-  }, [reloadKey, status]);
+  }, [page, reloadKey, status]);
 
   const pendingAmount = summary?.byStatus.PENDING.amount ?? "0";
   const approvedAmount = summary?.byStatus.APPROVED.amount ?? "0";
@@ -227,6 +237,7 @@ export function AdminPaymentSubmissionQueue({
             value={status}
             onChange={(event) => {
               setLoading(true);
+              setPage(1);
               setStatus(
                 event.target.value as AdminPaymentSubmissionStatus | "",
               );
@@ -414,6 +425,18 @@ export function AdminPaymentSubmissionQueue({
             ))}
           </div>
         ) : null}
+
+        <PaginationControls
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          pageSize={pagination.pageSize}
+          itemLabel="payment submissions"
+          onPageChange={(nextPage) => {
+            setLoading(true);
+            setPage(nextPage);
+          }}
+        />
 
         {status === "PENDING" && pendingItems.length > 0 ? (
           <p className="text-xs leading-5 text-muted">
