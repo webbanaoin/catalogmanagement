@@ -39,6 +39,24 @@ export async function GET(request: Request) {
             mobile: true,
           },
         },
+        shops: {
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            status: true,
+            createdAt: true,
+            subscription: {
+              select: {
+                status: true,
+                paymentStatus: true,
+                plan: { select: { name: true } },
+              },
+            },
+            _count: { select: { payments: true } },
+          },
+        },
         _count: {
           select: {
             shops: true,
