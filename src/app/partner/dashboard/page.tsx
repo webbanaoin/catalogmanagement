@@ -181,6 +181,8 @@ export default async function PartnerDashboardPage({
         isEnabled: true,
         commissionMode: true,
         monthlyCommission: true,
+        quarterlyCommission: true,
+        halfYearlyCommission: true,
         yearlyCommission: true,
       },
     }),
@@ -284,6 +286,16 @@ export default async function PartnerDashboardPage({
           <Metric
             label="Current monthly commission"
             value={money(settings?.monthlyCommission.toString() ?? "0")}
+            hint={settings?.isEnabled ? "Current admin rule" : "Program disabled"}
+          />
+          <Metric
+            label="Current quarterly commission"
+            value={money(settings?.quarterlyCommission.toString() ?? "0")}
+            hint={settings?.isEnabled ? "Current admin rule" : "Program disabled"}
+          />
+          <Metric
+            label="Current half-yearly commission"
+            value={money(settings?.halfYearlyCommission.toString() ?? "0")}
             hint={settings?.isEnabled ? "Current admin rule" : "Program disabled"}
           />
           <Metric
