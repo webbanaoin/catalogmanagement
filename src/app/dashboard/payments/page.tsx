@@ -134,7 +134,7 @@ export default function MerchantPaymentsPage() {
             String(
               planPriceForCycle(
                 subscriptionResponse.data!.plan,
-                billingCycle,
+                "MONTHLY",
               ),
             ),
           );
