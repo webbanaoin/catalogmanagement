@@ -330,6 +330,143 @@ async function main() {
     throw new Error("Commission payout status was not persisted");
   }
 
+  const zeroSettings = await jsonRequest(
+    "/api/admin/referrals/settings",
+    "PATCH",
+    {
+      isEnabled: true,
+      commissionMode: "FIRST_PAID_SUBSCRIPTION",
+      monthlyCommission: 0,
+      yearlyCommission: 0,
+    },
+    adminCookie,
+  );
+  await expectStatus("temporarily zero referral rates", zeroSettings, 200);
+
+  const reconcileMerchantEmail = `reconcile-merchant-${suffix}@example.test`;
+  const reconcileMerchantRegister = await jsonRequest(
+    "/api/auth/register",
+    "POST",
+    {
+      name: "Referral Reconcile Merchant",
+      email: reconcileMerchantEmail,
+      mobile: "9876505678",
+      password: merchantPassword,
+      shopName: `Referral Reconcile Shop ${suffix}`,
+      city: "Jabalpur",
+      state: "Madhya Pradesh",
+      referralCode,
+    },
+  );
+  await expectStatus(
+    "reconcile merchant referral registration",
+    reconcileMerchantRegister,
+    201,
+  );
+
+  const reconcileMerchantUser = await prisma.user.findUnique({
+    where: { email: reconcileMerchantEmail },
+    select: { id: true },
+  });
+  if (!reconcileMerchantUser) {
+    throw new Error("Reconcile merchant user was not created");
+  }
+  created.userIds.push(reconcileMerchantUser.id);
+
+  const reconcileShop = await prisma.shop.findFirst({
+    where: { email: reconcileMerchantEmail },
+  });
+  if (!reconcileShop) {
+    throw new Error("Reconcile referred shop was not created");
+  }
+  created.shopIds.push(reconcileShop.id);
+
+  await prisma.shop.update({
+    where: { id: reconcileShop.id },
+    data: { status: "ACTIVE" },
+  });
+
+  await prisma.subscription.create({
+    data: {
+      shopId: reconcileShop.id,
+      planId: plan.id,
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      status: "ACTIVE",
+      paymentStatus: "PENDING",
+    },
+  });
+
+  const paymentWithoutRate = await jsonRequest(
+    "/api/admin/payments",
+    "POST",
+    {
+      shopId: reconcileShop.id,
+      amount: 299,
+      method: "UPI",
+      billingCycle: "MONTHLY",
+      reference: `REF-RECONCILE-${suffix}`,
+      extendDays: 30,
+      activateSubscription: true,
+    },
+    adminCookie,
+  );
+  await expectStatus(
+    "referred payment while referral rate is zero",
+    paymentWithoutRate,
+    201,
+  );
+  const paymentWithoutRatePayload = await paymentWithoutRate.json();
+  if (paymentWithoutRatePayload?.referralCommission !== null) {
+    throw new Error("Zero referral rate unexpectedly created commission");
+  }
+
+  const restoreSettings = await jsonRequest(
+    "/api/admin/referrals/settings",
+    "PATCH",
+    {
+      isEnabled: true,
+      commissionMode: "FIRST_PAID_SUBSCRIPTION",
+      monthlyCommission: 55,
+      yearlyCommission: 505,
+    },
+    adminCookie,
+  );
+  await expectStatus("restore referral rates for reconciliation", restoreSettings, 200);
+
+  const reconcile = await request(
+    "/api/admin/referrals/reconcile",
+    { method: "POST" },
+    adminCookie,
+  );
+  await expectStatus("reconcile missing referral commission", reconcile, 200);
+  const reconcilePayload = await reconcile.json();
+  if (Number(reconcilePayload?.data?.createdCount) < 1) {
+    throw new Error("Reconciliation did not create the missing commission");
+  }
+
+  const reconciledCommission = await prisma.referralCommission.findFirst({
+    where: { shopId: reconcileShop.id },
+  });
+  if (
+    !reconciledCommission ||
+    Number(reconciledCommission.commissionAmount) !== 55 ||
+    reconciledCommission.status !== "EARNED"
+  ) {
+    throw new Error("Reconciled commission was not persisted at the current rate");
+  }
+
+  const reconcileAgain = await request(
+    "/api/admin/referrals/reconcile",
+    { method: "POST" },
+    adminCookie,
+  );
+  await expectStatus("repeat referral reconciliation", reconcileAgain, 200);
+  const reconcileAgainPayload = await reconcileAgain.json();
+  if (Number(reconcileAgainPayload?.data?.createdCount) !== 0) {
+    throw new Error("Repeat reconciliation created a duplicate commission");
+  }
+
   const recurringSettings = await jsonRequest(
     "/api/admin/referrals/settings",
     "PATCH",
