@@ -75,15 +75,15 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       </header>
 
       <div className="mx-auto flex min-h-screen w-full max-w-[1440px]">
-        <aside className="hidden w-64 shrink-0 border-r border-border bg-surface lg:flex lg:flex-col">
+        <aside className="hidden w-64 shrink-0 border-r border-border bg-surface lg:sticky lg:top-0 lg:h-screen lg:self-start lg:flex lg:flex-col">
           <div className="border-b border-border px-6 py-6">
             <p className="text-base font-semibold text-foreground">Digital Showroom</p>
             <p className="mt-1 text-xs text-muted">Merchant dashboard</p>
           </div>
-          <div className="flex-1 p-4">
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
             <DashboardNavigation />
           </div>
-          <div className="border-t border-border p-4">
+          <div className="shrink-0 border-t border-border bg-surface p-4">
             <MerchantLogoutButton className="w-full justify-center" />
             <p className="mt-3 text-xs leading-5 text-muted">
               Sprint 6 staging validation: merchant catalogue, sharing, analytics and subscription workflows are connected for final production testing.
