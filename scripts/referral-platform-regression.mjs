@@ -584,8 +584,11 @@ async function main() {
     orderBy: { updatedAt: "desc" },
     select: {
       id: true,
+      monthlyPrice: true,
       quarterlyPrice: true,
       halfYearlyPrice: true,
+      annualPrice: true,
+      isDefaultTrial: true,
     },
   });
   if (!landingPlan) {
@@ -609,13 +612,29 @@ async function main() {
 
   const changedLandingPlan = await prisma.plan.findUnique({
     where: { id: landingPlan.id },
-    select: { quarterlyPrice: true, halfYearlyPrice: true },
+    select: {
+      monthlyPrice: true,
+      quarterlyPrice: true,
+      halfYearlyPrice: true,
+      annualPrice: true,
+      isDefaultTrial: true,
+    },
   });
   if (
     Number(changedLandingPlan?.quarterlyPrice) !== 888 ||
     Number(changedLandingPlan?.halfYearlyPrice) !== 1666
   ) {
     throw new Error("Admin plan update did not persist dynamic landing prices");
+  }
+  if (
+    Number(changedLandingPlan?.monthlyPrice) !==
+      Number(landingPlan.monthlyPrice) ||
+    Number(changedLandingPlan?.annualPrice) !== Number(landingPlan.annualPrice) ||
+    changedLandingPlan?.isDefaultTrial !== landingPlan.isDefaultTrial
+  ) {
+    throw new Error(
+      "Partial plan pricing update unexpectedly changed unrelated plan fields",
+    );
   }
 
   const landingPage = await request("/");
