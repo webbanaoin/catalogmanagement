@@ -184,6 +184,8 @@ async function main() {
       isEnabled: true,
       commissionMode: "FIRST_PAID_SUBSCRIPTION",
       monthlyCommission: 55,
+      quarterlyCommission: 135,
+      halfYearlyCommission: 260,
       yearlyCommission: 505,
     },
     adminCookie,
@@ -233,6 +235,8 @@ async function main() {
       name: `Referral Regression Plan ${suffix}`,
       slug: `referral-regression-plan-${suffix}`,
       monthlyPrice: "299.00",
+      quarterlyPrice: "837.00",
+      halfYearlyPrice: "1614.00",
       annualPrice: "2988.00",
       productLimit: 100,
       imageLimitPerProduct: 5,
@@ -337,6 +341,8 @@ async function main() {
       isEnabled: true,
       commissionMode: "FIRST_PAID_SUBSCRIPTION",
       monthlyCommission: 0,
+      quarterlyCommission: 0,
+      halfYearlyCommission: 0,
       yearlyCommission: 0,
     },
     adminCookie,
@@ -428,6 +434,8 @@ async function main() {
       isEnabled: true,
       commissionMode: "FIRST_PAID_SUBSCRIPTION",
       monthlyCommission: 55,
+      quarterlyCommission: 135,
+      halfYearlyCommission: 260,
       yearlyCommission: 505,
     },
     adminCookie,
@@ -474,11 +482,57 @@ async function main() {
       isEnabled: true,
       commissionMode: "EVERY_ELIGIBLE_PAYMENT",
       monthlyCommission: 55,
+      quarterlyCommission: 135,
+      halfYearlyCommission: 260,
       yearlyCommission: 505,
     },
     adminCookie,
   );
   await expectStatus("enable recurring commissions", recurringSettings, 200);
+
+  const quarterlyPayment = await jsonRequest(
+    "/api/admin/payments",
+    "POST",
+    {
+      shopId: shop.id,
+      amount: 837,
+      method: "UPI",
+      billingCycle: "QUARTERLY",
+      reference: `REF-QUARTERLY-${suffix}`,
+      extendDays: 90,
+      activateSubscription: true,
+    },
+    adminCookie,
+  );
+  await expectStatus("quarterly referred payment", quarterlyPayment, 201);
+  const quarterlyPayload = await quarterlyPayment.json();
+  if (Number(quarterlyPayload?.referralCommission?.amount) !== 135) {
+    throw new Error(
+      "Quarterly commission did not use the admin-configured amount",
+    );
+  }
+
+  const halfYearlyPayment = await jsonRequest(
+    "/api/admin/payments",
+    "POST",
+    {
+      shopId: shop.id,
+      amount: 1614,
+      method: "BANK_TRANSFER",
+      billingCycle: "HALF_YEARLY",
+      reference: `REF-HALF-YEARLY-${suffix}`,
+      extendDays: 182,
+      activateSubscription: true,
+    },
+    adminCookie,
+  );
+  await expectStatus("half-yearly referred payment", halfYearlyPayment, 201);
+  const halfYearlyPayload = await halfYearlyPayment.json();
+  if (Number(halfYearlyPayload?.referralCommission?.amount) !== 260) {
+    throw new Error(
+      "Half-Yearly commission did not use the admin-configured amount",
+    );
+  }
 
   const yearlyPayment = await jsonRequest(
     "/api/admin/payments",
@@ -508,7 +562,7 @@ async function main() {
   await expectStatus("referral overview", overview, 200);
   const overviewPayload = await overview.json();
   if (
-    Number(overviewPayload?.data?.revenue?.commissionEarned) < 560 ||
+    Number(overviewPayload?.data?.revenue?.commissionEarned) < 1010 ||
     overviewPayload?.data?.counts?.referredShops < 1
   ) {
     throw new Error("Referral overview did not include commission/referred shop data");
@@ -527,9 +581,15 @@ async function main() {
   if (
     !landingHtml.includes("Earn with Webbanao") ||
     !landingHtml.includes("/partner/register") ||
-    !landingHtml.includes("/partner/login")
+    !landingHtml.includes("/partner/login") ||
+    !landingHtml.includes("Quarterly") ||
+    !landingHtml.includes("Half-Yearly") ||
+    !landingHtml.includes("837") ||
+    !landingHtml.includes("1,614")
   ) {
-    throw new Error("Landing page does not expose the marketing partner entry flow");
+    throw new Error(
+      "Landing page does not expose dynamic four-cycle pricing/referral content",
+    );
   }
 
   const partnerPageResponse = await request(
