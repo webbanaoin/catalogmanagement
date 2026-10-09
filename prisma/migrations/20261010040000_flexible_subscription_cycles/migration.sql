@@ -35,7 +35,23 @@ WHERE
   AND `quarterly_price` = 0.00
   AND `half_yearly_price` = 0.00;
 
--- Initialize the current referral program with the approved launch recommendations.
+-- Initialize a clean untouched referral program with all four approved
+-- launch recommendations. Existing admin-configured Monthly/Yearly rates are preserved.
+UPDATE `referral_program_settings`
+SET
+  `monthly_commission` = 50.00,
+  `quarterly_commission` = 125.00,
+  `half_yearly_commission` = 250.00,
+  `yearly_commission` = 500.00
+WHERE
+  `id` = 'default'
+  AND `monthly_commission` = 0.00
+  AND `yearly_commission` = 0.00
+  AND `quarterly_commission` = 0.00
+  AND `half_yearly_commission` = 0.00;
+
+-- Existing referral programs that already have Monthly/Yearly values only need
+-- the two newly introduced cycle rates initialized.
 UPDATE `referral_program_settings`
 SET
   `quarterly_commission` = 125.00,
