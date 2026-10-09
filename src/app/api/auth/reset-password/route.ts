@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { hashPassword } from "@/server/auth/password";
 import { hashPasswordResetToken } from "@/server/auth/password-reset";
+import { clearSessionCookie } from "@/server/auth/session";
 import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
@@ -32,10 +33,32 @@ export async function POST(request: Request) {
           sessionVersion: { increment: 1 },
         },
       });
-      await tx.passwordResetToken.updateMany({ where: { userId: record.userId, usedAt: null }, data: { usedAt } });
+      await tx.passwordResetToken.updateMany({
+        where: { userId: record.userId, usedAt: null },
+        data: { usedAt },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorUserId: record.userId,
+          action: "PASSWORD_RESET_COMPLETED",
+          entityType: "User",
+          entityId: record.userId,
+        },
+      });
       return true;
     });
-    if (!consumed) throw new AppError({ code: "INVALID_RESET_TOKEN", message: "Password reset token is invalid or expired", status: 400 });
-    return NextResponse.json({ data: { message: "Password has been reset successfully" } });
+    if (!consumed) {
+      throw new AppError({
+        code: "INVALID_RESET_TOKEN",
+        message: "Password reset token is invalid or expired",
+        status: 400,
+      });
+    }
+
+    await clearSessionCookie();
+
+    return NextResponse.json({
+      data: { message: "Password has been reset successfully" },
+    });
   } catch (error) { return errorResponse(error); }
 }
