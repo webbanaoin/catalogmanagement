@@ -29,9 +29,18 @@ export async function sendPasswordResetEmail(
   const resetUrl = buildResetUrl(input.resetToken);
   const config = getPasswordResetEmailEnvironment();
 
+  // Never expose reset tokens from a production deployment. The sole
+  // exception is the isolated GitHub Actions regression environment, which
+  // deliberately runs a production build against a disposable test database.
+  const isolatedCiRegression =
+    process.env.CI === "true" &&
+    process.env.GITHUB_ACTIONS === "true" &&
+    new URL(getAppEnvironment().APP_URL).hostname === "catalog-sprint6.test" &&
+    /^mysql:\/\/[^/]+\/catalog_sprint6(?:\?|$)/.test(process.env.DATABASE_URL ?? "");
+
   const exposeForTesting =
     process.env.NODE_ENV !== "production" ||
-    config.PASSWORD_RESET_EXPOSE_URL;
+    (config.PASSWORD_RESET_EXPOSE_URL && isolatedCiRegression);
 
   if (exposeForTesting) {
     return {
