@@ -27,6 +27,7 @@ jobs:
       MEDIA_BASE_URL: https://media.example.invalid
       BASE_URL: http://127.0.0.1:3000
       SPRINT6_TEST_CONFIRM: YES
+      PASSWORD_RESET_EXPOSE_URL: "true"
 
     steps:
       - name: Checkout
