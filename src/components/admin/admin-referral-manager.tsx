@@ -536,6 +536,43 @@ export function AdminReferralManager() {
                     </p>
                   ) : null}
 
+                  {partner.shops.length > 0 ? (
+                    <div className="rounded-xl border border-border bg-surface-muted/30 p-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+                        Referred shops
+                      </p>
+                      <div className="mt-2 max-h-44 space-y-2 overflow-y-auto">
+                        {partner.shops.map((shop) => (
+                          <div
+                            key={shop.id}
+                            className="flex flex-col gap-1 rounded-lg bg-surface px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate font-medium text-foreground">
+                                {shop.name}
+                              </p>
+                              <p className="text-xs text-muted">
+                                {shop.subscription?.plan.name ?? "No subscription"} ·{" "}
+                                {shop._count.payments} payment
+                                {shop._count.payments === 1 ? "" : "s"}
+                              </p>
+                            </div>
+                            <div className="flex gap-1">
+                              <Badge variant={statusBadge(shop.status)}>
+                                {titleCase(shop.status)}
+                              </Badge>
+                              {shop.subscription ? (
+                                <Badge variant="info">
+                                  {titleCase(shop.subscription.paymentStatus)}
+                                </Badge>
+                              ) : null}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
                   <div className="flex flex-wrap gap-2">
                     {partner.status === "PENDING" ? (
                       <>
