@@ -122,3 +122,62 @@ export const adminPaymentListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(25),
 });
+
+
+export const merchantPaymentSubmissionSchema = z
+  .object({
+    amount: paymentAmountSchema,
+    method: z.enum(["CASH", "UPI", "BANK_TRANSFER", "OTHER"]),
+    billingCycle: z.enum(["MONTHLY", "YEARLY"]),
+    paidAt: z.string().trim().min(1).max(64),
+    recipientType: z.enum(["WEBBANAO", "REFERRAL_PARTNER", "OTHER"]),
+    recipientName: z.string().trim().max(160).optional().nullable(),
+    reference: z.string().trim().max(191).optional().nullable(),
+    comment: z.string().trim().max(2000).optional().nullable(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.method === "OTHER" && !value.comment?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["comment"],
+        message: "Add a note when payment method is Other",
+      });
+    }
+
+    if (value.recipientType === "OTHER" && !value.recipientName?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["recipientName"],
+        message: "Enter who received the payment",
+      });
+    }
+
+    const paidAt = new Date(value.paidAt);
+    if (Number.isNaN(paidAt.getTime())) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["paidAt"],
+        message: "Payment date must be valid",
+      });
+    }
+  });
+
+export const adminPaymentSubmissionReviewSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("APPROVE"),
+    extendDays: paymentExtendDaysSchema.optional(),
+    activateSubscription: z.boolean().default(true),
+    comment: z.string().trim().max(2000).optional().nullable(),
+  }),
+  z.object({
+    action: z.literal("REJECT"),
+    comment: z.string().trim().min(2).max(2000),
+  }),
+]);
+
+export const adminPaymentSubmissionListQuerySchema = z.object({
+  status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
+  shopId: z.string().trim().min(1).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(50),
+});
