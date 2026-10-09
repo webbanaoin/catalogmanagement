@@ -21,7 +21,7 @@ export default function PartnerPendingPage() {
             </p>
             <Link
               href="/partner/login"
-              className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 font-semibold text-primary-foreground"
+              className="inline-flex h-10 items-center justify-center rounded-lg bg-[#0f766e] px-4 font-semibold !text-white shadow-sm transition hover:bg-[#115e59]"
             >
               Back to partner sign in
             </Link>
