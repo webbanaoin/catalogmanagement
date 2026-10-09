@@ -12,6 +12,7 @@ import {
   subscriptionResponse,
 } from "@/server/subscriptions/access";
 import { datePlusDays } from "@/server/subscriptions/trial";
+import { createCommissionForPayment } from "@/server/referrals/commission";
 import {
   adminPaymentCreateSchema,
   adminPaymentListQuerySchema,
@@ -297,7 +298,7 @@ export async function POST(request: Request) {
           : null
         : current.graceEndsAt;
 
-    const payment = await prisma.$transaction(async (tx) => {
+    const transactionResult = await prisma.$transaction(async (tx) => {
       const created = await tx.paymentRecord.create({
         data: {
           shopId: shop.id,
@@ -350,6 +351,34 @@ export async function POST(request: Request) {
         },
       });
 
+      const referralCommission = await createCommissionForPayment(tx, {
+        paymentRecordId: created.id,
+        shopId: shop.id,
+        shopName: shop.name,
+        paymentAmount: created.amount,
+        billingCycle: created.billingCycle,
+        planName: created.planNameSnapshot,
+        earnedAt: created.receivedAt,
+      });
+
+      if (referralCommission && "commissionAmount" in referralCommission) {
+        await tx.auditLog.create({
+          data: {
+            actorUserId: admin.id,
+            shopId: shop.id,
+            action: "REFERRAL_COMMISSION_EARNED",
+            entityType: "ReferralCommission",
+            entityId: referralCommission.id,
+            metadata: {
+              paymentRecordId: created.id,
+              billingCycle: created.billingCycle,
+              paymentAmount: created.amount.toString(),
+              commissionAmount: referralCommission.commissionAmount.toString(),
+            },
+          },
+        });
+      }
+
       await tx.auditLog.create({
         data: {
           actorUserId: admin.id,
@@ -374,11 +403,12 @@ export async function POST(request: Request) {
             extendDays: input.extendDays,
             previousEndDate: previousEndDate.toISOString(),
             newEndDate: newEndDate.toISOString(),
+            referralCommissionId: referralCommission?.id ?? null,
           },
         },
       });
 
-      return created;
+      return { payment: created, referralCommission };
     });
 
     const access = await getShopSubscriptionAccess(shop.id);
@@ -392,8 +422,18 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        data: paymentItem(payment),
+        data: paymentItem(transactionResult.payment),
         subscription: subscriptionResponse(access),
+        referralCommission:
+          transactionResult.referralCommission &&
+          "commissionAmount" in transactionResult.referralCommission
+            ? {
+                id: transactionResult.referralCommission.id,
+                amount:
+                  transactionResult.referralCommission.commissionAmount.toString(),
+                status: transactionResult.referralCommission.status,
+              }
+            : null,
       },
       { status: 201 },
     );
