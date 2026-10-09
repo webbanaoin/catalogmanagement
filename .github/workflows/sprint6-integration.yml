@@ -103,6 +103,9 @@ jobs:
       - name: Sprint 6 tenant regression
         run: npm run test:sprint6:tenant
 
+      - name: Password reset regression
+        run: npm run test:auth:password-reset
+
       - name: Admin payment regression
         run: npm run test:admin:payments
 
