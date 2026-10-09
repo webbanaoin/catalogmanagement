@@ -5,7 +5,10 @@ import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
 import { readJsonBody } from "@/server/http/json-body";
-import { merchantPaymentSubmissionSchema } from "@/validation/subscriptions";
+import {
+  merchantPaymentSubmissionSchema,
+  merchantPaymentWorkspaceQuerySchema,
+} from "@/validation/subscriptions";
 
 function paymentItem(record: {
   id: string;
@@ -109,7 +112,7 @@ function submissionItem(record: {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ shopId: string }> },
 ) {
   try {
@@ -119,7 +122,32 @@ export async function GET(
       shopStatuses: ["APPROVED", "ACTIVE"],
     });
 
-    const [shop, payments, submissions] = await Promise.all([
+    const url = new URL(request.url);
+    const query = merchantPaymentWorkspaceQuerySchema.parse({
+      paymentPage: url.searchParams.get("paymentPage") ?? undefined,
+      submissionPage: url.searchParams.get("submissionPage") ?? undefined,
+      pageSize: url.searchParams.get("pageSize") ?? undefined,
+    });
+    const paymentSkip = (query.paymentPage - 1) * query.pageSize;
+    const submissionSkip = (query.submissionPage - 1) * query.pageSize;
+
+    const submissionGroupsQuery = prisma.paymentSubmission.groupBy({
+      by: ["status"],
+      where: { shopId },
+      orderBy: { status: "asc" },
+      _count: { _all: true },
+      _sum: { amount: true },
+    });
+
+    const [
+      shop,
+      payments,
+      paymentCount,
+      paymentAmount,
+      submissions,
+      submissionCount,
+      submissionGroups,
+    ] = await prisma.$transaction([
       prisma.shop.findUnique({
         where: { id: shopId },
         select: {
@@ -138,7 +166,8 @@ export async function GET(
       prisma.paymentRecord.findMany({
         where: { shopId },
         orderBy: [{ receivedAt: "desc" }, { createdAt: "desc" }],
-        take: 100,
+        skip: paymentSkip,
+        take: query.pageSize,
         select: {
           id: true,
           amount: true,
@@ -165,10 +194,16 @@ export async function GET(
           },
         },
       }),
+      prisma.paymentRecord.count({ where: { shopId } }),
+      prisma.paymentRecord.aggregate({
+        where: { shopId },
+        _sum: { amount: true },
+      }),
       prisma.paymentSubmission.findMany({
         where: { shopId },
         orderBy: [{ submittedAt: "desc" }, { createdAt: "desc" }],
-        take: 100,
+        skip: submissionSkip,
+        take: query.pageSize,
         select: {
           id: true,
           amount: true,
@@ -187,6 +222,8 @@ export async function GET(
           paymentRecordId: true,
         },
       }),
+      prisma.paymentSubmission.count({ where: { shopId } }),
+      submissionGroupsQuery,
     ]);
 
     if (!shop) {
@@ -195,6 +232,18 @@ export async function GET(
         message: "Shop not found",
         status: 404,
       });
+    }
+
+    const submissionByStatus = {
+      PENDING: { count: 0, amount: "0" },
+      APPROVED: { count: 0, amount: "0" },
+      REJECTED: { count: 0, amount: "0" },
+    };
+    for (const group of submissionGroups) {
+      submissionByStatus[group.status] = {
+        count: group._count._all,
+        amount: group._sum.amount?.toString() ?? "0",
+      };
     }
 
     return NextResponse.json({
@@ -211,6 +260,27 @@ export async function GET(
             : null,
         payments: payments.map(paymentItem),
         submissions: submissions.map(submissionItem),
+        summary: {
+          verifiedPaymentCount: paymentCount,
+          verifiedPaymentAmount: paymentAmount._sum.amount?.toString() ?? "0",
+          submissionCount,
+          submissionByStatus,
+          currency: "INR",
+        },
+        pagination: {
+          payments: {
+            page: query.paymentPage,
+            pageSize: query.pageSize,
+            total: paymentCount,
+            totalPages: Math.ceil(paymentCount / query.pageSize),
+          },
+          submissions: {
+            page: query.submissionPage,
+            pageSize: query.pageSize,
+            total: submissionCount,
+            totalPages: Math.ceil(submissionCount / query.pageSize),
+          },
+        },
       },
     });
   } catch (error) {
