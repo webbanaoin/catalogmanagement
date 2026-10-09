@@ -226,6 +226,52 @@ export type AdminBillingCycle =
   | "YEARLY"
   | "CUSTOM";
 
+export type AdminPaymentSubmissionStatus =
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED";
+
+export type AdminPaymentRecipientType =
+  | "WEBBANAO"
+  | "REFERRAL_PARTNER"
+  | "OTHER";
+
+export interface AdminPaymentSubmission {
+  id: string;
+  amount: string;
+  currency: string;
+  method: AdminPaymentMethod;
+  billingCycle: AdminBillingCycle;
+  paidAt: string;
+  recipientType: AdminPaymentRecipientType;
+  recipientName: string;
+  recipientNameSnapshot: string;
+  reference?: string | null;
+  comment?: string | null;
+  status: AdminPaymentSubmissionStatus;
+  submittedAt: string;
+  reviewedAt?: string | null;
+  reviewComment?: string | null;
+  paymentRecordId?: string | null;
+  shop: { id: string; name: string; slug: string };
+  submittedByUser: {
+    id: string;
+    name: string;
+    email: string;
+    mobile?: string | null;
+  };
+  reviewedByUser?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+  referralPartner?: {
+    id: string;
+    referralCode?: string | null;
+    user: { name: string };
+  } | null;
+}
+
 export interface AdminPaymentRecord {
   id: string;
   amount: string;
@@ -1019,4 +1065,81 @@ export async function reconcileAdminReferralCommissions() {
   }>("/api/admin/referrals/reconcile", {
     method: "POST",
   });
+}
+
+
+export async function getAdminPaymentSubmissions(filters?: {
+  status?: AdminPaymentSubmissionStatus;
+  shopId?: string;
+  page?: number;
+  pageSize?: number;
+}) {
+  const params = new URLSearchParams();
+  if (filters?.status) params.set("status", filters.status);
+  if (filters?.shopId) params.set("shopId", filters.shopId);
+  params.set("page", String(filters?.page ?? 1));
+  params.set("pageSize", String(filters?.pageSize ?? 100));
+
+  return requestJson<{
+    items: AdminPaymentSubmission[];
+    summary: {
+      total: number;
+      currency: string;
+      byStatus: Record<
+        AdminPaymentSubmissionStatus,
+        { count: number; amount: string }
+      >;
+    };
+    pagination: {
+      page: number;
+      pageSize: number;
+      total: number;
+      totalPages: number;
+    };
+  }>("/api/admin/payment-submissions?" + params.toString());
+}
+
+export async function reviewAdminPaymentSubmission(
+  submissionId: string,
+  payload:
+    | {
+        action: "APPROVE";
+        extendDays?: number;
+        activateSubscription?: boolean;
+        comment?: string | null;
+      }
+    | {
+        action: "REJECT";
+        comment: string;
+      },
+) {
+  return requestJson<{
+    data:
+      | {
+          submissionId: string;
+          status: "APPROVED";
+          paymentRecordId: string;
+          paymentAmount: string;
+          billingCycle: AdminBillingCycle;
+          subscription: AdminSubscription;
+          referralCommission?: {
+            id: string;
+            amount: string;
+            status: "EARNED" | "PAID" | "CANCELLED";
+          } | null;
+        }
+      | {
+          id: string;
+          status: "REJECTED";
+          reviewedAt?: string | null;
+          reviewComment?: string | null;
+          paymentRecordId?: string | null;
+        };
+  }>(
+    "/api/admin/payment-submissions/" + encodeURIComponent(submissionId),
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
 }
