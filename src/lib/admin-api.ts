@@ -96,6 +96,19 @@ export interface AdminReferralPartner {
   shopCount: number;
   paidShopCount: number;
   commissionCount: number;
+  shops: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    status: AdminShopStatus;
+    createdAt: string;
+    subscription?: {
+      status: "TRIAL" | "ACTIVE" | "GRACE" | "EXPIRED" | "CANCELLED";
+      paymentStatus: "NOT_REQUIRED" | "PENDING" | "PAID" | "WAIVED";
+      plan: { name: string };
+    } | null;
+    _count: { payments: number };
+  }>;
   financials: {
     totalCollections: string;
     commissionEarned: string;
