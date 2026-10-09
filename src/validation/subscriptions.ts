@@ -181,3 +181,10 @@ export const adminPaymentSubmissionListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(50),
 });
+
+
+export const merchantPaymentWorkspaceQuerySchema = z.object({
+  paymentPage: z.coerce.number().int().min(1).default(1),
+  submissionPage: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(10),
+});
