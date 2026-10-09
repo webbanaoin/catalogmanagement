@@ -29,6 +29,7 @@ export async function createCommissionForPayment(
   const shop = await tx.shop.findUnique({
     where: { id: input.shopId },
     select: {
+      referralAssignedAt: true,
       referralPartner: {
         select: {
           id: true,
@@ -64,6 +65,9 @@ export async function createCommissionForPayment(
       where: {
         shopId: input.shopId,
         id: { not: input.paymentRecordId },
+        ...(shop?.referralAssignedAt
+          ? { receivedAt: { gte: shop.referralAssignedAt } }
+          : {}),
       },
     });
     if (previousPayments > 0) return null;
