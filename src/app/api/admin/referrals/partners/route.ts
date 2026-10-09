@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { requirePlatformAdmin } from "@/server/auth/admin-access";
@@ -14,7 +15,9 @@ export async function GET(request: Request) {
       page: url.searchParams.get("page") ?? undefined,
       pageSize: url.searchParams.get("pageSize") ?? undefined,
     });
-    const where = query.status ? { status: query.status } : undefined;
+    const where: Prisma.ReferralPartnerWhereInput | undefined = query.status
+      ? { status: query.status }
+      : undefined;
     const skip = (query.page - 1) * query.pageSize;
 
     const [partners, total, options] = await prisma.$transaction([
