@@ -240,6 +240,13 @@ export async function POST(
         status: 400,
       });
     }
+    if (paidAt.getTime() > Date.now() + 5 * 60 * 1000) {
+      throw new AppError({
+        code: "PAYMENT_DATE_IN_FUTURE",
+        message: "Payment date cannot be in the future",
+        status: 400,
+      });
+    }
 
     const shop = await prisma.shop.findUnique({
       where: { id: shopId },
