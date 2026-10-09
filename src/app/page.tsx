@@ -343,7 +343,10 @@ export default async function Home() {
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/register" className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 text-sm font-extrabold text-white shadow-[0_16px_35px_rgba(5,150,105,.20)] transition hover:-translate-y-0.5">
-                Start your free month <ArrowIcon />
+                {commercialPlan?.trialDays
+                  ? `Start your free ${commercialPlan.trialDays} days`
+                  : "Register your shop"}{" "}
+                <ArrowIcon />
               </Link>
               <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-sm font-extrabold text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:text-emerald-700">
                 <WhatsAppIcon />
@@ -385,7 +388,6 @@ export default async function Home() {
                 <span className="text-[10px] font-bold leading-4 text-slate-650">{item.label}</span>
               </div>
             ))}
-            </div>
           </div>
         </Container>
       </section>
@@ -464,7 +466,7 @@ export default async function Home() {
               </p>
             </div>
             <div className="grid gap-5 md:grid-cols-2">
-            {pricingPlans.map((plan) => (
+              {pricingPlans.map((plan) => (
               <article
                 key={plan.cycle}
                 className={
@@ -522,7 +524,8 @@ export default async function Home() {
                   {plan.cta} <ArrowIcon />
                 </Link>
               </article>
-            ))}
+              ))}
+            </div>
           </div>
         </Container>
 
