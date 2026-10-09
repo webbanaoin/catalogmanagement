@@ -532,6 +532,49 @@ async function main() {
     throw new Error("Landing page does not expose the marketing partner entry flow");
   }
 
+  const partnerPageResponse = await request(
+    "/api/admin/referrals/partners?page=1&pageSize=1",
+    {},
+    adminCookie,
+  );
+  await expectStatus("referral partner pagination", partnerPageResponse, 200);
+  const partnerPagePayload = await partnerPageResponse.json();
+  if (
+    partnerPagePayload?.items?.length > 1 ||
+    partnerPagePayload?.pagination?.pageSize !== 1 ||
+    !Array.isArray(partnerPagePayload?.options)
+  ) {
+    throw new Error("Referral partner pagination contract is not enforced");
+  }
+
+  const commissionPageResponse = await request(
+    "/api/admin/referrals/commissions?page=1&pageSize=1",
+    {},
+    adminCookie,
+  );
+  await expectStatus("referral commission pagination", commissionPageResponse, 200);
+  const commissionPagePayload = await commissionPageResponse.json();
+  if (
+    commissionPagePayload?.items?.length > 1 ||
+    commissionPagePayload?.pagination?.pageSize !== 1
+  ) {
+    throw new Error("Referral commission pagination contract is not enforced");
+  }
+
+  const shopPageResponse = await request(
+    "/api/admin/shops?status=ACTIVE&page=1&pageSize=1",
+    {},
+    adminCookie,
+  );
+  await expectStatus("admin shop pagination", shopPageResponse, 200);
+  const shopPagePayload = await shopPageResponse.json();
+  if (
+    shopPagePayload?.items?.length > 1 ||
+    shopPagePayload?.pagination?.pageSize !== 1
+  ) {
+    throw new Error("Admin shop pagination contract is not enforced");
+  }
+
   process.stdout.write(
     "Referral registration, approval, attribution, commission, payout and partner dashboard regression checks passed.\n",
   );
