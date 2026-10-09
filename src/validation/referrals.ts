@@ -46,6 +46,8 @@ export const adminReferralSettingsSchema = z.object({
     "EVERY_ELIGIBLE_PAYMENT",
   ]),
   monthlyCommission: money,
+  quarterlyCommission: money,
+  halfYearlyCommission: money,
   yearlyCommission: money,
 });
 
@@ -85,7 +87,9 @@ export const adminReferralCommissionListQuerySchema = z.object({
   status: z.enum(["EARNED", "PAID", "CANCELLED"]).optional(),
   partnerId: z.string().trim().min(1).optional(),
   shopId: z.string().trim().min(1).optional(),
-  billingCycle: z.enum(["MONTHLY", "YEARLY"]).optional(),
+  billingCycle: z
+    .enum(["MONTHLY", "QUARTERLY", "HALF_YEARLY", "YEARLY"])
+    .optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(50),
 });
