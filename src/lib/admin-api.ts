@@ -516,11 +516,23 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-export async function getAdminShops(status: AdminShopStatus) {
-  const params = new URLSearchParams({ status, page: "1", pageSize: "100" });
+export async function getAdminShops(
+  status: AdminShopStatus,
+  options?: { page?: number; pageSize?: number },
+) {
+  const params = new URLSearchParams({
+    status,
+    page: String(options?.page ?? 1),
+    pageSize: String(options?.pageSize ?? 100),
+  });
   return requestJson<{
     items: AdminShop[];
-    pagination: { page: number; pageSize: number; total: number; totalPages: number };
+    pagination: {
+      page: number;
+      pageSize: number;
+      total: number;
+      totalPages: number;
+    };
   }>("/api/admin/shops?" + params.toString());
 }
 
