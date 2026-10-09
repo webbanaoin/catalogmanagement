@@ -878,6 +878,7 @@ export async function updateAdminReferralPartnerStatus(
   partnerId: string,
   status: Exclude<AdminReferralPartnerStatus, "PENDING">,
   note?: string,
+  regenerateCode = false,
 ) {
   return requestJson<{
     data: {
@@ -894,7 +895,11 @@ export async function updateAdminReferralPartnerStatus(
       "/status",
     {
       method: "PATCH",
-      body: JSON.stringify({ status, note: note?.trim() || null }),
+      body: JSON.stringify({
+        status,
+        note: note?.trim() || null,
+        regenerateCode,
+      }),
     },
   );
 }
