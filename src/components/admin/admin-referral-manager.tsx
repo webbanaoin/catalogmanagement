@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   AdminApiError,
@@ -158,11 +158,6 @@ export function AdminReferralManager() {
       active = false;
     };
   }, [reloadKey, commissionStatus, partnerFilter]);
-
-  const activePartners = useMemo(
-    () => partners.filter((partner) => partner.status === "ACTIVE"),
-    [partners],
-  );
 
   function reload(successMessage?: string) {
     setLoading(true);
