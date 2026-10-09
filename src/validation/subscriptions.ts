@@ -11,6 +11,8 @@ export const adminPlanCreateSchema = z.object({
   slug: z.string().trim().min(2).max(160).optional(),
   description: z.string().trim().max(500).nullable().optional(),
   monthlyPrice: moneySchema.default(0),
+  quarterlyPrice: moneySchema.default(0),
+  halfYearlyPrice: moneySchema.default(0),
   annualPrice: moneySchema.default(0),
   productLimit: productLimitSchema,
   imageLimitPerProduct: imageLimitSchema,
@@ -128,7 +130,12 @@ export const merchantPaymentSubmissionSchema = z
   .object({
     amount: paymentAmountSchema,
     method: z.enum(["CASH", "UPI", "BANK_TRANSFER", "OTHER"]),
-    billingCycle: z.enum(["MONTHLY", "YEARLY"]),
+    billingCycle: z.enum([
+      "MONTHLY",
+      "QUARTERLY",
+      "HALF_YEARLY",
+      "YEARLY",
+    ]),
     paidAt: z.string().trim().min(1).max(64),
     recipientType: z.enum(["WEBBANAO", "REFERRAL_PARTNER", "OTHER"]),
     recipientName: z.string().trim().max(160).optional().nullable(),
