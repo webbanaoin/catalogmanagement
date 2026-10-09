@@ -911,13 +911,28 @@ export async function updateAdminReferralSettings(payload: {
 
 export async function getAdminReferralPartners(
   status?: AdminReferralPartnerStatus,
+  options?: { page?: number; pageSize?: number },
 ) {
   const params = new URLSearchParams();
   if (status) params.set("status", status);
-  const query = params.toString();
-  return requestJson<{ items: AdminReferralPartner[] }>(
-    "/api/admin/referrals/partners" + (query ? "?" + query : ""),
-  );
+  params.set("page", String(options?.page ?? 1));
+  params.set("pageSize", String(options?.pageSize ?? 100));
+
+  return requestJson<{
+    items: AdminReferralPartner[];
+    options: Array<{
+      id: string;
+      referralCode?: string | null;
+      status: AdminReferralPartnerStatus;
+      user: { name: string };
+    }>;
+    pagination: {
+      page: number;
+      pageSize: number;
+      total: number;
+      totalPages: number;
+    };
+  }>("/api/admin/referrals/partners?" + params.toString());
 }
 
 export async function updateAdminReferralPartnerStatus(
