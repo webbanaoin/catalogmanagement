@@ -437,78 +437,137 @@ export default async function Home() {
       </section>
 
       <section id="pricing" className="bg-white py-16 sm:py-20">
-        <Container className="grid gap-10 xl:grid-cols-[.68fr_1.82fr] xl:items-start">
-          <div className="xl:sticky xl:top-28">
-            <p className="text-xs font-extrabold uppercase tracking-[0.24em] text-indigo-600">Simple & transparent pricing</p>
-            <h2 className="mt-4 text-3xl font-black tracking-[-0.04em] text-[#07152f] sm:text-4xl">
+        <Container>
+          <div className="mx-auto max-w-4xl text-center">
+            <p className="text-xs font-extrabold uppercase tracking-[0.24em] text-indigo-600">
+              Simple & transparent pricing
+            </p>
+            <h2 className="mt-4 text-3xl font-black tracking-[-0.04em] text-[#07152f] sm:text-4xl lg:text-5xl">
               Start free. Continue with the plan that fits your shop.
             </h2>
-            <p className="mt-5 max-w-md text-base leading-7 text-slate-600">
+            <p className="mx-auto mt-5 max-w-3xl text-base leading-7 text-slate-600">
               {commercialPlan?.trialDays
-                ? `Your first ${commercialPlan.trialDays} days are designed to get your showroom live with onboarding support before you choose a paid billing cycle.`
-                : "Get your showroom live with onboarding support, then choose the billing cycle that fits your shop."}
+                ? `Your first ${commercialPlan.trialDays} days are designed to get your showroom live with onboarding support. After that, choose Monthly, Quarterly, Half-Yearly or Yearly billing.`
+                : "Get your showroom live with onboarding support, then choose Monthly, Quarterly, Half-Yearly or Yearly billing."}
             </p>
           </div>
 
-          <div>
-            <div className="mb-5 rounded-[1.4rem] border border-emerald-200 bg-emerald-50 p-5">
+          <div className="mx-auto mt-8 max-w-5xl rounded-[1.4rem] border border-emerald-200 bg-emerald-50 px-5 py-4 sm:flex sm:items-center sm:justify-between sm:gap-6 sm:px-6">
+            <div>
               <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-800">
                 Start free
               </p>
-              <p className="mt-2 text-xl font-black text-slate-950">
+              <p className="mt-1 text-lg font-black text-slate-950 sm:text-xl">
                 {commercialPlan?.trialDays
                   ? `${commercialPlan.trialDays}-day free trial + onboarding support`
                   : "Free onboarding support"}
               </p>
-              <p className="mt-1 text-sm leading-6 text-slate-600">
-                Try the Digital Showroom first, then continue with Monthly,
-                Quarterly, Half-Yearly or Yearly billing.
-              </p>
             </div>
-            <div className="grid gap-5 md:grid-cols-2">
-              {pricingPlans.map((plan) => (
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600 sm:mt-0 sm:text-right">
+              Try your Digital Showroom first, then continue with the billing
+              cycle that matches your shop&apos;s comfort and budget.
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {pricingPlans.map((plan) => (
               <article
                 key={plan.cycle}
                 className={
                   plan.featured
-                    ? "relative flex min-h-[590px] flex-col rounded-[1.65rem] border border-indigo-500 bg-gradient-to-br from-[#07152f] via-[#11184f] to-[#28227c] p-6 text-white shadow-[0_24px_65px_rgba(49,46,129,.26)]"
-                    : "flex min-h-[590px] flex-col rounded-[1.65rem] border border-slate-200 bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.06)]"
+                    ? "relative flex h-full min-h-[540px] flex-col rounded-[1.65rem] border border-indigo-500 bg-gradient-to-br from-[#07152f] via-[#11184f] to-[#28227c] p-5 text-white shadow-[0_24px_65px_rgba(49,46,129,.26)]"
+                    : "flex h-full min-h-[540px] flex-col rounded-[1.65rem] border border-slate-200 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,.06)] transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-[0_20px_45px_rgba(79,70,229,.10)]"
                 }
               >
-                <div className="flex items-center justify-between gap-3">
-                  <span className={plan.featured ? "rounded-full bg-violet-500 px-3 py-1.5 text-[10px] font-black tracking-[0.14em] text-white" : "rounded-full bg-indigo-50 px-3 py-1.5 text-[10px] font-black tracking-[0.14em] text-indigo-700"}>
+                <div className="flex min-h-7 items-start justify-between gap-2">
+                  <span
+                    className={
+                      plan.featured
+                        ? "rounded-full bg-violet-500 px-2.5 py-1.5 text-[9px] font-black tracking-[0.12em] text-white"
+                        : "rounded-full bg-indigo-50 px-2.5 py-1.5 text-[9px] font-black tracking-[0.12em] text-indigo-700"
+                    }
+                  >
                     {plan.label}
                   </span>
                   {plan.saving > 0 ? (
-                    <span className="rounded-full bg-emerald-300 px-3 py-1.5 text-[10px] font-black text-emerald-950">
+                    <span className="whitespace-nowrap rounded-full bg-emerald-300 px-2.5 py-1.5 text-[9px] font-black text-emerald-950">
                       Save {formatMoney(plan.saving)}
                     </span>
                   ) : null}
                 </div>
 
-                <h3 className="mt-5 text-2xl font-black">{plan.name}</h3>
-                <div className="mt-4 flex items-end gap-2">
-                  <span className="text-4xl font-black tracking-[-0.04em]">
-                    {plan.price > 0 ? formatMoney(plan.price) : "Contact us"}
-                  </span>
-                  <span className={plan.featured ? "pb-1 text-sm text-slate-300" : "pb-1 text-sm text-slate-500"}>{plan.suffix}</span>
+                <h3 className="mt-5 text-xl font-black sm:text-2xl">
+                  {plan.name}
+                </h3>
+
+                <div className="mt-3">
+                  <div className="flex flex-wrap items-end gap-x-1.5 gap-y-1">
+                    <span className="text-3xl font-black tracking-[-0.04em] lg:text-[2rem]">
+                      {plan.price > 0 ? formatMoney(plan.price) : "Contact us"}
+                    </span>
+                    <span
+                      className={
+                        plan.featured
+                          ? "pb-1 text-xs text-slate-300"
+                          : "pb-1 text-xs text-slate-500"
+                      }
+                    >
+                      {plan.suffix}
+                    </span>
+                  </div>
+                  <div className="mt-2 min-h-6">
+                    {plan.price > 0 && plan.cycle !== "MONTHLY" ? (
+                      <p
+                        className={
+                          plan.featured
+                            ? "text-xs font-bold text-emerald-300"
+                            : "text-xs font-bold text-emerald-700"
+                        }
+                      >
+                        Effective {formatMoney(plan.effective)}/month
+                      </p>
+                    ) : (
+                      <p className="text-xs font-bold text-transparent">
+                        Flexible monthly billing
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <p className={plan.featured ? "mt-4 min-h-[96px] text-sm leading-6 text-slate-300" : "mt-4 min-h-[96px] text-sm leading-6 text-slate-600"}>
+
+                <p
+                  className={
+                    plan.featured
+                      ? "mt-4 min-h-[92px] text-sm leading-6 text-slate-300"
+                      : "mt-4 min-h-[92px] text-sm leading-6 text-slate-600"
+                  }
+                >
                   {plan.description}
                 </p>
-                {plan.price > 0 && plan.cycle !== "MONTHLY" ? (
-                  <p className={plan.featured ? "mt-2 text-sm font-bold text-emerald-300" : "mt-2 text-sm font-bold text-emerald-700"}>
-                    Effective {formatMoney(plan.effective)}/month
-                  </p>
-                ) : null}
 
-                <div className={plan.featured ? "my-5 h-px bg-white/15" : "my-5 h-px bg-slate-200"} />
+                <div
+                  className={
+                    plan.featured
+                      ? "my-4 h-px bg-white/15"
+                      : "my-4 h-px bg-slate-200"
+                  }
+                />
 
-                <div className="flex-1 space-y-3">
+                <div className="flex-1 space-y-2.5">
                   {plan.features.map((feature) => (
-                    <div key={feature} className="flex items-start gap-2.5 text-sm">
+                    <div
+                      key={feature}
+                      className="flex items-start gap-2 text-xs leading-5"
+                    >
                       <CheckIcon light={plan.featured} />
-                      <span className={plan.featured ? "font-medium text-slate-200" : "font-medium text-slate-700"}>{feature}</span>
+                      <span
+                        className={
+                          plan.featured
+                            ? "font-medium text-slate-200"
+                            : "font-medium text-slate-700"
+                        }
+                      >
+                        {feature}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -517,15 +576,14 @@ export default async function Home() {
                   href="/register"
                   className={
                     plan.featured
-                      ? "mt-7 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white bg-white px-5 text-sm font-black !text-[#07152f] shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-100"
-                      : "mt-7 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-950/10 transition hover:-translate-y-0.5"
+                      ? "mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white bg-white px-4 text-sm font-black !text-[#07152f] shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-100"
+                      : "mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 text-sm font-black text-white shadow-lg shadow-emerald-950/10 transition hover:-translate-y-0.5"
                   }
                 >
                   {plan.cta} <ArrowIcon />
                 </Link>
               </article>
-              ))}
-            </div>
+            ))}
           </div>
         </Container>
 
@@ -539,7 +597,7 @@ export default async function Home() {
         </Container>
       </section>
 
-      <section id="earn-with-us" className="relative overflow-hidden border-t border-slate-200 bg-[#effcf7] py-16 sm:py-20">
+            <section id="earn-with-us" className="relative overflow-hidden border-t border-slate-200 bg-[#effcf7] py-16 sm:py-20">
         <div className="absolute -left-24 top-10 h-80 w-80 rounded-full bg-emerald-300/25 blur-3xl" />
         <div className="absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-sky-300/25 blur-3xl" />
         <Container className="relative">
