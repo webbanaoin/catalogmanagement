@@ -198,7 +198,7 @@ export default async function PartnerDashboardPage() {
               <p className="text-xs uppercase tracking-[0.12em] text-muted">
                 Referral code
               </p>
-              <p className="mt-2 break-all text-xl font-bold text-primary">
+              <p className="mt-2 whitespace-nowrap text-2xl font-black tracking-tight text-primary">
                 {referralCode}
               </p>
             </div>
