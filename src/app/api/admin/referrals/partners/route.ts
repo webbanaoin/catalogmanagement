@@ -68,16 +68,14 @@ export async function GET(request: Request) {
 
     const items = await Promise.all(
       partners.map(async (partner) => {
-        const [collections, paidShops, commissionGroups] = await Promise.all([
+        const shopIds = partner.shops.map((shop) => shop.id);
+        const [collections, commissionGroups] = await Promise.all([
           prisma.paymentRecord.aggregate({
-            where: { shop: { referralPartnerId: partner.id } },
+            where:
+              shopIds.length > 0
+                ? { shopId: { in: shopIds } }
+                : { id: "__none__" },
             _sum: { amount: true },
-          }),
-          prisma.shop.count({
-            where: {
-              referralPartnerId: partner.id,
-              payments: { some: {} },
-            },
           }),
           prisma.referralCommission.groupBy({
             by: ["status"],
@@ -87,6 +85,9 @@ export async function GET(request: Request) {
             _count: { _all: true },
           }),
         ]);
+        const paidShops = partner.shops.filter(
+          (shop) => shop._count.payments > 0,
+        ).length;
 
         let earned = 0;
         let paid = 0;
