@@ -177,6 +177,8 @@ async function main() {
       name: `Payment Regression Plan ${suffix}`,
       slug: `payment-regression-plan-${suffix}`,
       monthlyPrice: "299.00",
+      quarterlyPrice: "837.00",
+      halfYearlyPrice: "1614.00",
       annualPrice: "2988.00",
       productLimit: 100,
       imageLimitPerProduct: 5,
@@ -206,12 +208,16 @@ async function main() {
       isEnabled: true,
       commissionMode: "FIRST_PAID_SUBSCRIPTION",
       monthlyCommission: 50,
+      quarterlyCommission: 125,
+      halfYearlyCommission: 250,
       yearlyCommission: 500,
     },
     update: {
       isEnabled: true,
       commissionMode: "FIRST_PAID_SUBSCRIPTION",
       monthlyCommission: 50,
+      quarterlyCommission: 125,
+      halfYearlyCommission: 250,
       yearlyCommission: 500,
     },
   });
@@ -373,6 +379,113 @@ async function main() {
     merchantCookie,
   );
   await expectStatus("merchant duplicate reference guard", duplicateMerchant, 409);
+
+  await prisma.referralProgramSettings.update({
+    where: { id: "default" },
+    data: { commissionMode: "EVERY_ELIGIBLE_PAYMENT" },
+  });
+
+  const quarterlyReference = `QUARTERLY-${suffix}`;
+  const quarterlySubmit = await jsonRequest(
+    `/api/shops/${shop.id}/payments`,
+    "POST",
+    {
+      amount: 837,
+      method: "UPI",
+      billingCycle: "QUARTERLY",
+      paidAt: new Date().toISOString(),
+      recipientType: "WEBBANAO",
+      reference: quarterlyReference,
+      comment: "Quarterly merchant-submitted payment",
+    },
+    merchantCookie,
+  );
+  await expectStatus("quarterly merchant payment submission", quarterlySubmit, 201);
+  const quarterlySubmissionId = (await quarterlySubmit.json())?.data?.id;
+
+  const quarterlyApprove = await jsonRequest(
+    `/api/admin/payment-submissions/${quarterlySubmissionId}`,
+    "PATCH",
+    {
+      action: "APPROVE",
+      activateSubscription: true,
+      comment: "Quarterly receipt verified",
+    },
+    adminCookie,
+  );
+  await expectStatus("approve quarterly merchant payment", quarterlyApprove, 200);
+  const quarterlyApproval = (await quarterlyApprove.json()).data;
+  if (Number(quarterlyApproval?.referralCommission?.amount) !== 125) {
+    throw new Error("Quarterly merchant approval did not create ₹125 commission");
+  }
+  const quarterlyRecord = await prisma.paymentRecord.findUnique({
+    where: { id: quarterlyApproval.paymentRecordId },
+  });
+  if (
+    !quarterlyRecord ||
+    quarterlyRecord.billingCycle !== "QUARTERLY" ||
+    quarterlyRecord.extendDays !== 90 ||
+    Number(quarterlyRecord.amount) !== 837
+  ) {
+    throw new Error("Quarterly payment did not use 90-day subscription extension");
+  }
+
+  const halfYearlyReference = `HALF-YEARLY-${suffix}`;
+  const halfYearlySubmit = await jsonRequest(
+    `/api/shops/${shop.id}/payments`,
+    "POST",
+    {
+      amount: 1614,
+      method: "BANK_TRANSFER",
+      billingCycle: "HALF_YEARLY",
+      paidAt: new Date().toISOString(),
+      recipientType: "WEBBANAO",
+      reference: halfYearlyReference,
+      comment: "Half-Yearly merchant-submitted payment",
+    },
+    merchantCookie,
+  );
+  await expectStatus(
+    "half-yearly merchant payment submission",
+    halfYearlySubmit,
+    201,
+  );
+  const halfYearlySubmissionId = (await halfYearlySubmit.json())?.data?.id;
+
+  const halfYearlyApprove = await jsonRequest(
+    `/api/admin/payment-submissions/${halfYearlySubmissionId}`,
+    "PATCH",
+    {
+      action: "APPROVE",
+      activateSubscription: true,
+      comment: "Half-Yearly receipt verified",
+    },
+    adminCookie,
+  );
+  await expectStatus(
+    "approve half-yearly merchant payment",
+    halfYearlyApprove,
+    200,
+  );
+  const halfYearlyApproval = (await halfYearlyApprove.json()).data;
+  if (Number(halfYearlyApproval?.referralCommission?.amount) !== 250) {
+    throw new Error(
+      "Half-Yearly merchant approval did not create ₹250 commission",
+    );
+  }
+  const halfYearlyRecord = await prisma.paymentRecord.findUnique({
+    where: { id: halfYearlyApproval.paymentRecordId },
+  });
+  if (
+    !halfYearlyRecord ||
+    halfYearlyRecord.billingCycle !== "HALF_YEARLY" ||
+    halfYearlyRecord.extendDays !== 182 ||
+    Number(halfYearlyRecord.amount) !== 1614
+  ) {
+    throw new Error(
+      "Half-Yearly payment did not use 182-day subscription extension",
+    );
+  }
 
   const directReference = `ADMIN-DIRECT-${suffix}`;
   const direct = await jsonRequest(
