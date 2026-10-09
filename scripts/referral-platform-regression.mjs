@@ -576,7 +576,12 @@ async function main() {
   await expectStatus("partner dashboard", partnerDashboard, 200);
 
   const landingPlan = await prisma.plan.findFirst({
-    where: { isDefaultTrial: true, status: "ACTIVE" },
+    where: {
+      isDefaultTrial: true,
+      status: "ACTIVE",
+      monthlyPrice: { gt: 0 },
+    },
+    orderBy: { updatedAt: "desc" },
     select: {
       id: true,
       quarterlyPrice: true,
@@ -602,6 +607,17 @@ async function main() {
     200,
   );
 
+  const changedLandingPlan = await prisma.plan.findUnique({
+    where: { id: landingPlan.id },
+    select: { quarterlyPrice: true, halfYearlyPrice: true },
+  });
+  if (
+    Number(changedLandingPlan?.quarterlyPrice) !== 888 ||
+    Number(changedLandingPlan?.halfYearlyPrice) !== 1666
+  ) {
+    throw new Error("Admin plan update did not persist dynamic landing prices");
+  }
+
   const landingPage = await request("/");
   await expectStatus("landing page referral section", landingPage, 200);
   const landingHtml = await landingPage.text();
@@ -616,8 +632,23 @@ async function main() {
     !landingHtml.includes("135") ||
     !landingHtml.includes("260")
   ) {
+    const expectedTokens = [
+      "Earn with Webbanao",
+      "/partner/register",
+      "/partner/login",
+      "Quarterly",
+      "Half-Yearly",
+      "888",
+      "1,666",
+      "135",
+      "260",
+    ];
+    const missingTokens = expectedTokens.filter(
+      (token) => !landingHtml.includes(token),
+    );
     throw new Error(
-      "Landing page does not expose dynamic four-cycle pricing/referral content",
+      "Landing page is missing expected dynamic content: " +
+        missingTokens.join(", "),
     );
   }
 
