@@ -58,8 +58,9 @@ export async function PATCH(
     const updated = await prisma.$transaction(async (tx) => {
       const referralCode =
         input.status === "ACTIVE"
-          ? current.referralCode ??
-            (await createUniqueReferralCode(tx, current.user.name))
+          ? input.regenerateCode || !current.referralCode
+            ? await createUniqueReferralCode(tx, current.user.name)
+            : current.referralCode
           : current.referralCode;
 
       const saved = await tx.referralPartner.update({
@@ -93,6 +94,7 @@ export async function PATCH(
             previousStatus: current.status,
             nextStatus: input.status,
             referralCode,
+            referralCodeRegenerated: input.regenerateCode,
             note: input.note?.trim() || null,
           },
         },
