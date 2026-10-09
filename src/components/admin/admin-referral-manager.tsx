@@ -234,6 +234,38 @@ export function AdminReferralManager() {
     }
   }
 
+  async function makeCodeShorter(partner: AdminReferralPartner) {
+    if (
+      !window.confirm(
+        `Generate a new short referral code for ${partner.user.name}? The old code and old shared referral link will stop working immediately.`,
+      )
+    ) {
+      return;
+    }
+
+    setWorking("partner:" + partner.id);
+    setMessage(null);
+    try {
+      const response = await updateAdminReferralPartnerStatus(
+        partner.id,
+        "ACTIVE",
+        "Referral code regenerated in short format",
+        true,
+      );
+      reload(
+        `New short referral code generated: ${response.data.referralCode ?? "ready"}`,
+      );
+    } catch (codeError) {
+      setMessage(
+        codeError instanceof AdminApiError
+          ? codeError.message
+          : "Unable to generate a shorter referral code.",
+      );
+    } finally {
+      setWorking(null);
+    }
+  }
+
   async function payCommission(commission: AdminReferralCommission) {
     const method = (
       document.getElementById(
@@ -590,6 +622,16 @@ export function AdminReferralManager() {
                     ) : null}
                     {partner.status === "ACTIVE" ? (
                       <>
+                        {partner.referralCode &&
+                        !/^WB-\d{5,6}$/.test(partner.referralCode) ? (
+                          <Button
+                            size="sm"
+                            disabled={working === "partner:" + partner.id}
+                            onClick={() => void makeCodeShorter(partner)}
+                          >
+                            Make code shorter
+                          </Button>
+                        ) : null}
                         <Button
                           size="sm"
                           variant="secondary"
