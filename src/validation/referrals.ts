@@ -73,6 +73,14 @@ export const adminReferralCommissionActionSchema = z.discriminatedUnion("action"
   }),
 ]);
 
+export const adminReferralPartnerListQuerySchema = z.object({
+  status: z
+    .enum(["PENDING", "ACTIVE", "SUSPENDED", "REJECTED"])
+    .optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 export const adminReferralCommissionListQuerySchema = z.object({
   status: z.enum(["EARNED", "PAID", "CANCELLED"]).optional(),
   partnerId: z.string().trim().min(1).optional(),
