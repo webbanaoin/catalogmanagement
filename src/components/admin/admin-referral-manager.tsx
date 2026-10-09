@@ -8,6 +8,7 @@ import {
   getAdminReferralOverview,
   getAdminReferralPartners,
   getAdminReferralSettings,
+  reconcileAdminReferralCommissions,
   settleAdminReferralCommission,
   updateAdminReferralPartnerStatus,
   updateAdminReferralSettings,
@@ -189,6 +190,31 @@ export function AdminReferralManager() {
         saveError instanceof AdminApiError
           ? saveError.message
           : "Unable to save referral settings.",
+      );
+    } finally {
+      setWorking(null);
+    }
+  }
+
+  async function reconcileMissingCommissions() {
+    if (
+      !window.confirm(
+        "Create missing eligible referral commissions using the current admin-configured monthly/yearly rates? This is intended for referred shops whose eligible payment was already recorded but commission was not created.",
+      )
+    ) {
+      return;
+    }
+
+    setWorking("reconcile");
+    setMessage(null);
+    try {
+      const response = await reconcileAdminReferralCommissions();
+      reload(response.data.message);
+    } catch (reconcileError) {
+      setMessage(
+        reconcileError instanceof AdminApiError
+          ? reconcileError.message
+          : "Unable to reconcile missing referral commissions.",
       );
     } finally {
       setWorking(null);
@@ -469,9 +495,19 @@ export function AdminReferralManager() {
             <Button
               type="button"
               onClick={() => void saveSettings()}
-              disabled={working === "settings"}
+              disabled={working === "settings" || working === "reconcile"}
             >
               {working === "settings" ? "Saving…" : "Save commission settings"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void reconcileMissingCommissions()}
+              disabled={working === "settings" || working === "reconcile"}
+            >
+              {working === "reconcile"
+                ? "Checking missing commissions…"
+                : "Reconcile missing commissions"}
             </Button>
             {settings?.updatedAt ? (
               <span className="text-xs text-muted">
@@ -479,6 +515,11 @@ export function AdminReferralManager() {
               </span>
             ) : null}
           </div>
+          <p className="text-xs leading-5 text-muted">
+            Use reconciliation only when a referred shop already has an eligible
+            Monthly/Yearly payment but no commission record. It never duplicates an
+            existing commission and keeps an audit trail.
+          </p>
         </CardContent>
       </Card>
 
