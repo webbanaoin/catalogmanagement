@@ -33,6 +33,17 @@ export interface AdminShop {
   city?: string | null;
   state?: string | null;
   requestedBusinessType?: string | null;
+  referralAssignedAt?: string | null;
+  referralPartner?: {
+    id: string;
+    referralCode?: string | null;
+    status: "PENDING" | "ACTIVE" | "SUSPENDED" | "REJECTED";
+    user: {
+      name: string;
+      email: string;
+      mobile?: string | null;
+    };
+  } | null;
   businessCategory?: {
     id: string;
     name: string;
@@ -43,6 +54,112 @@ export interface AdminShop {
   updatedAt: string;
   owners: AdminShopOwner[];
   subscription?: AdminShopSubscriptionSummary | null;
+}
+
+export type AdminReferralPartnerStatus =
+  | "PENDING"
+  | "ACTIVE"
+  | "SUSPENDED"
+  | "REJECTED";
+
+export type AdminReferralCommissionMode =
+  | "FIRST_PAID_SUBSCRIPTION"
+  | "EVERY_ELIGIBLE_PAYMENT";
+
+export type AdminReferralCommissionStatus = "EARNED" | "PAID" | "CANCELLED";
+
+export interface AdminReferralSettings {
+  isEnabled: boolean;
+  commissionMode: AdminReferralCommissionMode;
+  monthlyCommission: string;
+  yearlyCommission: string;
+  updatedAt?: string | null;
+}
+
+export interface AdminReferralPartner {
+  id: string;
+  referralCode?: string | null;
+  status: AdminReferralPartnerStatus;
+  city?: string | null;
+  state?: string | null;
+  marketingArea?: string | null;
+  notes?: string | null;
+  approvedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    mobile?: string | null;
+  };
+  shopCount: number;
+  paidShopCount: number;
+  commissionCount: number;
+  financials: {
+    totalCollections: string;
+    commissionEarned: string;
+    commissionPaid: string;
+    commissionPending: string;
+    netRevenue: string;
+  };
+}
+
+export interface AdminReferralOverview {
+  generatedAt: string;
+  revenue: {
+    totalCollections: string;
+    referredCollections: string;
+    commissionEarned: string;
+    commissionPaid: string;
+    commissionPending: string;
+    cancelledCommission: string;
+    netRevenueAfterCommission: string;
+    realizedNetCash: string;
+    monthlyReferredCollections: string;
+    monthlyCommissionLiability: string;
+    currency: string;
+  };
+  counts: {
+    activePartners: number;
+    pendingPartners: number;
+    referredShops: number;
+    paidReferredShops: number;
+    commissionRecords: number;
+  };
+}
+
+export interface AdminReferralCommission {
+  id: string;
+  paymentRecordId: string;
+  billingCycle: "MONTHLY" | "YEARLY" | AdminBillingCycle;
+  status: AdminReferralCommissionStatus;
+  commissionAmount: string;
+  currency: string;
+  paymentAmountSnapshot: string;
+  planNameSnapshot: string;
+  partnerNameSnapshot: string;
+  partnerCodeSnapshot: string;
+  shopNameSnapshot: string;
+  earnedAt: string;
+  paidAt?: string | null;
+  payoutMethod?: AdminPaymentMethod | null;
+  payoutReference?: string | null;
+  payoutComment?: string | null;
+  cancelledAt?: string | null;
+  cancelComment?: string | null;
+  createdAt: string;
+  referralPartner: {
+    id: string;
+    referralCode?: string | null;
+    user: {
+      name: string;
+      email: string;
+      mobile?: string | null;
+    };
+  };
+  shop: { id: string; name: string; slug: string };
+  paidByUser?: { id: string; name: string; email: string } | null;
 }
 
 export interface AdminPlan {
@@ -711,5 +828,157 @@ export async function removeAdminBusinessCategoryCover(categoryId: string) {
       encodeURIComponent(categoryId) +
       "/branding",
     { method: "DELETE" },
+  );
+}
+
+
+export async function getAdminReferralSettings() {
+  return requestJson<{ data: AdminReferralSettings }>(
+    "/api/admin/referrals/settings",
+  );
+}
+
+export async function updateAdminReferralSettings(payload: {
+  isEnabled: boolean;
+  commissionMode: AdminReferralCommissionMode;
+  monthlyCommission: number;
+  yearlyCommission: number;
+}) {
+  return requestJson<{ data: AdminReferralSettings }>(
+    "/api/admin/referrals/settings",
+    { method: "PATCH", body: JSON.stringify(payload) },
+  );
+}
+
+export async function getAdminReferralPartners(
+  status?: AdminReferralPartnerStatus,
+) {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  const query = params.toString();
+  return requestJson<{ items: AdminReferralPartner[] }>(
+    "/api/admin/referrals/partners" + (query ? "?" + query : ""),
+  );
+}
+
+export async function updateAdminReferralPartnerStatus(
+  partnerId: string,
+  status: Exclude<AdminReferralPartnerStatus, "PENDING">,
+  note?: string,
+) {
+  return requestJson<{
+    data: {
+      id: string;
+      referralCode?: string | null;
+      status: AdminReferralPartnerStatus;
+      approvedAt?: string | null;
+      updatedAt: string;
+      user: { name: string; email: string; mobile?: string | null };
+    };
+  }>(
+    "/api/admin/referrals/partners/" +
+      encodeURIComponent(partnerId) +
+      "/status",
+    {
+      method: "PATCH",
+      body: JSON.stringify({ status, note: note?.trim() || null }),
+    },
+  );
+}
+
+export async function assignAdminShopReferral(
+  shopId: string,
+  referralPartnerId: string | null,
+) {
+  return requestJson<{
+    data: {
+      id: string;
+      name: string;
+      referralPartnerId?: string | null;
+      referralAssignedAt?: string | null;
+      referralPartner?: {
+        id: string;
+        referralCode?: string | null;
+        user: { name: string };
+      } | null;
+    };
+  }>(
+    "/api/admin/shops/" + encodeURIComponent(shopId) + "/referral",
+    {
+      method: "PATCH",
+      body: JSON.stringify({ referralPartnerId }),
+    },
+  );
+}
+
+export async function getAdminReferralOverview() {
+  return requestJson<{ data: AdminReferralOverview }>(
+    "/api/admin/referrals/overview",
+  );
+}
+
+export async function getAdminReferralCommissions(filters?: {
+  status?: AdminReferralCommissionStatus;
+  partnerId?: string;
+  shopId?: string;
+  billingCycle?: "MONTHLY" | "YEARLY";
+  page?: number;
+  pageSize?: number;
+}) {
+  const params = new URLSearchParams();
+  if (filters?.status) params.set("status", filters.status);
+  if (filters?.partnerId) params.set("partnerId", filters.partnerId);
+  if (filters?.shopId) params.set("shopId", filters.shopId);
+  if (filters?.billingCycle) params.set("billingCycle", filters.billingCycle);
+  params.set("page", String(filters?.page ?? 1));
+  params.set("pageSize", String(filters?.pageSize ?? 50));
+
+  return requestJson<{
+    items: AdminReferralCommission[];
+    summary: {
+      count: number;
+      amount: string;
+      currency: string;
+      byStatus: Record<
+        AdminReferralCommissionStatus,
+        { count: number; amount: string }
+      >;
+    };
+    pagination: {
+      page: number;
+      pageSize: number;
+      total: number;
+      totalPages: number;
+    };
+  }>("/api/admin/referrals/commissions?" + params.toString());
+}
+
+export async function settleAdminReferralCommission(
+  commissionId: string,
+  payload:
+    | {
+        action: "PAY";
+        payoutMethod: AdminPaymentMethod;
+        paidAt?: string;
+        reference?: string | null;
+        comment?: string | null;
+      }
+    | { action: "CANCEL"; comment: string },
+) {
+  return requestJson<{
+    data: {
+      id: string;
+      status: AdminReferralCommissionStatus;
+      paidAt?: string | null;
+      payoutMethod?: AdminPaymentMethod | null;
+      payoutReference?: string | null;
+      payoutComment?: string | null;
+      cancelledAt?: string | null;
+      cancelComment?: string | null;
+    };
+  }>(
+    "/api/admin/referrals/commissions/" +
+      encodeURIComponent(commissionId),
+    { method: "PATCH", body: JSON.stringify(payload) },
   );
 }
