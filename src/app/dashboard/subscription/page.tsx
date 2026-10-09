@@ -107,6 +107,25 @@ export default function SubscriptionPage() {
       />
 
       {feedback ? <Alert variant="error">{feedback}</Alert> : null}
+      {subscription && subscription.status !== "CANCELLED" && (() => {
+        const expiry = new Date(subscription.endDate);
+        const today = new Date();
+        const daysLeft = Math.ceil((expiry.getTime() - today.getTime()) / 86400000);
+        if (daysLeft > 7 && subscription.status !== "EXPIRED" && subscription.status !== "GRACE") return null;
+        const expired = daysLeft <= 0 || subscription.status === "EXPIRED" || subscription.status === "GRACE";
+        return (
+          <Alert variant={expired ? "error" : "warning"} title={expired ? "Subscription renewal required" : "Your subscription is ending soon"}>
+            <div className="space-y-2">
+              <p>{expired
+                ? "Your plan has reached its end date. Renew to avoid restrictions on catalogue management."
+                : `Your current plan ends in ${daysLeft} day${daysLeft === 1 ? "" : "s"}. Renew now to keep your showroom active.`}</p>
+              <Link href="/dashboard/payments" className="inline-block font-semibold underline underline-offset-4">
+                View renewal and payment options
+              </Link>
+            </div>
+          </Alert>
+        );
+      })()}
 
       {!subscription ? (
         <EmptyState
