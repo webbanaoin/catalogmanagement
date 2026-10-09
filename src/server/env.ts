@@ -52,9 +52,28 @@ const storageEnvironmentSchema = z.object({
   MEDIA_BASE_URL: optionalUrlEnvironmentValue,
 });
 
+const optionalNonBlankEnvironmentValue = z.preprocess(
+  (value) =>
+    typeof value === "string" && value.trim() === "" ? undefined : value,
+  z.string().trim().min(1).optional(),
+);
+
+const passwordResetEmailEnvironmentSchema = z.object({
+  RESEND_API_KEY: optionalNonBlankEnvironmentValue,
+  PASSWORD_RESET_FROM_EMAIL: optionalNonBlankEnvironmentValue,
+  PASSWORD_RESET_REPLY_TO: optionalNonBlankEnvironmentValue,
+  PASSWORD_RESET_EXPOSE_URL: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+});
+
 export type AppEnvironment = z.infer<typeof appEnvironmentSchema>;
 export type DatabaseEnvironment = z.infer<typeof databaseEnvironmentSchema>;
 export type StorageEnvironment = z.infer<typeof storageEnvironmentSchema>;
+export type PasswordResetEmailEnvironment = z.infer<
+  typeof passwordResetEmailEnvironmentSchema
+>;
 
 function parseEnvironment<T>(schema: z.ZodType<T>, values: unknown, scope: string): T {
   const result = schema.safeParse(values);
@@ -79,4 +98,12 @@ export function getDatabaseEnvironment(): DatabaseEnvironment {
 
 export function getStorageEnvironment(): StorageEnvironment {
   return parseEnvironment(storageEnvironmentSchema, process.env, "storage");
+}
+
+export function getPasswordResetEmailEnvironment(): PasswordResetEmailEnvironment {
+  return parseEnvironment(
+    passwordResetEmailEnvironmentSchema,
+    process.env,
+    "password reset email",
+  );
 }
