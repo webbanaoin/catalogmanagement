@@ -199,6 +199,7 @@ model Shop {
   auditLogs AuditLog[]
   referralPartner ReferralPartner? @relation(fields: [referralPartnerId], references: [id], onDelete: SetNull)
   referralCommissions ReferralCommission[]
+  subscriptionReminders SubscriptionReminder[]
   @@index([businessCategoryId])
   @@index([status])
   @@index([city])
@@ -396,6 +397,20 @@ model Plan {
   @@index([status])
   @@index([isDefaultTrial, status])
   @@map("plans")
+}
+
+model SubscriptionReminder {
+  id String @id @default(cuid())
+  shopId String @map("shop_id")
+  recipientEmail String @map("recipient_email") @db.VarChar(191)
+  expiryDate DateTime @map("expiry_date")
+  daysBefore Int @map("days_before")
+  sentAt DateTime? @map("sent_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  @@unique([shopId, recipientEmail, expiryDate, daysBefore])
+  @@index([createdAt])
+  @@map("subscription_reminders")
 }
 
 model Subscription {
