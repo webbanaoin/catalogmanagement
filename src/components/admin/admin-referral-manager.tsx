@@ -139,6 +139,8 @@ export function AdminReferralManager() {
   const [settingsMode, setSettingsMode] =
     useState<AdminReferralCommissionMode>("FIRST_PAID_SUBSCRIPTION");
   const [monthlyCommission, setMonthlyCommission] = useState("0");
+  const [quarterlyCommission, setQuarterlyCommission] = useState("0");
+  const [halfYearlyCommission, setHalfYearlyCommission] = useState("0");
   const [yearlyCommission, setYearlyCommission] = useState("0");
 
   useEffect(() => {
@@ -170,6 +172,8 @@ export function AdminReferralManager() {
         setSettingsEnabled(settingsResponse.data.isEnabled);
         setSettingsMode(settingsResponse.data.commissionMode);
         setMonthlyCommission(settingsResponse.data.monthlyCommission);
+        setQuarterlyCommission(settingsResponse.data.quarterlyCommission);
+        setHalfYearlyCommission(settingsResponse.data.halfYearlyCommission);
         setYearlyCommission(settingsResponse.data.yearlyCommission);
         setError(null);
       })
@@ -205,8 +209,11 @@ export function AdminReferralManager() {
 
   async function saveSettings() {
     const monthly = Number(monthlyCommission);
+    const quarterly = Number(quarterlyCommission);
+    const halfYearly = Number(halfYearlyCommission);
     const yearly = Number(yearlyCommission);
-    if (!Number.isFinite(monthly) || monthly < 0 || !Number.isFinite(yearly) || yearly < 0) {
+    const values = [monthly, quarterly, halfYearly, yearly];
+    if (values.some((value) => !Number.isFinite(value) || value < 0)) {
       setMessage("Commission amounts must be zero or positive.");
       return;
     }
@@ -218,6 +225,8 @@ export function AdminReferralManager() {
         isEnabled: settingsEnabled,
         commissionMode: settingsMode,
         monthlyCommission: monthly,
+        quarterlyCommission: quarterly,
+        halfYearlyCommission: halfYearly,
         yearlyCommission: yearly,
       });
       reload("Referral commission settings saved.");
@@ -235,7 +244,7 @@ export function AdminReferralManager() {
   async function reconcileMissingCommissions() {
     if (
       !window.confirm(
-        "Create missing eligible referral commissions using the current admin-configured monthly/yearly rates? This is intended for referred shops whose eligible payment was already recorded but commission was not created.",
+        "Create missing eligible referral commissions using the current admin-configured Monthly/Quarterly/Half-Yearly/Yearly rates? This is intended for referred shops whose eligible payment was already recorded but commission was not created.",
       )
     ) {
       return;
@@ -476,7 +485,7 @@ export function AdminReferralManager() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <label className="text-sm font-medium text-foreground">
               Monthly commission
               <input
@@ -486,6 +495,28 @@ export function AdminReferralManager() {
                 step="0.01"
                 value={monthlyCommission}
                 onChange={(event) => setMonthlyCommission(event.target.value)}
+              />
+            </label>
+            <label className="text-sm font-medium text-foreground">
+              Quarterly commission
+              <input
+                className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3"
+                type="number"
+                min="0"
+                step="0.01"
+                value={quarterlyCommission}
+                onChange={(event) => setQuarterlyCommission(event.target.value)}
+              />
+            </label>
+            <label className="text-sm font-medium text-foreground">
+              Half-Yearly commission
+              <input
+                className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3"
+                type="number"
+                min="0"
+                step="0.01"
+                value={halfYearlyCommission}
+                onChange={(event) => setHalfYearlyCommission(event.target.value)}
               />
             </label>
             <label className="text-sm font-medium text-foreground">
@@ -553,7 +584,7 @@ export function AdminReferralManager() {
           </div>
           <p className="text-xs leading-5 text-muted">
             Use reconciliation only when a referred shop already has an eligible
-            Monthly/Yearly payment but no commission record. It never duplicates an
+            Monthly/Quarterly/Half-Yearly/Yearly payment but no commission record. It never duplicates an
             existing commission and keeps an audit trail.
           </p>
         </CardContent>
