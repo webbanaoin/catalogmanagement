@@ -129,13 +129,18 @@ function describedBy(id: string, error: string | undefined, hasHint = false): st
   return hasHint ? `${id}-hint` : undefined;
 }
 
-export function RegisterForm() {
+export function RegisterForm({
+  initialReferralCode = "",
+}: {
+  initialReferralCode?: string;
+}) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [businessCategories, setBusinessCategories] = useState<BusinessCategory[]>([]);
   const [businessTypeChoice, setBusinessTypeChoice] = useState("");
+  const [referralCode, setReferralCode] = useState(initialReferralCode);
 
   useEffect(() => {
     let active = true;
@@ -189,6 +194,7 @@ export function RegisterForm() {
         city: optionalValue(formData, "city"),
         state: optionalValue(formData, "state"),
         pincode: optionalValue(formData, "pincode"),
+        referralCode: optionalValue(formData, "referralCode"),
       });
 
       router.push("/pending-approval");
@@ -423,6 +429,25 @@ export function RegisterForm() {
           />
         </Field>
       </div>
+
+      <Field
+        label="Referral code"
+        htmlFor="referralCode"
+        hint="Optional. If a Webbanao marketing partner referred you, enter their code here."
+        error={fieldErrors.referralCode}
+      >
+        <Input
+          id="referralCode"
+          name="referralCode"
+          value={referralCode}
+          onChange={(event) => setReferralCode(event.target.value.toUpperCase())}
+          maxLength={80}
+          placeholder="e.g. WEB-RAHUL-A1B2C3"
+          autoCapitalize="characters"
+          aria-invalid={Boolean(fieldErrors.referralCode)}
+          aria-describedby={describedBy("referralCode", fieldErrors.referralCode, true)}
+        />
+      </Field>
 
       <Button type="submit" className="w-full" disabled={submitting}>
         {submitting ? "Creating registration…" : "Create merchant account"}
