@@ -10,6 +10,7 @@ import {
   CardTitle,
   EmptyState,
   PageHeader,
+  buttonClassName,
 } from "@/components/ui";
 import { requireReferralPartnerPageAccess } from "@/server/auth/partner-page-access";
 import { prisma } from "@/server/database/prisma";
@@ -72,7 +73,30 @@ function Metric({
   );
 }
 
-export default async function PartnerDashboardPage() {
+function positivePage(value: string | string[] | undefined) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const parsed = Number(raw ?? "1");
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+}
+
+function dashboardHref(shopPage: number, commissionPage: number) {
+  const params = new URLSearchParams();
+  if (shopPage > 1) params.set("shops", String(shopPage));
+  if (commissionPage > 1) params.set("commissions", String(commissionPage));
+  const query = params.toString();
+  return "/partner/dashboard" + (query ? "?" + query : "");
+}
+
+export default async function PartnerDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const query = await searchParams;
+  const shopPage = positivePage(query.shops);
+  const commissionPage = positivePage(query.commissions);
+  const pageSize = 20;
+
   const current = await requireReferralPartnerPageAccess();
   const partnerId = current.partner.id;
   const referralCode = current.partner.referralCode;
@@ -86,11 +110,21 @@ export default async function PartnerDashboardPage() {
     );
   }
 
-  const [shops, commissions, settings, commissionGroups] = await Promise.all([
+  const [
+    shops,
+    shopCount,
+    paidShopCount,
+    commissions,
+    commissionCount,
+    settings,
+    commissionGroups,
+    collections,
+  ] = await Promise.all([
     prisma.shop.findMany({
       where: { referralPartnerId: partnerId },
       orderBy: { createdAt: "desc" },
-      take: 100,
+      skip: (shopPage - 1) * pageSize,
+      take: pageSize,
       select: {
         id: true,
         name: true,
@@ -108,10 +142,20 @@ export default async function PartnerDashboardPage() {
         _count: { select: { payments: true } },
       },
     }),
+    prisma.shop.count({
+      where: { referralPartnerId: partnerId },
+    }),
+    prisma.shop.count({
+      where: {
+        referralPartnerId: partnerId,
+        payments: { some: {} },
+      },
+    }),
     prisma.referralCommission.findMany({
       where: { referralPartnerId: partnerId },
       orderBy: [{ earnedAt: "desc" }, { createdAt: "desc" }],
-      take: 100,
+      skip: (commissionPage - 1) * pageSize,
+      take: pageSize,
       select: {
         id: true,
         status: true,
@@ -127,6 +171,9 @@ export default async function PartnerDashboardPage() {
         cancelledAt: true,
         cancelComment: true,
       },
+    }),
+    prisma.referralCommission.count({
+      where: { referralPartnerId: partnerId },
     }),
     prisma.referralProgramSettings.findUnique({
       where: { id: "default" },
@@ -144,16 +191,16 @@ export default async function PartnerDashboardPage() {
       _sum: { commissionAmount: true },
       _count: { _all: true },
     }),
+    prisma.paymentRecord.aggregate({
+      where: {
+        shop: { referralPartnerId: partnerId },
+      },
+      _sum: { amount: true },
+    }),
   ]);
 
-  const shopIds = shops.map((shop) => shop.id);
-  const collections = await prisma.paymentRecord.aggregate({
-    where:
-      shopIds.length > 0
-        ? { shopId: { in: shopIds } }
-        : { id: "__none__" },
-    _sum: { amount: true },
-  });
+  const shopTotalPages = Math.ceil(shopCount / pageSize);
+  const commissionTotalPages = Math.ceil(commissionCount / pageSize);
 
   let totalEarned = 0;
   let paid = 0;
@@ -169,7 +216,7 @@ export default async function PartnerDashboardPage() {
     }
   }
 
-  const paidShops = shops.filter((shop) => shop._count.payments > 0).length;
+  const paidShops = paidShopCount;
   const referralLink = new URL(
     `/register?ref=${encodeURIComponent(referralCode)}`,
     getAppEnvironment().APP_URL,
@@ -220,7 +267,7 @@ export default async function PartnerDashboardPage() {
 
       <section className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Metric label="Shops referred" value={String(shops.length)} />
+          <Metric label="Shops referred" value={String(shopCount)} />
           <Metric
             label="Paid shops"
             value={String(paidShops)}
@@ -316,6 +363,47 @@ export default async function PartnerDashboardPage() {
             ))}
           </div>
         )}
+
+        {shopTotalPages > 1 ? (
+          <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-muted">
+              Showing {(shopPage - 1) * pageSize + 1}–
+              {Math.min(shopPage * pageSize, shopCount)} of {shopCount} referred shops
+            </p>
+            <div className="flex items-center gap-2">
+              <Link
+                href={dashboardHref(Math.max(1, shopPage - 1), commissionPage)}
+                aria-disabled={shopPage <= 1}
+                className={buttonClassName(
+                  "secondary",
+                  "sm",
+                  shopPage <= 1 ? "pointer-events-none opacity-50" : undefined,
+                )}
+              >
+                Previous
+              </Link>
+              <span className="min-w-24 text-center text-xs font-semibold text-foreground">
+                Page {shopPage} of {shopTotalPages}
+              </span>
+              <Link
+                href={dashboardHref(
+                  Math.min(shopTotalPages, shopPage + 1),
+                  commissionPage,
+                )}
+                aria-disabled={shopPage >= shopTotalPages}
+                className={buttonClassName(
+                  "secondary",
+                  "sm",
+                  shopPage >= shopTotalPages
+                    ? "pointer-events-none opacity-50"
+                    : undefined,
+                )}
+              >
+                Next
+              </Link>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <section className="space-y-4">
@@ -372,6 +460,50 @@ export default async function PartnerDashboardPage() {
             ))}
           </div>
         )}
+
+        {commissionTotalPages > 1 ? (
+          <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-muted">
+              Showing {(commissionPage - 1) * pageSize + 1}–
+              {Math.min(commissionPage * pageSize, commissionCount)} of{" "}
+              {commissionCount} commission records
+            </p>
+            <div className="flex items-center gap-2">
+              <Link
+                href={dashboardHref(shopPage, Math.max(1, commissionPage - 1))}
+                aria-disabled={commissionPage <= 1}
+                className={buttonClassName(
+                  "secondary",
+                  "sm",
+                  commissionPage <= 1
+                    ? "pointer-events-none opacity-50"
+                    : undefined,
+                )}
+              >
+                Previous
+              </Link>
+              <span className="min-w-24 text-center text-xs font-semibold text-foreground">
+                Page {commissionPage} of {commissionTotalPages}
+              </span>
+              <Link
+                href={dashboardHref(
+                  shopPage,
+                  Math.min(commissionTotalPages, commissionPage + 1),
+                )}
+                aria-disabled={commissionPage >= commissionTotalPages}
+                className={buttonClassName(
+                  "secondary",
+                  "sm",
+                  commissionPage >= commissionTotalPages
+                    ? "pointer-events-none opacity-50"
+                    : undefined,
+                )}
+              >
+                Next
+              </Link>
+            </div>
+          </div>
+        ) : null}
       </section>
     </div>
   );
