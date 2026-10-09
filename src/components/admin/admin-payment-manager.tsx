@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import { AdminPaymentAnalyticsDashboard } from "@/components/admin/admin-payment-analytics-dashboard";
+import { AdminPaymentSubmissionQueue } from "@/components/admin/admin-payment-submission-queue";
 import {
   AdminApiError,
   getAdminPaymentAnalytics,
@@ -394,6 +395,14 @@ export function AdminPaymentManager() {
           onRecordPayment={focusPaymentForm}
         />
       ) : null}
+
+      <AdminPaymentSubmissionQueue
+        onOfficialPaymentChanged={() => {
+          setAnalyticsLoading(true);
+          setHistoryLoading(true);
+          setReloadKey((value) => value + 1);
+        }}
+      />
 
       <div ref={paymentFormRef} className="scroll-mt-6">
         <Card>
