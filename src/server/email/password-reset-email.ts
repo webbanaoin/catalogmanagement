@@ -29,7 +29,11 @@ export async function sendPasswordResetEmail(
   const resetUrl = buildResetUrl(input.resetToken);
   const config = getPasswordResetEmailEnvironment();
 
-  if (config.PASSWORD_RESET_EXPOSE_URL) {
+  const exposeForTesting =
+    process.env.NODE_ENV !== "production" ||
+    config.PASSWORD_RESET_EXPOSE_URL;
+
+  if (exposeForTesting) {
     return {
       resetUrl,
       exposedForTesting: true,
