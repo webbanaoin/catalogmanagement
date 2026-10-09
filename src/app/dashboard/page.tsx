@@ -44,6 +44,11 @@ const workspaces = [
     href: "/dashboard/analytics",
   },
   {
+    title: "Payments",
+    description: "View verified payment history or submit an offline/direct payment for Webbanao admin verification.",
+    href: "/dashboard/payments",
+  },
+  {
     title: "Subscription",
     description: "Review the current plan, validity, product limits, image limits and enabled features.",
     href: "/dashboard/subscription",
@@ -56,7 +61,7 @@ export default function DashboardPage() {
       <PageHeader
         eyebrow="Sprint 6"
         title="Merchant dashboard"
-        description="Manage your shop profile, catalogue, products, sharing, analytics and subscription from one workspace."
+        description="Manage your shop profile, catalogue, products, sharing, analytics, payments and subscription from one workspace."
       />
 
       <Alert title="Sprint 6 staging validation">

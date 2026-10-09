@@ -58,12 +58,20 @@ export function LoginForm() {
     try {
       const response = await loginMerchant({ email, password });
       router.replace(
-        response.data.platformRole === "ADMIN" ? "/admin" : "/onboarding",
+        response.data.platformRole === "ADMIN"
+          ? "/admin"
+          : response.data.platformRole === "PARTNER"
+            ? "/partner/dashboard"
+            : "/onboarding",
       );
     } catch (error) {
       if (error instanceof AuthApiError) {
         if (error.code === "SHOP_PENDING_APPROVAL") {
           router.replace("/pending-approval");
+          return;
+        }
+        if (error.code === "PARTNER_PENDING_APPROVAL") {
+          router.replace("/partner/pending");
           return;
         }
         setFieldErrors(error.fields);

@@ -103,6 +103,12 @@ jobs:
       - name: Admin payment regression
         run: npm run test:admin:payments
 
+      - name: Referral platform regression
+        run: npm run test:referrals
+
+      - name: Merchant payment verification regression
+        run: npm run test:merchant:payments
+
       - name: Application log on failure
         if: failure()
         run: cat /tmp/sprint6-app.log || true

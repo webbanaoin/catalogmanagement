@@ -90,6 +90,7 @@ export interface RegisterPayload {
   city?: string;
   state?: string;
   pincode?: string;
+  referralCode?: string;
 }
 
 export interface LoginPayload {
@@ -99,6 +100,17 @@ export interface LoginPayload {
 
 export interface ForgotPasswordPayload {
   email: string;
+}
+
+export interface PartnerRegisterPayload {
+  name: string;
+  email: string;
+  mobile: string;
+  password: string;
+  confirmPassword: string;
+  city?: string;
+  state?: string;
+  marketingArea?: string;
 }
 
 export function registerMerchant(payload: RegisterPayload) {
@@ -112,7 +124,7 @@ export function loginMerchant(payload: LoginPayload) {
       name: string;
       email: string;
       status: string;
-      platformRole: "USER" | "ADMIN";
+      platformRole: "USER" | "ADMIN" | "PARTNER";
       shops: Array<{
         id: string;
         name: string;
@@ -126,4 +138,30 @@ export function loginMerchant(payload: LoginPayload) {
 
 export function requestPasswordReset(payload: ForgotPasswordPayload) {
   return postJson<{ data: { message?: string } }>("/api/auth/forgot-password", payload);
+}
+
+export function registerReferralPartner(payload: PartnerRegisterPayload) {
+  return postJson<{
+    data: {
+      id: string;
+      status: "PENDING";
+      message: string;
+    };
+  }>("/api/partner/register", payload);
+}
+
+export function loginReferralPartner(payload: LoginPayload) {
+  return postJson<{
+    data: {
+      id: string;
+      name: string;
+      email: string;
+      platformRole: "PARTNER";
+      partner: {
+        id: string;
+        status: "ACTIVE";
+        referralCode: string;
+      };
+    };
+  }>("/api/partner/login", payload);
 }

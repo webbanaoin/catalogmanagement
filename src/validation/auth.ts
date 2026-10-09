@@ -66,6 +66,7 @@ export const registerSchema = z
     city: optionalNonBlankText("City", 120),
     state: optionalNonBlankText("State", 120),
     pincode: optionalIndianPincode,
+    referralCode: z.string().trim().max(80).optional(),
   })
   .refine(
     (value) => !(value.businessCategoryId && value.requestedBusinessType),

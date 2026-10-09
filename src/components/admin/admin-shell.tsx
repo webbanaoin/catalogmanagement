@@ -9,6 +9,7 @@ const items = [
   { label: "Shops", href: "/admin/shops" },
   { label: "Plans", href: "/admin/plans" },
   { label: "Payments", href: "/admin/payments" },
+  { label: "Referrals", href: "/admin/referrals" },
   { label: "Business categories", href: "/admin/categories" },
   { label: "Platform analytics", href: "/admin/analytics" },
 ];
@@ -29,7 +30,7 @@ export function AdminShell({
         Skip to admin content
       </a>
 
-      <header className="border-b border-border bg-surface">
+      <header className="sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur">
         <Container className="flex min-h-16 items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-foreground">Digital Showroom Admin</p>

@@ -33,6 +33,15 @@ export async function GET(request: Request) {
           city: true,
           state: true,
           requestedBusinessType: true,
+          referralAssignedAt: true,
+          referralPartner: {
+            select: {
+              id: true,
+              referralCode: true,
+              status: true,
+              user: { select: { name: true, email: true, mobile: true } },
+            },
+          },
           businessCategory: {
             select: {
               id: true,

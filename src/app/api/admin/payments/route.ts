@@ -7,11 +7,10 @@ import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
 import { readJsonBody } from "@/server/http/json-body";
 import {
-  effectiveSubscriptionStatus,
   getShopSubscriptionAccess,
   subscriptionResponse,
 } from "@/server/subscriptions/access";
-import { datePlusDays } from "@/server/subscriptions/trial";
+import { recordVerifiedShopPayment } from "@/server/payments/record-payment";
 import {
   adminPaymentCreateSchema,
   adminPaymentListQuerySchema,
@@ -224,164 +223,22 @@ export async function POST(request: Request) {
       });
     }
 
-    const shop = await prisma.shop.findUnique({
-      where: { id: input.shopId },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        status: true,
-        subscription: {
-          include: { plan: true },
-        },
-      },
+    const transactionResult = await recordVerifiedShopPayment({
+      actorUserId: admin.id,
+      shopId: input.shopId,
+      amount: input.amount,
+      method: input.method,
+      billingCycle: input.billingCycle,
+      receivedAt,
+      periodStartDate: requestedPeriodStart ?? null,
+      periodEndDate: requestedPeriodEnd ?? null,
+      reference: input.reference?.trim() || null,
+      comment: input.comment?.trim() || null,
+      extendDays: input.extendDays,
+      activateSubscription: input.activateSubscription,
     });
 
-    if (!shop) {
-      throw new AppError({
-        code: "SHOP_NOT_FOUND",
-        message: "Shop not found",
-        status: 404,
-      });
-    }
-
-    if (!["APPROVED", "ACTIVE", "SUSPENDED"].includes(shop.status)) {
-      throw new AppError({
-        code: "SHOP_NOT_ELIGIBLE_FOR_PAYMENT",
-        message:
-          "Payments can be recorded only for approved, active or suspended shops",
-        status: 409,
-      });
-    }
-
-    const current = shop.subscription;
-    if (!current) {
-      throw new AppError({
-        code: "SUBSCRIPTION_REQUIRED",
-        message:
-          "Assign a subscription before recording a payment for this shop",
-        status: 409,
-      });
-    }
-
-    const now = new Date();
-    const effectiveStatus = effectiveSubscriptionStatus(current, now);
-    if (
-      input.activateSubscription &&
-      (effectiveStatus === "EXPIRED" || effectiveStatus === "CANCELLED") &&
-      input.extendDays <= 0
-    ) {
-      throw new AppError({
-        code: "SUBSCRIPTION_EXTENSION_REQUIRED",
-        message:
-          "Renewal days are required when activating an expired or cancelled subscription",
-        status: 400,
-      });
-    }
-
-    const previousEndDate = current.endDate;
-    const baseEndDate =
-      current.endDate.getTime() > now.getTime() ? current.endDate : now;
-    const newEndDate =
-      input.extendDays > 0
-        ? datePlusDays(baseEndDate, input.extendDays)
-        : current.endDate;
-    const periodStartDate =
-      requestedPeriodStart ?? (input.extendDays > 0 ? baseEndDate : null);
-    const periodEndDate =
-      requestedPeriodEnd ?? (input.extendDays > 0 ? newEndDate : null);
-    const graceEndsAt =
-      input.extendDays > 0
-        ? current.plan.graceDays > 0
-          ? datePlusDays(newEndDate, current.plan.graceDays)
-          : null
-        : current.graceEndsAt;
-
-    const payment = await prisma.$transaction(async (tx) => {
-      const created = await tx.paymentRecord.create({
-        data: {
-          shopId: shop.id,
-          subscriptionId: current.id,
-          planId: current.planId,
-          recordedByUserId: admin.id,
-          planNameSnapshot: current.plan.name,
-          amount: input.amount,
-          currency: "INR",
-          method: input.method,
-          billingCycle: input.billingCycle,
-          periodStartDate,
-          periodEndDate,
-          reference: input.reference?.trim() || null,
-          comment: input.comment?.trim() || null,
-          receivedAt,
-          extendDays: input.extendDays,
-          previousEndDate,
-          newEndDate,
-        },
-        select: {
-          id: true,
-          amount: true,
-          currency: true,
-          method: true,
-          billingCycle: true,
-          periodStartDate: true,
-          periodEndDate: true,
-          reference: true,
-          comment: true,
-          receivedAt: true,
-          extendDays: true,
-          previousEndDate: true,
-          newEndDate: true,
-          createdAt: true,
-          planNameSnapshot: true,
-          shop: { select: { id: true, name: true, slug: true } },
-          recordedByUser: {
-            select: { id: true, name: true, email: true },
-          },
-        },
-      });
-
-      await tx.subscription.update({
-        where: { id: current.id },
-        data: {
-          paymentStatus: "PAID",
-          ...(input.activateSubscription ? { status: "ACTIVE" } : {}),
-          ...(input.extendDays > 0 ? { endDate: newEndDate, graceEndsAt } : {}),
-        },
-      });
-
-      await tx.auditLog.create({
-        data: {
-          actorUserId: admin.id,
-          shopId: shop.id,
-          action: "PAYMENT_RECORDED",
-          entityType: "PaymentRecord",
-          entityId: created.id,
-          metadata: {
-            amount: input.amount,
-            currency: "INR",
-            method: input.method,
-            billingCycle: input.billingCycle,
-            periodStartDate: periodStartDate?.toISOString() ?? null,
-            periodEndDate: periodEndDate?.toISOString() ?? null,
-            reference: input.reference?.trim() || null,
-            receivedAt: receivedAt.toISOString(),
-            planId: current.planId,
-            planName: current.plan.name,
-            previousSubscriptionStatus: current.status,
-            previousPaymentStatus: current.paymentStatus,
-            activateSubscription: input.activateSubscription,
-            extendDays: input.extendDays,
-            previousEndDate: previousEndDate.toISOString(),
-            newEndDate: newEndDate.toISOString(),
-          },
-        },
-      });
-
-      return created;
-    });
-
-    const access = await getShopSubscriptionAccess(shop.id);
+    const access = await getShopSubscriptionAccess(input.shopId);
     if (!access) {
       throw new AppError({
         code: "SUBSCRIPTION_UPDATE_FAILED",
@@ -392,8 +249,18 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        data: paymentItem(payment),
+        data: paymentItem(transactionResult.payment),
         subscription: subscriptionResponse(access),
+        referralCommission:
+          transactionResult.referralCommission &&
+          "commissionAmount" in transactionResult.referralCommission
+            ? {
+                id: transactionResult.referralCommission.id,
+                amount:
+                  transactionResult.referralCommission.commissionAmount.toString(),
+                status: transactionResult.referralCommission.status,
+              }
+            : null,
       },
       { status: 201 },
     );

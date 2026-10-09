@@ -23,6 +23,9 @@ async function redirectAuthenticatedUser() {
           },
         },
       },
+      referralPartner: {
+        select: { status: true },
+      },
     },
   });
 
@@ -36,6 +39,16 @@ async function redirectAuthenticatedUser() {
 
   if (user.platformRole === "ADMIN") {
     redirect("/admin");
+  }
+
+  if (user.platformRole === "PARTNER") {
+    if (user.referralPartner?.status === "ACTIVE") {
+      redirect("/partner/dashboard");
+    }
+    if (user.referralPartner?.status === "PENDING") {
+      redirect("/partner/pending");
+    }
+    return;
   }
 
   const usableShop = user.shopUsers.some(
@@ -68,6 +81,15 @@ export default async function LoginPage() {
               className="font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             >
               Forgot your password?
+            </Link>
+          </p>
+          <p>
+            Marketing partner?{" "}
+            <Link
+              href="/partner/login"
+              className="font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            >
+              Partner sign in
             </Link>
           </p>
           <p>

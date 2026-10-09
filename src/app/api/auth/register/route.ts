@@ -8,6 +8,7 @@ import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
 import { readJsonBody } from "@/server/http/json-body";
 import { enforceRateLimit, getClientIp } from "@/server/security/rate-limit";
+import { normalizeReferralCode } from "@/server/referrals/referral-code";
 import { registerSchema } from "@/validation/auth";
 
 function slugBase(name: string): string {
@@ -35,6 +36,23 @@ export async function POST(request: Request) {
     const result = await prisma.$transaction(async (tx) => {
       if (await tx.user.findUnique({ where: { email: input.email }, select: { id: true } })) {
         throw new AppError({ code: "EMAIL_IN_USE", message: "An account with this email already exists", status: 409 });
+      }
+
+      let referralPartner: { id: string; referralCode: string | null } | null = null;
+      if (input.referralCode?.trim()) {
+        const referralCode = normalizeReferralCode(input.referralCode);
+        referralPartner = await tx.referralPartner.findFirst({
+          where: { referralCode, status: "ACTIVE" },
+          select: { id: true, referralCode: true },
+        });
+        if (!referralPartner) {
+          throw new AppError({
+            code: "INVALID_REFERRAL_CODE",
+            message: "Referral code is invalid or inactive",
+            status: 400,
+            fields: { referralCode: ["Enter a valid active referral code"] },
+          });
+        }
       }
 
       let businessCategory: { id: string; name: string; slug: string } | null = null;
@@ -70,6 +88,8 @@ export async function POST(request: Request) {
           city: input.city || null,
           state: input.state || null,
           pincode: input.pincode || null,
+          referralPartnerId: referralPartner?.id ?? null,
+          referralAssignedAt: referralPartner ? new Date() : null,
           status: "PENDING",
         },
         select: { id: true, name: true, slug: true, status: true, businessCategoryId: true, requestedBusinessType: true, phone: true, whatsapp: true, city: true, state: true, pincode: true, createdAt: true },
@@ -79,6 +99,23 @@ export async function POST(request: Request) {
         data: { userId: user.id, shopId: shop.id, role: "OWNER" },
         select: { id: true, role: true, shopId: true, createdAt: true },
       });
+
+      if (referralPartner) {
+        await tx.auditLog.create({
+          data: {
+            actorUserId: user.id,
+            shopId: shop.id,
+            action: "SHOP_REFERRAL_ASSIGNED",
+            entityType: "Shop",
+            entityId: shop.id,
+            metadata: {
+              referralPartnerId: referralPartner.id,
+              referralCode: referralPartner.referralCode,
+              source: "REGISTRATION_CODE",
+            },
+          },
+        });
+      }
 
       if (input.requestedBusinessType) {
         await tx.auditLog.create({
