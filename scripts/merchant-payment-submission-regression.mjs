@@ -454,6 +454,36 @@ async function main() {
     throw new Error("Merchant could not see rejected payment status and reason");
   }
 
+  const pagedWorkspace = await request(
+    `/api/shops/${shop.id}/payments?paymentPage=1&submissionPage=1&pageSize=1`,
+    {},
+    merchantCookie,
+  );
+  await expectStatus("merchant payment pagination", pagedWorkspace, 200);
+  const pagedWorkspacePayload = await pagedWorkspace.json();
+  if (
+    pagedWorkspacePayload?.data?.payments?.length > 1 ||
+    pagedWorkspacePayload?.data?.submissions?.length > 1 ||
+    pagedWorkspacePayload?.data?.pagination?.payments?.pageSize !== 1 ||
+    pagedWorkspacePayload?.data?.pagination?.submissions?.pageSize !== 1
+  ) {
+    throw new Error("Merchant payment pagination contract is not enforced");
+  }
+
+  const pagedAdminQueue = await request(
+    "/api/admin/payment-submissions?page=1&pageSize=1",
+    {},
+    adminCookie,
+  );
+  await expectStatus("admin payment submission pagination", pagedAdminQueue, 200);
+  const pagedAdminQueuePayload = await pagedAdminQueue.json();
+  if (
+    pagedAdminQueuePayload?.items?.length > 1 ||
+    pagedAdminQueuePayload?.pagination?.pageSize !== 1
+  ) {
+    throw new Error("Admin payment submission pagination contract is not enforced");
+  }
+
   process.stdout.write(
     "Merchant payment submission, admin verification, direct-payment visibility, referral commission, duplicate guards and rejection history checks passed.\n",
   );
