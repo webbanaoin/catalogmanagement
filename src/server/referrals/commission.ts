@@ -73,7 +73,7 @@ export async function createCommissionForPayment(
     where: { paymentRecordId: input.paymentRecordId },
     select: { id: true },
   });
-  if (existing) return existing;
+  if (existing) return null;
 
   return tx.referralCommission.create({
     data: {
