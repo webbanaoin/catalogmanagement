@@ -3,7 +3,17 @@ import Link from "next/link";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { RegisterForm } from "@/components/auth/register-form";
 
-export default function RegisterPage() {
+function first(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const query = await searchParams;
+  const referralCode = first(query.ref)?.trim().toUpperCase() ?? "";
   return (
     <AuthShell
       title="Create your merchant account"
@@ -20,7 +30,7 @@ export default function RegisterPage() {
         </>
       }
     >
-      <RegisterForm />
+      <RegisterForm initialReferralCode={referralCode} />
     </AuthShell>
   );
 }
