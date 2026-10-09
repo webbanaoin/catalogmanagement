@@ -10,6 +10,8 @@ function response(settings: {
   isEnabled: boolean;
   commissionMode: "FIRST_PAID_SUBSCRIPTION" | "EVERY_ELIGIBLE_PAYMENT";
   monthlyCommission: { toString(): string };
+  quarterlyCommission: { toString(): string };
+  halfYearlyCommission: { toString(): string };
   yearlyCommission: { toString(): string };
   updatedAt: Date;
 } | null) {
@@ -18,6 +20,8 @@ function response(settings: {
     commissionMode:
       settings?.commissionMode ?? "FIRST_PAID_SUBSCRIPTION",
     monthlyCommission: settings?.monthlyCommission.toString() ?? "0",
+    quarterlyCommission: settings?.quarterlyCommission.toString() ?? "0",
+    halfYearlyCommission: settings?.halfYearlyCommission.toString() ?? "0",
     yearlyCommission: settings?.yearlyCommission.toString() ?? "0",
     updatedAt: settings?.updatedAt ?? null,
   };
@@ -54,12 +58,16 @@ export async function PATCH(request: Request) {
           isEnabled: input.isEnabled,
           commissionMode: input.commissionMode,
           monthlyCommission: input.monthlyCommission,
+          quarterlyCommission: input.quarterlyCommission,
+          halfYearlyCommission: input.halfYearlyCommission,
           yearlyCommission: input.yearlyCommission,
         },
         update: {
           isEnabled: input.isEnabled,
           commissionMode: input.commissionMode,
           monthlyCommission: input.monthlyCommission,
+          quarterlyCommission: input.quarterlyCommission,
+          halfYearlyCommission: input.halfYearlyCommission,
           yearlyCommission: input.yearlyCommission,
         },
       });
@@ -76,6 +84,8 @@ export async function PATCH(request: Request) {
                   isEnabled: previous.isEnabled,
                   commissionMode: previous.commissionMode,
                   monthlyCommission: previous.monthlyCommission.toString(),
+                  quarterlyCommission: previous.quarterlyCommission.toString(),
+                  halfYearlyCommission: previous.halfYearlyCommission.toString(),
                   yearlyCommission: previous.yearlyCommission.toString(),
                 }
               : null,
@@ -83,6 +93,8 @@ export async function PATCH(request: Request) {
               isEnabled: saved.isEnabled,
               commissionMode: saved.commissionMode,
               monthlyCommission: saved.monthlyCommission.toString(),
+              quarterlyCommission: saved.quarterlyCommission.toString(),
+              halfYearlyCommission: saved.halfYearlyCommission.toString(),
               yearlyCommission: saved.yearlyCommission.toString(),
             },
           },
