@@ -24,6 +24,10 @@ import {
   PaginationControls,
   Select,
 } from "@/components/ui";
+import {
+  billingCycleExtensionDays,
+  isPaidBillingCycle,
+} from "@/lib/subscription-cycles";
 
 function money(value: string | number) {
   return new Intl.NumberFormat("en-IN", {
@@ -58,7 +62,9 @@ function badgeVariant(status: AdminPaymentSubmissionStatus) {
 }
 
 function defaultDays(submission: AdminPaymentSubmission) {
-  return submission.billingCycle === "YEARLY" ? 365 : 30;
+  return isPaidBillingCycle(submission.billingCycle)
+    ? billingCycleExtensionDays(submission.billingCycle)
+    : 0;
 }
 
 export function AdminPaymentSubmissionQueue({
