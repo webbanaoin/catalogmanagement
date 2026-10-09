@@ -3,23 +3,26 @@ import { NextResponse } from "next/server";
 import { requirePlatformAdmin } from "@/server/auth/admin-access";
 import { prisma } from "@/server/database/prisma";
 import { errorResponse } from "@/server/http/error-response";
+import { adminReferralPartnerListQuerySchema } from "@/validation/referrals";
 
 export async function GET(request: Request) {
   try {
     await requirePlatformAdmin();
     const url = new URL(request.url);
-    const requestedStatus = url.searchParams.get("status");
-    const status =
-      requestedStatus === "PENDING" ||
-      requestedStatus === "ACTIVE" ||
-      requestedStatus === "SUSPENDED" ||
-      requestedStatus === "REJECTED"
-        ? requestedStatus
-        : undefined;
+    const query = adminReferralPartnerListQuerySchema.parse({
+      status: url.searchParams.get("status") ?? undefined,
+      page: url.searchParams.get("page") ?? undefined,
+      pageSize: url.searchParams.get("pageSize") ?? undefined,
+    });
+    const where = query.status ? { status: query.status } : undefined;
+    const skip = (query.page - 1) * query.pageSize;
 
-    const partners = await prisma.referralPartner.findMany({
-      where: status ? { status } : undefined,
+    const [partners, total, options] = await prisma.$transaction([
+      prisma.referralPartner.findMany({
+      where,
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+      skip,
+      take: query.pageSize,
       select: {
         id: true,
         referralCode: true,
@@ -64,7 +67,18 @@ export async function GET(request: Request) {
           },
         },
       },
-    });
+    }),
+      prisma.referralPartner.count({ where }),
+      prisma.referralPartner.findMany({
+        orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+        select: {
+          id: true,
+          referralCode: true,
+          status: true,
+          user: { select: { name: true } },
+        },
+      }),
+    ]);
 
     const items = await Promise.all(
       partners.map(async (partner) => {
@@ -119,7 +133,16 @@ export async function GET(request: Request) {
       }),
     );
 
-    return NextResponse.json({ items });
+    return NextResponse.json({
+      items,
+      options,
+      pagination: {
+        page: query.page,
+        pageSize: query.pageSize,
+        total,
+        totalPages: Math.ceil(total / query.pageSize),
+      },
+    });
   } catch (error) {
     return errorResponse(error);
   }
