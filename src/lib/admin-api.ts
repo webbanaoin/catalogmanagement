@@ -72,6 +72,8 @@ export interface AdminReferralSettings {
   isEnabled: boolean;
   commissionMode: AdminReferralCommissionMode;
   monthlyCommission: string;
+  quarterlyCommission: string;
+  halfYearlyCommission: string;
   yearlyCommission: string;
   updatedAt?: string | null;
 }
@@ -181,6 +183,8 @@ export interface AdminPlan {
   slug: string;
   description?: string | null;
   monthlyPrice: string;
+  quarterlyPrice: string;
+  halfYearlyPrice: string;
   annualPrice: string;
   productLimit: number;
   imageLimitPerProduct: number;
@@ -205,6 +209,10 @@ export interface AdminSubscription {
     id: string;
     name: string;
     slug: string;
+    monthlyPrice: string;
+    quarterlyPrice: string;
+    halfYearlyPrice: string;
+    annualPrice: string;
     productLimit: number;
     imageLimitPerProduct: number;
     analyticsEnabled: boolean;
@@ -402,6 +410,8 @@ export interface AdminPlanPayload {
   slug?: string;
   description?: string | null;
   monthlyPrice: number;
+  quarterlyPrice: number;
+  halfYearlyPrice: number;
   annualPrice: number;
   productLimit: number;
   imageLimitPerProduct: number;
@@ -913,6 +923,8 @@ export async function updateAdminReferralSettings(payload: {
   isEnabled: boolean;
   commissionMode: AdminReferralCommissionMode;
   monthlyCommission: number;
+  quarterlyCommission: number;
+  halfYearlyCommission: number;
   yearlyCommission: number;
 }) {
   return requestJson<{ data: AdminReferralSettings }>(
@@ -1012,7 +1024,7 @@ export async function getAdminReferralCommissions(filters?: {
   status?: AdminReferralCommissionStatus;
   partnerId?: string;
   shopId?: string;
-  billingCycle?: "MONTHLY" | "YEARLY";
+  billingCycle?: "MONTHLY" | "QUARTERLY" | "HALF_YEARLY" | "YEARLY";
   page?: number;
   pageSize?: number;
 }) {
