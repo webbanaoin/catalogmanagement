@@ -16,6 +16,10 @@ export interface AdminShopSubscriptionSummary {
   planId: string;
   planName: string;
   planSlug: string;
+  monthlyPrice: string;
+  quarterlyPrice: string;
+  halfYearlyPrice: string;
+  annualPrice: string;
   status: "TRIAL" | "ACTIVE" | "GRACE" | "EXPIRED" | "CANCELLED";
   storedStatus: "TRIAL" | "ACTIVE" | "GRACE" | "EXPIRED" | "CANCELLED";
   paymentStatus: "NOT_REQUIRED" | "PENDING" | "PAID" | "WAIVED";
