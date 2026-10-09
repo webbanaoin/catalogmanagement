@@ -27,6 +27,14 @@ export async function GET(request: Request) {
     };
 
     const skip = (query.page - 1) * query.pageSize;
+    const statusGroupsQuery = prisma.referralCommission.groupBy({
+      by: ["status"],
+      where,
+      orderBy: { status: "asc" },
+      _sum: { commissionAmount: true },
+      _count: { _all: true },
+    });
+
     const [items, total, aggregate, groups] = await prisma.$transaction([
       prisma.referralCommission.findMany({
         where,
@@ -69,13 +77,7 @@ export async function GET(request: Request) {
         where,
         _sum: { commissionAmount: true },
       }),
-      prisma.referralCommission.groupBy({
-        by: ["status"],
-        where,
-        orderBy: { status: "asc" },
-        _sum: { commissionAmount: true },
-        _count: { _all: true },
-      }),
+      statusGroupsQuery,
     ]);
 
     const byStatus = {
