@@ -5,16 +5,16 @@ import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
 import { readJsonBody } from "@/server/http/json-body";
+import {
+  billingCycleExtensionDays,
+  isPaidBillingCycle,
+} from "@/lib/subscription-cycles";
 import { recordVerifiedShopPayment } from "@/server/payments/record-payment";
 import {
   getShopSubscriptionAccess,
   subscriptionResponse,
 } from "@/server/subscriptions/access";
 import { adminPaymentSubmissionReviewSchema } from "@/validation/subscriptions";
-
-function defaultExtensionDays(cycle: "MONTHLY" | "YEARLY") {
-  return cycle === "YEARLY" ? 365 : 30;
-}
 
 export async function PATCH(
   request: Request,
@@ -120,19 +120,17 @@ export async function PATCH(
       return NextResponse.json({ data: result });
     }
 
-    if (
-      submission.billingCycle !== "MONTHLY" &&
-      submission.billingCycle !== "YEARLY"
-    ) {
+    if (!isPaidBillingCycle(submission.billingCycle)) {
       throw new AppError({
         code: "PAYMENT_SUBMISSION_CYCLE_UNSUPPORTED",
-        message: "Merchant-submitted payments must be Monthly or Yearly",
+        message:
+          "Merchant-submitted payments must be Monthly, Quarterly, Half-Yearly or Yearly",
         status: 409,
       });
     }
 
     const extendDays =
-      input.extendDays ?? defaultExtensionDays(submission.billingCycle);
+      input.extendDays ?? billingCycleExtensionDays(submission.billingCycle);
 
     const officialComment = [
       "Approved merchant-submitted payment.",

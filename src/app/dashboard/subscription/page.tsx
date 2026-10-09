@@ -23,6 +23,21 @@ import {
   type MerchantShop,
   type MerchantSubscription,
 } from "@/lib/catalog-api";
+import {
+  PAID_BILLING_CYCLES,
+  SUBSCRIPTION_CYCLE_CONFIG,
+  effectiveMonthlyPrice,
+  planPriceForCycle,
+  savingsAgainstMonthly,
+} from "@/lib/subscription-cycles";
+
+function formatMoney(value: string | number) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(Number(value || 0));
+}
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "—";
@@ -146,14 +161,34 @@ export default function SubscriptionPage() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted">Images / product</p>
                   <p className="mt-2 text-2xl font-semibold text-foreground">{subscription.plan.imageLimitPerProduct}</p>
                 </div>
-                <div className="rounded-xl border border-border bg-background p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted">Monthly price</p>
-                  <p className="mt-2 text-2xl font-semibold text-foreground">₹{subscription.plan.monthlyPrice}</p>
-                </div>
-                <div className="rounded-xl border border-border bg-background p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted">Annual price</p>
-                  <p className="mt-2 text-2xl font-semibold text-foreground">₹{subscription.plan.annualPrice}</p>
-                </div>
+              </div>
+
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {PAID_BILLING_CYCLES.map((cycle) => {
+                  const price = planPriceForCycle(subscription.plan, cycle);
+                  const effective = effectiveMonthlyPrice(subscription.plan, cycle);
+                  const saving = savingsAgainstMonthly(subscription.plan, cycle);
+                  return (
+                    <div
+                      key={cycle}
+                      className="rounded-xl border border-border bg-background p-4"
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                        {SUBSCRIPTION_CYCLE_CONFIG[cycle].label}
+                      </p>
+                      <p className="mt-2 text-2xl font-semibold text-foreground">
+                        {price > 0 ? formatMoney(price) : "Not configured"}
+                      </p>
+                      {price > 0 ? (
+                        <p className="mt-1 text-xs text-muted">
+                          {cycle === "MONTHLY"
+                            ? "Flexible monthly billing"
+                            : `${formatMoney(effective)}/month effective${saving > 0 ? ` · Save ${formatMoney(saving)}` : ""}`}
+                        </p>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

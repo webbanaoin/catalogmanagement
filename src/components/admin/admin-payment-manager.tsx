@@ -41,6 +41,11 @@ import {
   Select,
   Textarea,
 } from "@/components/ui";
+import {
+  billingCycleExtensionDays,
+  isPaidBillingCycle,
+  planPriceForCycle,
+} from "@/lib/subscription-cycles";
 
 type HistoryRange =
   | "ALL"
@@ -65,10 +70,26 @@ const cycles: Array<{
   defaultDays: number | null;
 }> = [
   { value: "WEEKLY", label: "Weekly", defaultDays: 7 },
-  { value: "MONTHLY", label: "Monthly", defaultDays: 30 },
-  { value: "QUARTERLY", label: "Quarterly", defaultDays: 90 },
-  { value: "HALF_YEARLY", label: "Half-yearly", defaultDays: 182 },
-  { value: "YEARLY", label: "Yearly", defaultDays: 365 },
+  {
+    value: "MONTHLY",
+    label: "Monthly",
+    defaultDays: billingCycleExtensionDays("MONTHLY"),
+  },
+  {
+    value: "QUARTERLY",
+    label: "Quarterly",
+    defaultDays: billingCycleExtensionDays("QUARTERLY"),
+  },
+  {
+    value: "HALF_YEARLY",
+    label: "Half-yearly",
+    defaultDays: billingCycleExtensionDays("HALF_YEARLY"),
+  },
+  {
+    value: "YEARLY",
+    label: "Yearly",
+    defaultDays: billingCycleExtensionDays("YEARLY"),
+  },
   { value: "CUSTOM", label: "Custom", defaultDays: null },
 ];
 
@@ -238,6 +259,12 @@ export function AdminPaymentManager() {
 
         setShops(unique);
         setShopId((current) => current || unique[0]?.id || "");
+        setAmount((current) => {
+          if (current || !unique[0]?.subscription) return current;
+          return String(
+            planPriceForCycle(unique[0].subscription, "MONTHLY"),
+          );
+        });
         setAnalytics(analyticsResponse.data);
         setAnalyticsError(null);
       })
@@ -309,16 +336,30 @@ export function AdminPaymentManager() {
     [shopId, shops],
   );
 
+  function applyConfiguredPrice(shop: AdminShop | null, cycle: AdminBillingCycle) {
+    if (!shop?.subscription || !isPaidBillingCycle(cycle)) return;
+    setAmount(String(planPriceForCycle(shop.subscription, cycle)));
+  }
+
   function changeBillingCycle(next: AdminBillingCycle) {
     setBillingCycle(next);
     const defaultDays = cycles.find((item) => item.value === next)?.defaultDays;
     if (defaultDays !== null && defaultDays !== undefined) {
       setExtendDays(String(defaultDays));
     }
+    applyConfiguredPrice(selectedShop, next);
+  }
+
+  function changeShop(nextShopId: string) {
+    setShopId(nextShopId);
+    const nextShop = shops.find((item) => item.id === nextShopId) ?? null;
+    applyConfiguredPrice(nextShop, billingCycle);
   }
 
   function focusPaymentForm(targetShopId: string) {
     setShopId(targetShopId);
+    const targetShop = shops.find((item) => item.id === targetShopId) ?? null;
+    applyConfiguredPrice(targetShop, billingCycle);
     setMessage(null);
     setFormError(null);
     paymentFormRef.current?.scrollIntoView({
@@ -434,7 +475,7 @@ export function AdminPaymentManager() {
                   <Select
                     className="mt-1"
                     value={shopId}
-                    onChange={(event) => setShopId(event.target.value)}
+                    onChange={(event) => changeShop(event.target.value)}
                     required
                   >
                     {shops.length === 0 ? (

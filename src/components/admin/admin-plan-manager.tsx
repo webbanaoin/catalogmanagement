@@ -29,6 +29,8 @@ interface FormState {
   slug: string;
   description: string;
   monthlyPrice: string;
+  quarterlyPrice: string;
+  halfYearlyPrice: string;
   annualPrice: string;
   productLimit: string;
   imageLimitPerProduct: string;
@@ -46,6 +48,8 @@ const emptyForm: FormState = {
   slug: "",
   description: "",
   monthlyPrice: "0",
+  quarterlyPrice: "0",
+  halfYearlyPrice: "0",
   annualPrice: "0",
   productLimit: "100",
   imageLimitPerProduct: "5",
@@ -64,6 +68,8 @@ function fromPlan(plan: AdminPlan): FormState {
     slug: plan.slug,
     description: plan.description ?? "",
     monthlyPrice: plan.monthlyPrice,
+    quarterlyPrice: plan.quarterlyPrice,
+    halfYearlyPrice: plan.halfYearlyPrice,
     annualPrice: plan.annualPrice,
     productLimit: String(plan.productLimit),
     imageLimitPerProduct: String(plan.imageLimitPerProduct),
@@ -83,6 +89,8 @@ function toPayload(form: FormState): AdminPlanPayload {
     ...(form.slug.trim() ? { slug: form.slug.trim() } : {}),
     description: form.description.trim() || null,
     monthlyPrice: Number(form.monthlyPrice),
+    quarterlyPrice: Number(form.quarterlyPrice),
+    halfYearlyPrice: Number(form.halfYearlyPrice),
     annualPrice: Number(form.annualPrice),
     productLimit: Number(form.productLimit),
     imageLimitPerProduct: Number(form.imageLimitPerProduct),
@@ -139,10 +147,16 @@ function PlanForm({
           <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
         </label>
         <label className="text-sm font-medium text-foreground">Monthly price
-          <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="0" value={form.monthlyPrice} onChange={(event) => setForm({ ...form, monthlyPrice: event.target.value })} />
+          <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="0" step="0.01" value={form.monthlyPrice} onChange={(event) => setForm({ ...form, monthlyPrice: event.target.value })} />
         </label>
-        <label className="text-sm font-medium text-foreground">Annual price
-          <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="0" value={form.annualPrice} onChange={(event) => setForm({ ...form, annualPrice: event.target.value })} />
+        <label className="text-sm font-medium text-foreground">Quarterly price
+          <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="0" step="0.01" value={form.quarterlyPrice} onChange={(event) => setForm({ ...form, quarterlyPrice: event.target.value })} />
+        </label>
+        <label className="text-sm font-medium text-foreground">Half-Yearly price
+          <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="0" step="0.01" value={form.halfYearlyPrice} onChange={(event) => setForm({ ...form, halfYearlyPrice: event.target.value })} />
+        </label>
+        <label className="text-sm font-medium text-foreground">Yearly price
+          <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="0" step="0.01" value={form.annualPrice} onChange={(event) => setForm({ ...form, annualPrice: event.target.value })} />
         </label>
         <label className="text-sm font-medium text-foreground">Product limit
           <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="1" value={form.productLimit} onChange={(event) => setForm({ ...form, productLimit: event.target.value })} required />
@@ -226,7 +240,7 @@ export function AdminPlanManager() {
       <Card>
         <CardHeader>
           <CardTitle>Create plan</CardTitle>
-          <CardDescription>Plan limits and features remain database-driven and server-enforced.</CardDescription>
+          <CardDescription>Pricing, limits and features are database-driven. Monthly, Quarterly, Half-Yearly and Yearly amounts flow to landing, merchant and payment screens.</CardDescription>
         </CardHeader>
         <CardContent><PlanForm initial={emptyForm} submitLabel="Create plan" onSubmit={create} /></CardContent>
       </Card>
@@ -255,6 +269,9 @@ export function AdminPlanManager() {
                   <div className="space-y-4">
                     <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
                       <div><dt className="text-muted">Monthly</dt><dd className="mt-1 font-medium text-foreground">₹{plan.monthlyPrice}</dd></div>
+                      <div><dt className="text-muted">Quarterly</dt><dd className="mt-1 font-medium text-foreground">₹{plan.quarterlyPrice}</dd></div>
+                      <div><dt className="text-muted">Half-Yearly</dt><dd className="mt-1 font-medium text-foreground">₹{plan.halfYearlyPrice}</dd></div>
+                      <div><dt className="text-muted">Yearly</dt><dd className="mt-1 font-medium text-foreground">₹{plan.annualPrice}</dd></div>
                       <div><dt className="text-muted">Products</dt><dd className="mt-1 font-medium text-foreground">{plan.productLimit}</dd></div>
                       <div><dt className="text-muted">Images/product</dt><dd className="mt-1 font-medium text-foreground">{plan.imageLimitPerProduct}</dd></div>
                       <div><dt className="text-muted">Trial / grace</dt><dd className="mt-1 font-medium text-foreground">{plan.trialDays} / {plan.graceDays} days</dd></div>

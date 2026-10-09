@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requirePlatformAdmin } from "@/server/auth/admin-access";
 import { prisma } from "@/server/database/prisma";
 import { errorResponse } from "@/server/http/error-response";
+import { PAID_BILLING_CYCLES } from "@/lib/subscription-cycles";
 import { createCommissionForPayment } from "@/server/referrals/commission";
 
 export async function POST() {
@@ -15,6 +16,8 @@ export async function POST() {
         isEnabled: true,
         commissionMode: true,
         monthlyCommission: true,
+        quarterlyCommission: true,
+        halfYearlyCommission: true,
         yearlyCommission: true,
       },
     });
@@ -30,7 +33,7 @@ export async function POST() {
 
     const candidates = await prisma.paymentRecord.findMany({
       where: {
-        billingCycle: { in: ["MONTHLY", "YEARLY"] },
+        billingCycle: { in: [...PAID_BILLING_CYCLES] },
         referralCommission: null,
         shop: {
           referralPartnerId: { not: null },

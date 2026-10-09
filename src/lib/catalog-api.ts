@@ -571,6 +571,8 @@ export interface MerchantSubscription {
     slug: string;
     description?: string | null;
     monthlyPrice: string;
+    quarterlyPrice: string;
+    halfYearlyPrice: string;
     annualPrice: string;
     productLimit: number;
     imageLimitPerProduct: number;
@@ -732,7 +734,11 @@ export async function submitShopPayment(
   payload: {
     amount: number;
     method: MerchantPaymentMethod;
-    billingCycle: "MONTHLY" | "YEARLY";
+    billingCycle:
+      | "MONTHLY"
+      | "QUARTERLY"
+      | "HALF_YEARLY"
+      | "YEARLY";
     paidAt: string;
     recipientType: MerchantPaymentRecipientType;
     recipientName?: string | null;

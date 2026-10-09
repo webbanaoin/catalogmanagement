@@ -40,6 +40,14 @@ export default async function PartnerLoginPage() {
       footer={
         <div className="space-y-2">
           <p>
+            <Link
+              href="/forgot-password"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Forgot your password?
+            </Link>
+          </p>
+          <p>
             New marketing partner?{" "}
             <Link
               href="/partner/register"

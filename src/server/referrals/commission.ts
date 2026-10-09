@@ -2,16 +2,23 @@ import "server-only";
 
 import type { BillingCycle, Prisma } from "@prisma/client";
 
+import {
+  PAID_BILLING_CYCLES,
+  SUBSCRIPTION_CYCLE_CONFIG,
+  isPaidBillingCycle,
+} from "@/lib/subscription-cycles";
+
 function commissionForCycle(
   billingCycle: BillingCycle,
   settings: {
     monthlyCommission: Prisma.Decimal;
+    quarterlyCommission: Prisma.Decimal;
+    halfYearlyCommission: Prisma.Decimal;
     yearlyCommission: Prisma.Decimal;
   },
 ): Prisma.Decimal | null {
-  if (billingCycle === "MONTHLY") return settings.monthlyCommission;
-  if (billingCycle === "YEARLY") return settings.yearlyCommission;
-  return null;
+  if (!isPaidBillingCycle(billingCycle)) return null;
+  return settings[SUBSCRIPTION_CYCLE_CONFIG[billingCycle].commissionKey];
 }
 
 export async function createCommissionForPayment(
@@ -52,6 +59,8 @@ export async function createCommissionForPayment(
       isEnabled: true,
       commissionMode: true,
       monthlyCommission: true,
+      quarterlyCommission: true,
+      halfYearlyCommission: true,
       yearlyCommission: true,
     },
   });
@@ -65,7 +74,7 @@ export async function createCommissionForPayment(
       where: {
         shopId: input.shopId,
         id: { not: input.paymentRecordId },
-        billingCycle: { in: ["MONTHLY", "YEARLY"] },
+        billingCycle: { in: [...PAID_BILLING_CYCLES] },
         ...(shop?.referralAssignedAt
           ? { receivedAt: { gte: shop.referralAssignedAt } }
           : {}),

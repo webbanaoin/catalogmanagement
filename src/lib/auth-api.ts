@@ -102,6 +102,11 @@ export interface ForgotPasswordPayload {
   email: string;
 }
 
+export interface ResetPasswordPayload {
+  token: string;
+  password: string;
+}
+
 export interface PartnerRegisterPayload {
   name: string;
   email: string;
@@ -137,7 +142,19 @@ export function loginMerchant(payload: LoginPayload) {
 }
 
 export function requestPasswordReset(payload: ForgotPasswordPayload) {
-  return postJson<{ data: { message?: string } }>("/api/auth/forgot-password", payload);
+  return postJson<{
+    data: {
+      message?: string;
+      developmentResetUrl?: string;
+    };
+  }>("/api/auth/forgot-password", payload);
+}
+
+export function resetPassword(payload: ResetPasswordPayload) {
+  return postJson<{ data: { message: string } }>(
+    "/api/auth/reset-password",
+    payload,
+  );
 }
 
 export function registerReferralPartner(payload: PartnerRegisterPayload) {

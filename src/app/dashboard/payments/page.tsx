@@ -32,6 +32,12 @@ import {
   type MerchantShop,
   type MerchantSubscription,
 } from "@/lib/catalog-api";
+import {
+  PAID_BILLING_CYCLES,
+  SUBSCRIPTION_CYCLE_CONFIG,
+  planPriceForCycle,
+  type PaidBillingCycle,
+} from "@/lib/subscription-cycles";
 
 const methods: Array<{ value: MerchantPaymentMethod; label: string }> = [
   { value: "UPI", label: "UPI" },
@@ -94,7 +100,7 @@ export default function MerchantPaymentsPage() {
 
   const [amount, setAmount] = useState("");
   const [billingCycle, setBillingCycle] =
-    useState<"MONTHLY" | "YEARLY">("MONTHLY");
+    useState<PaidBillingCycle>("MONTHLY");
   const [method, setMethod] = useState<MerchantPaymentMethod>("UPI");
   const [paidAt, setPaidAt] = useState(localDateTimeInput);
   const [recipientType, setRecipientType] =
@@ -122,6 +128,17 @@ export default function MerchantPaymentsPage() {
         setShop(currentShop);
         setWorkspace(paymentResponse.data);
         setSubscription(subscriptionResponse.data);
+        if (subscriptionResponse.data) {
+          setAmount((current) =>
+            current ||
+            String(
+              planPriceForCycle(
+                subscriptionResponse.data!.plan,
+                "MONTHLY",
+              ),
+            ),
+          );
+        }
         setFeedback(null);
       } catch (error) {
         if (!active) return;
@@ -148,14 +165,10 @@ export default function MerchantPaymentsPage() {
     workspace?.summary.submissionByStatus.PENDING.amount ?? 0,
   );
 
-  function applyPlanPrice(cycle: "MONTHLY" | "YEARLY") {
+  function applyPlanPrice(cycle: PaidBillingCycle) {
     setBillingCycle(cycle);
     if (!subscription) return;
-    setAmount(
-      cycle === "YEARLY"
-        ? subscription.plan.annualPrice
-        : subscription.plan.monthlyPrice,
-    );
+    setAmount(String(planPriceForCycle(subscription.plan, cycle)));
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -220,7 +233,7 @@ export default function MerchantPaymentsPage() {
       {feedback ? <Alert variant="error">{feedback}</Alert> : null}
       {success ? <Alert title="Payment submitted">{success}</Alert> : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <Card>
           <CardContent className="p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
@@ -248,26 +261,23 @@ export default function MerchantPaymentsPage() {
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
-              Current monthly plan
-            </p>
-            <p className="mt-2 text-2xl font-bold text-foreground">
-              {subscription ? money(subscription.plan.monthlyPrice) : "—"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
-              Current yearly plan
-            </p>
-            <p className="mt-2 text-2xl font-bold text-foreground">
-              {subscription ? money(subscription.plan.annualPrice) : "—"}
-            </p>
-          </CardContent>
-        </Card>
+        {PAID_BILLING_CYCLES.map((cycle) => (
+          <Card key={cycle}>
+            <CardContent className="p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+                {SUBSCRIPTION_CYCLE_CONFIG[cycle].label} plan
+              </p>
+              <p className="mt-2 text-2xl font-bold text-foreground">
+                {subscription
+                  ? money(planPriceForCycle(subscription.plan, cycle))
+                  : "—"}
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                {SUBSCRIPTION_CYCLE_CONFIG[cycle].shortLabel}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <Card>
@@ -288,11 +298,17 @@ export default function MerchantPaymentsPage() {
                   className="mt-1"
                   value={billingCycle}
                   onChange={(event) =>
-                    applyPlanPrice(event.target.value as "MONTHLY" | "YEARLY")
+                    applyPlanPrice(event.target.value as PaidBillingCycle)
                   }
                 >
-                  <option value="MONTHLY">Monthly</option>
-                  <option value="YEARLY">Yearly</option>
+                  {PAID_BILLING_CYCLES.map((cycle) => (
+                    <option key={cycle} value={cycle}>
+                      {SUBSCRIPTION_CYCLE_CONFIG[cycle].label} ·{" "}
+                      {subscription
+                        ? money(planPriceForCycle(subscription.plan, cycle))
+                        : SUBSCRIPTION_CYCLE_CONFIG[cycle].shortLabel}
+                    </option>
+                  ))}
                 </Select>
               </label>
 
@@ -307,9 +323,7 @@ export default function MerchantPaymentsPage() {
                   onChange={(event) => setAmount(event.target.value)}
                   placeholder={
                     subscription
-                      ? billingCycle === "YEARLY"
-                        ? subscription.plan.annualPrice
-                        : subscription.plan.monthlyPrice
+                      ? String(planPriceForCycle(subscription.plan, billingCycle))
                       : "Amount paid"
                   }
                   required

@@ -58,6 +58,27 @@ async function main() {
   requireValue("AWS_ACCESS_KEY_ID");
   requireValue("AWS_SECRET_ACCESS_KEY");
 
+  const resendApiKey = requireValue("RESEND_API_KEY");
+  const resetFromEmail = requireValue("PASSWORD_RESET_FROM_EMAIL");
+  if (
+    resendApiKey.includes("replace") ||
+    resendApiKey.includes("example")
+  ) {
+    fail("RESEND_API_KEY must not use an example placeholder");
+  }
+  if (
+    resetFromEmail.includes("your-verified-domain.example") ||
+    resetFromEmail.includes("@example.")
+  ) {
+    fail("PASSWORD_RESET_FROM_EMAIL must use a verified production domain");
+  }
+
+  if (process.env.PASSWORD_RESET_EXPOSE_URL === "true") {
+    fail(
+      "PASSWORD_RESET_EXPOSE_URL must be false in production; raw reset links must never be exposed by the API",
+    );
+  }
+
   if (process.env.AWS_S3_ENDPOINT) {
     try {
       new URL(process.env.AWS_S3_ENDPOINT);

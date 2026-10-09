@@ -212,6 +212,8 @@ export function subscriptionResponse(
       slug: plan.slug,
       description: plan.description,
       monthlyPrice: plan.monthlyPrice.toString(),
+      quarterlyPrice: plan.quarterlyPrice.toString(),
+      halfYearlyPrice: plan.halfYearlyPrice.toString(),
       annualPrice: plan.annualPrice.toString(),
       productLimit: plan.productLimit,
       imageLimitPerProduct: plan.imageLimitPerProduct,

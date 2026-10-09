@@ -5,13 +5,21 @@ import Link from "next/link";
 import { WebbanaoLogo } from "@/components/brand/webbanao-logo";
 import { Container } from "@/components/ui";
 import { prisma } from "@/server/database/prisma";
+import {
+  PAID_BILLING_CYCLES,
+  SUBSCRIPTION_CYCLE_CONFIG,
+  effectiveMonthlyPrice,
+  planPriceForCycle,
+  savingsAgainstMonthly,
+  type PaidBillingCycle,
+} from "@/lib/subscription-cycles";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Webbanao Digital Showroom | Take Your Shop Online",
   description:
-    "Launch your shop's own digital showroom. Share products by QR, link and WhatsApp, get onboarding support, and start your first month free.",
+    "Launch your shop's own digital showroom. Share products by QR, link and WhatsApp, get onboarding support, and start with a free trial.",
 };
 
 const whatsappUrl =
@@ -59,62 +67,44 @@ const features = [
   },
 ];
 
-const plans = [
+const pricingMeta: Record<
+  PaidBillingCycle,
   {
-    label: "FIRST MONTH FREE",
-    name: "Launch Free",
-    price: "₹0",
-    suffix: "first month",
-    description:
-      "We help get your shop and initial catalogue ready so you are not left to set everything up alone.",
-    features: [
-      "1 month free trial",
-      "Shop onboarding support",
-      "Initial product onboarding assistance",
-      "Smart Excel bulk import support",
-      "Digital showroom setup",
-      "WhatsApp enquiry flow",
-    ],
-    cta: "Start free month",
-    featured: false,
-  },
-  {
+    label: string;
+    description: string;
+    cta: string;
+    featured: boolean;
+  }
+> = {
+  MONTHLY: {
     label: "FLEXIBLE",
-    name: "Monthly",
-    price: "₹299",
-    suffix: "per month",
     description:
-      "Continue your digital showroom month by month with the complete catalogue and enquiry experience.",
-    features: [
-      "Your own digital showroom",
-      "Product & category management",
-      "QR and shareable shop link",
-      "Smart Excel bulk upload",
-      "Multiple product images",
-      "WhatsApp product enquiries",
-    ],
+      "Keep the commitment low and continue your Digital Showroom one month at a time.",
     cta: "Choose monthly",
     featured: false,
   },
-  {
-    label: "BEST VALUE",
-    name: "Yearly",
-    price: "₹2,988",
-    suffix: "per year",
+  QUARTERLY: {
+    label: "SMART START",
     description:
-      "Everything you need for a long-term digital presence at an effective cost of only ₹249 per month.",
-    features: [
-      "Everything in Monthly",
-      "Effective cost ₹249/month",
-      "Save ₹600/year vs monthly",
-      "Smart catalogue management",
-      "QR + WhatsApp customer journey",
-      "Ongoing product management",
-    ],
+      "A practical three-month option for merchants who want savings without a long commitment.",
+    cta: "Choose quarterly",
+    featured: false,
+  },
+  HALF_YEARLY: {
+    label: "SMART VALUE",
+    description:
+      "Six months gives your shop a better effective monthly rate while keeping the commitment manageable.",
+    cta: "Choose half-yearly",
+    featured: false,
+  },
+  YEARLY: {
+    label: "BEST VALUE",
+    description:
+      "The strongest long-term value for merchants ready to keep their Digital Showroom active throughout the year.",
     cta: "Choose yearly",
     featured: true,
   },
-];
+};
 
 const faqs = [
   {
@@ -140,7 +130,7 @@ const faqs = [
   {
     question: "Will Webbanao help with first-time setup?",
     answer:
-      "Yes. Your first month is free and includes shop onboarding plus initial product onboarding assistance.",
+      "Yes. Your free trial includes shop onboarding plus initial product onboarding assistance. The current trial duration is shown in the pricing section.",
   },
 ];
 
@@ -170,23 +160,64 @@ function WhatsAppIcon() {
   );
 }
 
-async function loadReferralLandingSettings() {
+async function loadLandingCommerce() {
   try {
-    return await prisma.referralProgramSettings.findUnique({
+    const referralSettings = await prisma.referralProgramSettings.findUnique({
       where: { id: "default" },
       select: {
         isEnabled: true,
         commissionMode: true,
         monthlyCommission: true,
+        quarterlyCommission: true,
+        halfYearlyCommission: true,
         yearlyCommission: true,
       },
     });
+
+    let plan = await prisma.plan.findFirst({
+      where: {
+        status: "ACTIVE",
+        isDefaultTrial: true,
+        monthlyPrice: { gt: 0 },
+      },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        trialDays: true,
+        monthlyPrice: true,
+        quarterlyPrice: true,
+        halfYearlyPrice: true,
+        annualPrice: true,
+      },
+    });
+
+    if (!plan) {
+      plan = await prisma.plan.findFirst({
+        where: {
+          status: "ACTIVE",
+          monthlyPrice: { gt: 0 },
+        },
+        orderBy: [{ monthlyPrice: "asc" }, { name: "asc" }],
+        select: {
+          id: true,
+          name: true,
+          trialDays: true,
+          monthlyPrice: true,
+          quarterlyPrice: true,
+          halfYearlyPrice: true,
+          annualPrice: true,
+        },
+      });
+    }
+
+    return { referralSettings, plan };
   } catch {
-    return null;
+    return { referralSettings: null, plan: null };
   }
 }
 
-function referralMoney(value: number) {
+function formatMoney(value: number) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
@@ -195,9 +226,66 @@ function referralMoney(value: number) {
 }
 
 export default async function Home() {
-  const referralSettings = await loadReferralLandingSettings();
-  const monthlyReferral = Number(referralSettings?.monthlyCommission ?? 0);
-  const yearlyReferral = Number(referralSettings?.yearlyCommission ?? 0);
+  const { referralSettings, plan: commercialPlan } =
+    await loadLandingCommerce();
+
+  const pricingPlans = commercialPlan
+    ? PAID_BILLING_CYCLES.map((cycle) => {
+        const meta = pricingMeta[cycle];
+        const priceSource = {
+          monthlyPrice: commercialPlan.monthlyPrice.toString(),
+          quarterlyPrice: commercialPlan.quarterlyPrice.toString(),
+          halfYearlyPrice: commercialPlan.halfYearlyPrice.toString(),
+          annualPrice: commercialPlan.annualPrice.toString(),
+        };
+        const price = planPriceForCycle(priceSource, cycle);
+        const effective = effectiveMonthlyPrice(priceSource, cycle);
+        const saving = savingsAgainstMonthly(priceSource, cycle);
+
+        return {
+          cycle,
+          ...meta,
+          name: SUBSCRIPTION_CYCLE_CONFIG[cycle].label,
+          price,
+          suffix:
+            cycle === "MONTHLY"
+              ? "per month"
+              : cycle === "YEARLY"
+                ? "per year"
+                : `every ${SUBSCRIPTION_CYCLE_CONFIG[cycle].months} months`,
+          effective,
+          saving,
+          features: [
+            "Your own digital showroom",
+            "Product & category management",
+            "QR and shareable shop link",
+            "Smart Excel bulk upload",
+            "Multiple product images",
+            "WhatsApp product enquiries",
+          ],
+        };
+      })
+    : [];
+
+  const referralRates = [
+    {
+      label: "Monthly",
+      amount: Number(referralSettings?.monthlyCommission ?? 0),
+    },
+    {
+      label: "Quarterly",
+      amount: Number(referralSettings?.quarterlyCommission ?? 0),
+    },
+    {
+      label: "Half-Yearly",
+      amount: Number(referralSettings?.halfYearlyCommission ?? 0),
+    },
+    {
+      label: "Yearly",
+      amount: Number(referralSettings?.yearlyCommission ?? 0),
+    },
+  ];
+
   const referralProgramEnabled = referralSettings?.isEnabled ?? true;
   const referralRule =
     referralSettings?.commissionMode === "EVERY_ELIGIBLE_PAYMENT"
@@ -255,7 +343,10 @@ export default async function Home() {
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/register" className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 text-sm font-extrabold text-white shadow-[0_16px_35px_rgba(5,150,105,.20)] transition hover:-translate-y-0.5">
-                Start your free month <ArrowIcon />
+                {commercialPlan?.trialDays
+                  ? `Start your free ${commercialPlan.trialDays} days`
+                  : "Register your shop"}{" "}
+                <ArrowIcon />
               </Link>
               <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-sm font-extrabold text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:text-emerald-700">
                 <WhatsAppIcon />
@@ -346,54 +437,137 @@ export default async function Home() {
       </section>
 
       <section id="pricing" className="bg-white py-16 sm:py-20">
-        <Container className="grid gap-10 xl:grid-cols-[.68fr_1.82fr] xl:items-start">
-          <div className="xl:sticky xl:top-28">
-            <p className="text-xs font-extrabold uppercase tracking-[0.24em] text-indigo-600">Simple & transparent pricing</p>
-            <h2 className="mt-4 text-3xl font-black tracking-[-0.04em] text-[#07152f] sm:text-4xl">
+        <Container>
+          <div className="mx-auto max-w-4xl text-center">
+            <p className="text-xs font-extrabold uppercase tracking-[0.24em] text-indigo-600">
+              Simple & transparent pricing
+            </p>
+            <h2 className="mt-4 text-3xl font-black tracking-[-0.04em] text-[#07152f] sm:text-4xl lg:text-5xl">
               Start free. Continue with the plan that fits your shop.
             </h2>
-            <p className="mt-5 max-w-md text-base leading-7 text-slate-600">
-              The first month is designed to get your showroom live with onboarding support before you choose a paid plan.
+            <p className="mx-auto mt-5 max-w-3xl text-base leading-7 text-slate-600">
+              {commercialPlan?.trialDays
+                ? `Your first ${commercialPlan.trialDays} days are designed to get your showroom live with onboarding support. After that, choose Monthly, Quarterly, Half-Yearly or Yearly billing.`
+                : "Get your showroom live with onboarding support, then choose Monthly, Quarterly, Half-Yearly or Yearly billing."}
             </p>
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-3">
-            {plans.map((plan) => (
+          <div className="mx-auto mt-8 max-w-5xl rounded-[1.4rem] border border-emerald-200 bg-emerald-50 px-5 py-4 sm:flex sm:items-center sm:justify-between sm:gap-6 sm:px-6">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-800">
+                Start free
+              </p>
+              <p className="mt-1 text-lg font-black text-slate-950 sm:text-xl">
+                {commercialPlan?.trialDays
+                  ? `${commercialPlan.trialDays}-day free trial + onboarding support`
+                  : "Free onboarding support"}
+              </p>
+            </div>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600 sm:mt-0 sm:text-right">
+              Try your Digital Showroom first, then continue with the billing
+              cycle that matches your shop&apos;s comfort and budget.
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {pricingPlans.map((plan) => (
               <article
-                key={plan.name}
+                key={plan.cycle}
                 className={
                   plan.featured
-                    ? "relative flex min-h-[590px] flex-col rounded-[1.65rem] border border-indigo-500 bg-gradient-to-br from-[#07152f] via-[#11184f] to-[#28227c] p-6 text-white shadow-[0_24px_65px_rgba(49,46,129,.26)]"
-                    : "flex min-h-[590px] flex-col rounded-[1.65rem] border border-slate-200 bg-white p-6 shadow-[0_12px_35px_rgba(15,23,42,.06)]"
+                    ? "relative flex h-full min-h-[540px] flex-col rounded-[1.65rem] border border-indigo-500 bg-gradient-to-br from-[#07152f] via-[#11184f] to-[#28227c] p-5 text-white shadow-[0_24px_65px_rgba(49,46,129,.26)]"
+                    : "flex h-full min-h-[540px] flex-col rounded-[1.65rem] border border-slate-200 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,.06)] transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-[0_20px_45px_rgba(79,70,229,.10)]"
                 }
               >
-                <div className="flex items-center justify-between gap-3">
-                  <span className={plan.featured ? "rounded-full bg-violet-500 px-3 py-1.5 text-[10px] font-black tracking-[0.14em] text-white" : "rounded-full bg-indigo-50 px-3 py-1.5 text-[10px] font-black tracking-[0.14em] text-indigo-700"}>
+                <div className="flex min-h-7 items-start justify-between gap-2">
+                  <span
+                    className={
+                      plan.featured
+                        ? "rounded-full bg-violet-500 px-2.5 py-1.5 text-[9px] font-black tracking-[0.12em] text-white"
+                        : "rounded-full bg-indigo-50 px-2.5 py-1.5 text-[9px] font-black tracking-[0.12em] text-indigo-700"
+                    }
+                  >
                     {plan.label}
                   </span>
-                  {plan.featured ? (
-                    <span className="rounded-full bg-emerald-300 px-3 py-1.5 text-[10px] font-black text-emerald-950">
-                      Save ₹600/year
+                  {plan.saving > 0 ? (
+                    <span className="whitespace-nowrap rounded-full bg-emerald-300 px-2.5 py-1.5 text-[9px] font-black text-emerald-950">
+                      Save {formatMoney(plan.saving)}
                     </span>
                   ) : null}
                 </div>
 
-                <h3 className="mt-5 text-2xl font-black">{plan.name}</h3>
-                <div className="mt-4 flex items-end gap-2">
-                  <span className="text-4xl font-black tracking-[-0.04em]">{plan.price}</span>
-                  <span className={plan.featured ? "pb-1 text-sm text-slate-300" : "pb-1 text-sm text-slate-500"}>{plan.suffix}</span>
+                <h3 className="mt-5 text-xl font-black sm:text-2xl">
+                  {plan.name}
+                </h3>
+
+                <div className="mt-3">
+                  <div className="flex flex-wrap items-end gap-x-1.5 gap-y-1">
+                    <span className="text-3xl font-black tracking-[-0.04em] lg:text-[2rem]">
+                      {plan.price > 0 ? formatMoney(plan.price) : "Contact us"}
+                    </span>
+                    <span
+                      className={
+                        plan.featured
+                          ? "pb-1 text-xs text-slate-300"
+                          : "pb-1 text-xs text-slate-500"
+                      }
+                    >
+                      {plan.suffix}
+                    </span>
+                  </div>
+                  <div className="mt-2 min-h-6">
+                    {plan.price > 0 && plan.cycle !== "MONTHLY" ? (
+                      <p
+                        className={
+                          plan.featured
+                            ? "text-xs font-bold text-emerald-300"
+                            : "text-xs font-bold text-emerald-700"
+                        }
+                      >
+                        Effective {formatMoney(plan.effective)}/month
+                      </p>
+                    ) : (
+                      <p className="text-xs font-bold text-transparent">
+                        Flexible monthly billing
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <p className={plan.featured ? "mt-4 min-h-[96px] text-sm leading-6 text-slate-300" : "mt-4 min-h-[96px] text-sm leading-6 text-slate-600"}>
+
+                <p
+                  className={
+                    plan.featured
+                      ? "mt-4 min-h-[92px] text-sm leading-6 text-slate-300"
+                      : "mt-4 min-h-[92px] text-sm leading-6 text-slate-600"
+                  }
+                >
                   {plan.description}
                 </p>
 
-                <div className={plan.featured ? "my-5 h-px bg-white/15" : "my-5 h-px bg-slate-200"} />
+                <div
+                  className={
+                    plan.featured
+                      ? "my-4 h-px bg-white/15"
+                      : "my-4 h-px bg-slate-200"
+                  }
+                />
 
-                <div className="flex-1 space-y-3">
+                <div className="flex-1 space-y-2.5">
                   {plan.features.map((feature) => (
-                    <div key={feature} className="flex items-start gap-2.5 text-sm">
+                    <div
+                      key={feature}
+                      className="flex items-start gap-2 text-xs leading-5"
+                    >
                       <CheckIcon light={plan.featured} />
-                      <span className={plan.featured ? "font-medium text-slate-200" : "font-medium text-slate-700"}>{feature}</span>
+                      <span
+                        className={
+                          plan.featured
+                            ? "font-medium text-slate-200"
+                            : "font-medium text-slate-700"
+                        }
+                      >
+                        {feature}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -402,8 +576,8 @@ export default async function Home() {
                   href="/register"
                   className={
                     plan.featured
-                      ? "mt-7 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white bg-white px-5 text-sm font-black !text-[#07152f] shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-100"
-                      : "mt-7 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-950/10 transition hover:-translate-y-0.5"
+                      ? "mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white bg-white px-4 text-sm font-black !text-[#07152f] shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-100"
+                      : "mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 text-sm font-black text-white shadow-lg shadow-emerald-950/10 transition hover:-translate-y-0.5"
                   }
                 >
                   {plan.cta} <ArrowIcon />
@@ -423,7 +597,7 @@ export default async function Home() {
         </Container>
       </section>
 
-      <section id="earn-with-us" className="relative overflow-hidden border-t border-slate-200 bg-[#effcf7] py-16 sm:py-20">
+            <section id="earn-with-us" className="relative overflow-hidden border-t border-slate-200 bg-[#effcf7] py-16 sm:py-20">
         <div className="absolute -left-24 top-10 h-80 w-80 rounded-full bg-emerald-300/25 blur-3xl" />
         <div className="absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-sky-300/25 blur-3xl" />
         <Container className="relative">
@@ -441,28 +615,23 @@ export default async function Home() {
               </p>
 
               <div className="mt-7 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl border border-emerald-200 bg-white p-5 shadow-[0_12px_35px_rgba(5,150,105,.08)]">
-                  <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
-                    Monthly referral earning
-                  </p>
-                  <p className="mt-2 text-3xl font-black tracking-[-0.04em] text-slate-950">
-                    {monthlyReferral > 0 ? referralMoney(monthlyReferral) : "Admin-set rate"}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    For an eligible monthly paid subscription as per the active referral rule.
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-indigo-200 bg-white p-5 shadow-[0_12px_35px_rgba(79,70,229,.08)]">
-                  <p className="text-xs font-black uppercase tracking-[0.14em] text-indigo-700">
-                    Yearly referral earning
-                  </p>
-                  <p className="mt-2 text-3xl font-black tracking-[-0.04em] text-slate-950">
-                    {yearlyReferral > 0 ? referralMoney(yearlyReferral) : "Admin-set rate"}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    For an eligible yearly paid subscription as per the active referral rule.
-                  </p>
-                </div>
+                {referralRates.map((rate) => (
+                  <div
+                    key={rate.label}
+                    className="rounded-2xl border border-emerald-200 bg-white p-5 shadow-[0_12px_35px_rgba(5,150,105,.08)]"
+                  >
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
+                      {rate.label} referral earning
+                    </p>
+                    <p className="mt-2 text-3xl font-black tracking-[-0.04em] text-slate-950">
+                      {rate.amount > 0 ? formatMoney(rate.amount) : "Admin-set rate"}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      For an eligible {rate.label.toLowerCase()} paid subscription
+                      under the active referral rule.
+                    </p>
+                  </div>
+                ))}
               </div>
 
               <div className="mt-6 rounded-2xl border border-slate-200 bg-white/80 p-4 text-sm leading-6 text-slate-600">

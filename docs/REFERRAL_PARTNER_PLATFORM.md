@@ -43,6 +43,8 @@ Admin controls:
 
 - program enabled/disabled
 - monthly commission amount
+- quarterly commission amount
+- half-yearly commission amount
 - yearly commission amount
 - commission mode:
   - `FIRST_PAID_SUBSCRIPTION`
@@ -52,7 +54,7 @@ Amounts are stored in the database, not hard-coded in application logic.
 
 Historical ReferralCommission rows contain snapshots of the commission amount, payment amount, partner identity/code, shop name and plan name. Changing current settings never rewrites historical commission.
 
-Only MONTHLY and YEARLY billing cycles currently generate referral commission. Other billing cycles remain non-commissionable until explicitly added to the settings model.
+MONTHLY, QUARTERLY, HALF_YEARLY and YEARLY are the merchant-facing paid cycles that can generate referral commission. WEEKLY and CUSTOM remain non-commissionable.
 
 ## Payment integration
 
@@ -71,19 +73,19 @@ Safeguards:
 
 ## Missing commission reconciliation
 
-If a shop was already referred and has an eligible Monthly/Yearly payment but no ReferralCommission row (for example, test data where the referral rate was configured after the payment), admin can use **Reconcile missing commissions** from Admin -> Referrals.
+If a shop was already referred and has an eligible Monthly/Quarterly/Half-Yearly/Yearly payment but no ReferralCommission row (for example, test data where the referral rate was configured after the payment), admin can use **Reconcile missing commissions** from Admin -> Referrals.
 
 The reconciliation:
 
 - considers only referred shops with an active partner
-- considers only Monthly and Yearly payment records
+- considers only Monthly, Quarterly, Half-Yearly and Yearly payment records
 - does not duplicate an existing payment-linked commission
 - respects the current commission mode
 - ignores payments recorded before referral attribution
 - uses the current configured commission amount for the repaired missing record
 - writes an audit log with source `ADMIN_RECONCILIATION`
 
-For `FIRST_PAID_SUBSCRIPTION`, earlier non-commissionable Weekly/Quarterly/Custom payments do not incorrectly block the first eligible Monthly/Yearly referral commission.
+For `FIRST_PAID_SUBSCRIPTION`, earlier non-commissionable Weekly/Custom payments do not incorrectly block the first eligible paid-cycle referral commission. All four paid cycles share the same first-paid-subscription eligibility family.
 
 ## Payout lifecycle
 
@@ -133,7 +135,7 @@ An approved partner can see:
 - commission earned
 - commission paid
 - pending payout
-- current monthly/yearly commission configuration
+- current monthly/quarterly/half-yearly/yearly commission configuration
 - referred shop status/subscription summary
 - commission and payout history
 
@@ -164,7 +166,7 @@ Automated command:
 npm run test:referrals
 ```
 
-The CI regression verifies partner registration, pending approval, admin approval/referral-code generation, partner login, merchant referral attribution, admin-managed monthly/yearly commission amounts, first-paid-only duplicate prevention, payout recording, recurring-mode yearly commission, overview analytics and partner dashboard access.
+The CI regression verifies partner registration, pending approval, admin approval/referral-code generation, partner login, merchant referral attribution, admin-managed four-cycle commission amounts, first-paid-only duplicate prevention, payout recording, recurring-mode Quarterly/Half-Yearly/Yearly commission, overview analytics and partner dashboard access.
 
 
 ## Pagination

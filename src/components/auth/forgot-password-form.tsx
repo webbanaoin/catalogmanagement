@@ -11,6 +11,7 @@ type FieldErrors = Record<string, string>;
 export function ForgotPasswordForm() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
+  const [developmentResetUrl, setDevelopmentResetUrl] = useState("");
   const [formError, setFormError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
@@ -28,6 +29,7 @@ export function ForgotPasswordForm() {
     }
 
     setMessage("");
+    setDevelopmentResetUrl("");
     setFormError("");
 
     if (Object.keys(clientErrors).length > 0) {
@@ -46,6 +48,7 @@ export function ForgotPasswordForm() {
         response.data.message ??
           "If an eligible account exists, password reset instructions will be sent.",
       );
+      setDevelopmentResetUrl(response.data.developmentResetUrl ?? "");
     } catch (error) {
       if (error instanceof AuthApiError) {
         setFieldErrors(error.fields);
@@ -61,12 +64,22 @@ export function ForgotPasswordForm() {
   return (
     <form className="space-y-5" onSubmit={handleSubmit} noValidate>
       {message ? <Alert variant="success">{message}</Alert> : null}
+      {developmentResetUrl ? (
+        <Alert title="Development reset link">
+          <a
+            href={developmentResetUrl}
+            className="font-semibold text-primary underline underline-offset-4"
+          >
+            Open password reset page
+          </a>
+        </Alert>
+      ) : null}
       {formError ? <Alert variant="error">{formError}</Alert> : null}
 
       <Field
         label="Account email"
         htmlFor="email"
-        hint="For privacy, the response does not confirm whether an account exists."
+        hint="We will send a reset link if the email belongs to an eligible account."
         error={fieldErrors.email}
         required
       >
