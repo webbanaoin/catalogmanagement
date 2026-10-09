@@ -113,7 +113,7 @@ export async function GET(request: Request) {
             commissionEarned: earned.toFixed(2),
             commissionPaid: paid.toFixed(2),
             commissionPending: pending.toFixed(2),
-            netRevenue: Math.max(0, totalCollections - earned).toFixed(2),
+            netRevenue: (totalCollections - earned).toFixed(2),
           },
         };
       }),
