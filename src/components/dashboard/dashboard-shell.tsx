@@ -20,6 +20,7 @@ const navigationItems: DashboardNavigationItem[] = [
   { label: "QR", href: "/dashboard/qr", badge: "Ready" },
   { label: "Shop Profile", href: "/dashboard/shop", badge: "Ready" },
   { label: "Analytics", href: "/dashboard/analytics", badge: "Ready" },
+  { label: "Payments", href: "/dashboard/payments", badge: "Ready" },
   { label: "Subscription", href: "/dashboard/subscription", badge: "Ready" },
 ];
 
