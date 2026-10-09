@@ -165,3 +165,16 @@ npm run test:referrals
 ```
 
 The CI regression verifies partner registration, pending approval, admin approval/referral-code generation, partner login, merchant referral attribution, admin-managed monthly/yearly commission amounts, first-paid-only duplicate prevention, payout recording, recurring-mode yearly commission, overview analytics and partner dashboard access.
+
+
+## Pagination
+
+Referral operational lists use bounded server-side queries:
+
+- Admin marketing partner cards: 20 per page
+- Admin commission / payout ledger: 20 per page
+- Partner dashboard referred shops: 20 per page
+- Partner dashboard commission / payout history: 20 per page
+- Admin shop lifecycle list: 20 per page
+
+Admin commission partner filtering uses lightweight partner options separately from paginated partner cards so changing pages never removes valid filter choices.
