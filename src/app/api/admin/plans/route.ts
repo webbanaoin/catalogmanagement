@@ -9,12 +9,19 @@ import { errorResponse } from "@/server/http/error-response";
 import { readJsonBody } from "@/server/http/json-body";
 import { adminPlanCreateSchema } from "@/validation/subscriptions";
 
-function serializePlan<T extends { monthlyPrice: { toString(): string }; annualPrice: { toString(): string } }>(
-  plan: T,
-) {
+function serializePlan<
+  T extends {
+    monthlyPrice: { toString(): string };
+    quarterlyPrice: { toString(): string };
+    halfYearlyPrice: { toString(): string };
+    annualPrice: { toString(): string };
+  },
+>(plan: T) {
   return {
     ...plan,
     monthlyPrice: plan.monthlyPrice.toString(),
+    quarterlyPrice: plan.quarterlyPrice.toString(),
+    halfYearlyPrice: plan.halfYearlyPrice.toString(),
     annualPrice: plan.annualPrice.toString(),
   };
 }
@@ -97,6 +104,12 @@ export async function POST(request: Request) {
             slug: plan.slug,
             status: plan.status,
             isDefaultTrial: plan.isDefaultTrial,
+            pricing: {
+              monthly: plan.monthlyPrice.toString(),
+              quarterly: plan.quarterlyPrice.toString(),
+              halfYearly: plan.halfYearlyPrice.toString(),
+              yearly: plan.annualPrice.toString(),
+            },
           },
         },
       });
