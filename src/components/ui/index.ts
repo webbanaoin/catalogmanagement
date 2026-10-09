@@ -6,3 +6,5 @@ export { Container } from "./container";
 export { Field, Input, Select, Textarea } from "./form-controls";
 export { PageHeader } from "./page-header";
 export { EmptyState, ErrorState, LoadingState, StatePanel, SuccessState } from "./state-panel";
+
+export { PaginationControls } from "./pagination-controls";
