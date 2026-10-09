@@ -102,6 +102,21 @@ export function AdminReferralManager() {
   const [overview, setOverview] = useState<AdminReferralOverview | null>(null);
   const [settings, setSettings] = useState<AdminReferralSettings | null>(null);
   const [partners, setPartners] = useState<AdminReferralPartner[]>([]);
+  const [partnerOptions, setPartnerOptions] = useState<
+    Array<{
+      id: string;
+      referralCode?: string | null;
+      status: AdminReferralPartner["status"];
+      user: { name: string };
+    }>
+  >([]);
+  const [partnerPage, setPartnerPage] = useState(1);
+  const [partnerPagination, setPartnerPagination] = useState({
+    page: 1,
+    pageSize: 20,
+    total: 0,
+    totalPages: 0,
+  });
   const [commissions, setCommissions] = useState<AdminReferralCommission[]>([]);
   const [commissionStatus, setCommissionStatus] = useState<
     AdminReferralCommissionStatus | ""
@@ -132,7 +147,10 @@ export function AdminReferralManager() {
     Promise.all([
       getAdminReferralOverview(),
       getAdminReferralSettings(),
-      getAdminReferralPartners(),
+      getAdminReferralPartners(undefined, {
+        page: partnerPage,
+        pageSize: 20,
+      }),
       getAdminReferralCommissions({
         status: commissionStatus || undefined,
         partnerId: partnerFilter || undefined,
@@ -145,6 +163,8 @@ export function AdminReferralManager() {
         setOverview(overviewResponse.data);
         setSettings(settingsResponse.data);
         setPartners(partnerResponse.items);
+        setPartnerOptions(partnerResponse.options);
+        setPartnerPagination(partnerResponse.pagination);
         setCommissions(commissionResponse.items);
         setCommissionPagination(commissionResponse.pagination);
         setSettingsEnabled(settingsResponse.data.isEnabled);
@@ -168,7 +188,13 @@ export function AdminReferralManager() {
     return () => {
       active = false;
     };
-  }, [commissionPage, reloadKey, commissionStatus, partnerFilter]);
+  }, [
+    commissionPage,
+    reloadKey,
+    commissionStatus,
+    partnerFilter,
+    partnerPage,
+  ]);
 
   function reload(successMessage?: string) {
     setLoading(true);
@@ -728,6 +754,18 @@ export function AdminReferralManager() {
             ))}
           </div>
         )}
+
+        <PaginationControls
+          page={partnerPagination.page}
+          totalPages={partnerPagination.totalPages}
+          total={partnerPagination.total}
+          pageSize={partnerPagination.pageSize}
+          itemLabel="marketing partners"
+          onPageChange={(page) => {
+            setLoading(true);
+            setPartnerPage(page);
+          }}
+        />
       </section>
 
       <section className="space-y-4">
@@ -768,7 +806,7 @@ export function AdminReferralManager() {
               }}
             >
               <option value="">All partners</option>
-              {partners.map((partner) => (
+              {partnerOptions.map((partner) => (
                 <option key={partner.id} value={partner.id}>
                   {partner.user.name}
                   {partner.referralCode ? " · " + partner.referralCode : ""}
