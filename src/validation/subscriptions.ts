@@ -25,8 +25,25 @@ export const adminPlanCreateSchema = z.object({
   status: z.enum(["ACTIVE", "INACTIVE"]).default("ACTIVE"),
 });
 
-export const adminPlanUpdateSchema = adminPlanCreateSchema
-  .partial()
+export const adminPlanUpdateSchema = z
+  .object({
+    name: z.string().trim().min(2).max(120).optional(),
+    slug: z.string().trim().min(2).max(160).optional(),
+    description: z.string().trim().max(500).nullable().optional(),
+    monthlyPrice: moneySchema.optional(),
+    quarterlyPrice: moneySchema.optional(),
+    halfYearlyPrice: moneySchema.optional(),
+    annualPrice: moneySchema.optional(),
+    productLimit: productLimitSchema.optional(),
+    imageLimitPerProduct: imageLimitSchema.optional(),
+    analyticsEnabled: z.boolean().optional(),
+    excelImportEnabled: z.boolean().optional(),
+    customBrandingEnabled: z.boolean().optional(),
+    trialDays: trialDaysSchema.optional(),
+    graceDays: graceDaysSchema.optional(),
+    isDefaultTrial: z.boolean().optional(),
+    status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+  })
   .refine((value) => Object.keys(value).length > 0, {
     message: "At least one plan field must be provided",
   });
