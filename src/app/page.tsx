@@ -84,7 +84,7 @@ const pricingMeta: Record<
     featured: false,
   },
   QUARTERLY: {
-    label: "LOW COMMITMENT",
+    label: "SMART START",
     description:
       "A practical three-month option for merchants who want savings without a long commitment.",
     cta: "Choose quarterly",
