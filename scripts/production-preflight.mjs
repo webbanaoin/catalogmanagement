@@ -58,8 +58,20 @@ async function main() {
   requireValue("AWS_ACCESS_KEY_ID");
   requireValue("AWS_SECRET_ACCESS_KEY");
 
-  requireValue("RESEND_API_KEY");
-  requireValue("PASSWORD_RESET_FROM_EMAIL");
+  const resendApiKey = requireValue("RESEND_API_KEY");
+  const resetFromEmail = requireValue("PASSWORD_RESET_FROM_EMAIL");
+  if (
+    resendApiKey.includes("replace") ||
+    resendApiKey.includes("example")
+  ) {
+    fail("RESEND_API_KEY must not use an example placeholder");
+  }
+  if (
+    resetFromEmail.includes("your-verified-domain.example") ||
+    resetFromEmail.includes("@example.")
+  ) {
+    fail("PASSWORD_RESET_FROM_EMAIL must use a verified production domain");
+  }
 
   if (process.env.PASSWORD_RESET_EXPOSE_URL === "true") {
     fail(
