@@ -250,19 +250,6 @@ function SubscriptionInspector({
         </div>
       ) : null}
 
-      {!loading && !error ? (
-        <PaginationControls
-          page={pagination.page}
-          totalPages={pagination.totalPages}
-          total={pagination.total}
-          pageSize={pagination.pageSize}
-          itemLabel="shops"
-          onPageChange={(nextPage) => {
-            setLoading(true);
-            setPage(nextPage);
-          }}
-        />
-      ) : null}
     </div>
   );
 }
@@ -660,6 +647,20 @@ export function AdminShopManager() {
             />
           ))}
         </div>
+      ) : null}
+
+      {!loading && !error ? (
+        <PaginationControls
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          pageSize={pagination.pageSize}
+          itemLabel="shops"
+          onPageChange={(nextPage) => {
+            setLoading(true);
+            setPage(nextPage);
+          }}
+        />
       ) : null}
     </div>
   );
