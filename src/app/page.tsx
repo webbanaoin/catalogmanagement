@@ -4,6 +4,9 @@ import Link from "next/link";
 
 import { WebbanaoLogo } from "@/components/brand/webbanao-logo";
 import { Container } from "@/components/ui";
+import { prisma } from "@/server/database/prisma";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Webbanao Digital Showroom | Take Your Shop Online",
@@ -167,7 +170,39 @@ function WhatsAppIcon() {
   );
 }
 
-export default function Home() {
+async function loadReferralLandingSettings() {
+  try {
+    return await prisma.referralProgramSettings.findUnique({
+      where: { id: "default" },
+      select: {
+        isEnabled: true,
+        commissionMode: true,
+        monthlyCommission: true,
+        yearlyCommission: true,
+      },
+    });
+  } catch {
+    return null;
+  }
+}
+
+function referralMoney(value: number) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+export default async function Home() {
+  const referralSettings = await loadReferralLandingSettings();
+  const monthlyReferral = Number(referralSettings?.monthlyCommission ?? 0);
+  const yearlyReferral = Number(referralSettings?.yearlyCommission ?? 0);
+  const referralProgramEnabled = referralSettings?.isEnabled ?? true;
+  const referralRule =
+    referralSettings?.commissionMode === "EVERY_ELIGIBLE_PAYMENT"
+      ? "Eligible paid subscriptions and renewals can earn commission under the current program rule."
+      : "Commission is earned on the first eligible paid subscription of each referred shop under the current program rule.";
   return (
     <main className="overflow-hidden bg-[#f8fbff] text-slate-950">
       <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/92 backdrop-blur-xl">
@@ -180,6 +215,7 @@ export default function Home() {
             <a href="#features" className="transition hover:text-indigo-700">Features</a>
             <a href="#how-it-works" className="transition hover:text-indigo-700">How it works</a>
             <a href="#pricing" className="transition hover:text-indigo-700">Pricing</a>
+            <a href="#earn-with-us" className="transition hover:text-indigo-700">Earn with us</a>
             <a href="#faq" className="transition hover:text-indigo-700">FAQs</a>
             <a href="#contact" className="transition hover:text-indigo-700">Contact</a>
           </nav>
@@ -387,6 +423,134 @@ export default function Home() {
         </Container>
       </section>
 
+      <section id="earn-with-us" className="relative overflow-hidden border-t border-slate-200 bg-[#effcf7] py-16 sm:py-20">
+        <div className="absolute -left-24 top-10 h-80 w-80 rounded-full bg-emerald-300/25 blur-3xl" />
+        <div className="absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-sky-300/25 blur-3xl" />
+        <Container className="relative">
+          <div className="grid gap-10 xl:grid-cols-[.92fr_1.08fr] xl:items-center">
+            <div>
+              <span className="inline-flex rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.16em] text-emerald-800 shadow-sm">
+                Earn with Webbanao
+              </span>
+              <h2 className="mt-5 max-w-2xl text-3xl font-black tracking-[-0.045em] text-[#07152f] sm:text-4xl">
+                Refer local shops. Earn when they become eligible paid Digital Showroom customers.
+              </h2>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600">
+                Join as a Webbanao Marketing Partner, get your own short referral code and link,
+                refer shop owners, and track every referred shop, commission and payout from your dashboard.
+              </p>
+
+              <div className="mt-7 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl border border-emerald-200 bg-white p-5 shadow-[0_12px_35px_rgba(5,150,105,.08)]">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
+                    Monthly referral earning
+                  </p>
+                  <p className="mt-2 text-3xl font-black tracking-[-0.04em] text-slate-950">
+                    {monthlyReferral > 0 ? referralMoney(monthlyReferral) : "Admin-set rate"}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    For an eligible monthly paid subscription as per the active referral rule.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-indigo-200 bg-white p-5 shadow-[0_12px_35px_rgba(79,70,229,.08)]">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-indigo-700">
+                    Yearly referral earning
+                  </p>
+                  <p className="mt-2 text-3xl font-black tracking-[-0.04em] text-slate-950">
+                    {yearlyReferral > 0 ? referralMoney(yearlyReferral) : "Admin-set rate"}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    For an eligible yearly paid subscription as per the active referral rule.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-slate-200 bg-white/80 p-4 text-sm leading-6 text-slate-600">
+                <strong className="text-slate-900">
+                  {referralProgramEnabled ? "Current earning rule:" : "Referral program status:"}
+                </strong>{" "}
+                {referralProgramEnabled
+                  ? referralRule
+                  : "The referral earning program is currently paused. Registration remains available for future activation."}
+                {" "}Current rates and payout status are always visible in the approved partner dashboard.
+              </div>
+
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/partner/register"
+                  className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 text-sm font-black text-white shadow-[0_16px_35px_rgba(5,150,105,.18)] transition hover:-translate-y-0.5"
+                >
+                  Register as Marketing Partner <ArrowIcon />
+                </Link>
+                <Link
+                  href="/partner/login"
+                  className="inline-flex h-[52px] items-center justify-center rounded-xl border border-slate-300 bg-white px-6 text-sm font-black text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:text-emerald-700"
+                >
+                  Partner Login
+                </Link>
+              </div>
+            </div>
+
+            <div className="rounded-[2rem] border border-white bg-white p-6 shadow-[0_24px_65px_rgba(15,23,42,.10)] sm:p-8">
+              <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-indigo-600">
+                How referral earning works
+              </p>
+              <div className="mt-6 space-y-4">
+                {[
+                  {
+                    step: "1",
+                    title: "Register as a marketing partner",
+                    text: "Create your partner account with your basic details. Registration is separate from merchant registration.",
+                  },
+                  {
+                    step: "2",
+                    title: "Get approved & receive your code",
+                    text: "Webbanao admin reviews your account. After approval, you receive a short code like WB-48271 plus a ready-to-share referral link.",
+                  },
+                  {
+                    step: "3",
+                    title: "Refer shop owners",
+                    text: "Share your code or link. When a merchant registers through it, that shop is automatically connected to your partner account.",
+                  },
+                  {
+                    step: "4",
+                    title: "Track earning & payout",
+                    text: "After an eligible customer payment is recorded, commission appears in your dashboard as Pending. Once Webbanao pays you, it moves to Paid history.",
+                  },
+                ].map((item) => (
+                  <article
+                    key={item.step}
+                    className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:grid-cols-[48px_1fr]"
+                  >
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 text-base font-black text-white shadow-md">
+                      {item.step}
+                    </div>
+                    <div>
+                      <h3 className="font-black text-slate-950">{item.title}</h3>
+                      <p className="mt-1.5 text-sm leading-6 text-slate-600">{item.text}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              <div className="mt-6 grid gap-3 border-t border-slate-200 pt-6 sm:grid-cols-2">
+                {[
+                  "Short referral code + link",
+                  "Partner-wise shop tracking",
+                  "Pending & paid commission history",
+                  "Transparent payout records",
+                ].map((item) => (
+                  <div key={item} className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                    <CheckIcon />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Container>
+      </section>
+
       <section id="features" className="border-t border-slate-200 bg-[#f8fbff] py-16 sm:py-20">
         <Container>
           <div className="mx-auto max-w-3xl text-center">
@@ -512,6 +676,9 @@ export default function Home() {
           <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-slate-500">
             <a href="#features" className="hover:text-indigo-700">Features</a>
             <a href="#pricing" className="hover:text-indigo-700">Pricing</a>
+            <a href="#earn-with-us" className="hover:text-indigo-700">Earn with us</a>
+            <Link href="/partner/register" className="hover:text-indigo-700">Partner register</Link>
+            <Link href="/partner/login" className="hover:text-indigo-700">Partner login</Link>
             <a href="#faq" className="hover:text-indigo-700">FAQs</a>
             <a href="#contact" className="hover:text-indigo-700">Contact</a>
             <Link href="/login" className="hover:text-indigo-700">Merchant login</Link>
