@@ -142,3 +142,17 @@ npm run test:merchant:payments
 ```
 
 The regression covers merchant submission, Pending isolation, admin approval, official merchant-visible history, referral commission creation, duplicate-reference protection, admin-direct payment visibility and rejection reason visibility.
+
+
+## Pagination and navigation
+
+Growing payment records are loaded server-side in bounded pages:
+
+- Merchant payment submissions: 10 per page
+- Merchant verified payment history: 10 per page
+- Admin merchant payment verification queue: 20 per page
+- Admin official payment history: 25 per page
+
+Changing filters resets the affected list to page 1. Summary totals remain account/filter totals rather than totals for only the visible page.
+
+The merchant desktop sidebar is viewport-sticky and keeps Logout visible without requiring the user to scroll to the end of a long page. The admin header is sticky as well, keeping Admin Logout accessible while reviewing long operational lists.
