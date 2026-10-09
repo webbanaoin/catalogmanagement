@@ -14,7 +14,6 @@ export function isShortReferralCode(value: string | null | undefined): boolean {
 
 export async function createUniqueReferralCode(
   tx: Prisma.TransactionClient,
-  _partnerName?: string,
 ): Promise<string> {
   for (let attempt = 0; attempt < 40; attempt += 1) {
     const candidate = `WB-${randomInt(10000, 100000)}`;
