@@ -3,12 +3,14 @@
 import { useEffect, useState, type FormEvent } from "react";
 
 type Receiver = { id: string; name: string; phone: string; upiId: string | null; cashEnabled: boolean; active: boolean };
+type Submission = { id: string; officialReceiverId: string | null; amount: string; status: "PENDING" | "APPROVED" | "REJECTED"; method: string; paidAt: string; reference: string | null; shop: {name:string}; recipientNameSnapshot:string };
 type History = { id: string; createdAt: string; metadata: unknown; actorUser: { name: string; email: string } | null };
 const blank = { id: "", name: "", phone: "", upiId: "", cashEnabled: true, active: true };
 
 export function AdminPaymentReceiverSettings() {
   const [receivers, setReceivers] = useState<Receiver[]>([]);
   const [history, setHistory] = useState<History[]>([]);
+  const [submissions,setSubmissions]=useState<Submission[]>([]);
   const [form, setForm] = useState(blank);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -20,6 +22,7 @@ export function AdminPaymentReceiverSettings() {
     if (!response.ok) throw new Error(body.error?.message || "Unable to load receivers");
     setReceivers(body.data.receivers);
     setHistory(body.data.history);
+    setSubmissions(body.data.submissions);
     setLoading(false);
   }
   useEffect(() => { void load().catch((error) => { setMessage(String(error)); setLoading(false); }); }, []);
@@ -66,6 +69,22 @@ export function AdminPaymentReceiverSettings() {
       <label className="text-sm"><input type="checkbox" checked={form.cashEnabled} onChange={e=>setForm(v=>({...v,cashEnabled:e.target.checked}))} /> Authorized to receive cash</label>
       <div className="flex gap-3"><button disabled={saving} className="rounded-lg bg-primary px-5 py-3 font-semibold text-white">{saving ? "Saving…" : "Save receiver"}</button><button type="button" className="rounded-lg border px-4" onClick={()=>setForm(blank)}>Clear</button></div>
     </form>
+    <section className="rounded-xl border bg-surface p-5 space-y-4">
+      <h2 className="font-bold">Receiver-wise transaction report</h2>
+      <p className="text-sm text-muted">Only Admin-approved merchant submissions count as verified collections. These figures are app-recorded, not an automatic Google Pay or bank statement feed. Directly admin-recorded legacy payments are not included.</p>
+      <div className="grid gap-3 md:grid-cols-2">{receivers.map(receiver=>{
+        const matched=submissions.filter(item=>item.officialReceiverId===receiver.id);
+        const approved=matched.filter(item=>item.status==="APPROVED");
+        const pending=matched.filter(item=>item.status==="PENDING");
+        return <div key={receiver.id} className="rounded-lg border p-4 space-y-2">
+          <p className="font-semibold">{receiver.name}</p>
+          <p>Verified: <strong>{new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR"}).format(approved.reduce((sum,item)=>sum+Number(item.amount),0))}</strong> ({approved.length})</p>
+          <p>Pending claims: {new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR"}).format(pending.reduce((sum,item)=>sum+Number(item.amount),0))} ({pending.length})</p>
+        </div>;
+      })}</div>
+      <div className="max-h-96 overflow-auto"><table className="w-full text-left text-sm"><thead><tr><th className="p-2">Shop</th><th className="p-2">Recipient</th><th className="p-2">Amount</th><th className="p-2">Method</th><th className="p-2">Status</th><th className="p-2">UTR / Receipt</th></tr></thead>
+      <tbody>{submissions.map(item=><tr key={item.id} className="border-t"><td className="p-2">{item.shop.name}</td><td className="p-2">{item.recipientNameSnapshot}</td><td className="p-2">₹{item.amount}</td><td className="p-2">{item.method}</td><td className="p-2">{item.status}</td><td className="p-2">{item.reference??"—"}</td></tr>)}</tbody></table></div>
+    </section>
     <section className="rounded-xl border bg-surface p-5 space-y-3"><h2 className="font-bold">Receiver change history</h2>
       {history.length===0?<p className="text-sm text-muted">No changes yet.</p>:history.map(item=><details key={item.id} className="rounded-lg border p-3 text-sm">
         <summary className="cursor-pointer">{new Date(item.createdAt).toLocaleString("en-IN")} · {item.actorUser?.name ?? "Former admin"}</summary>
