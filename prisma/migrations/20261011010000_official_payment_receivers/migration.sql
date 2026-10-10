@@ -15,3 +15,6 @@ INSERT INTO `official_payment_receivers` (`id`, `name`, `phone`, `upi_id`, `acti
 VALUES
  ('official-prashant', 'Prashant Patel', '9168720245', 'prashantpatel238-1@okaxis', true, true, CURRENT_TIMESTAMP(3)),
  ('official-parixit', 'Parixit', '9643819986', NULL, true, true, CURRENT_TIMESTAMP(3));
+
+ALTER TABLE `payment_submissions` ADD COLUMN `official_receiver_id` VARCHAR(191) NULL;
+CREATE INDEX `payment_submissions_official_receiver_id_status_idx` ON `payment_submissions`(`official_receiver_id`, `status`);
