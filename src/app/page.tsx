@@ -294,8 +294,8 @@ export default async function Home() {
   return (
     <main className="overflow-hidden bg-[#f8fbff] text-slate-950">
       <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/92 backdrop-blur-xl">
-        <Container className="flex min-h-[72px] items-center justify-between gap-4">
-          <Link href="/" aria-label="Webbanao home">
+        <Container className="flex min-h-[72px] flex-col items-stretch gap-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:py-0">
+          <Link href="/" aria-label="Webbanao home" className="self-start">
             <WebbanaoLogo compact />
           </Link>
 
@@ -308,11 +308,11 @@ export default async function Home() {
             <a href="#contact" className="transition hover:text-indigo-700">Contact</a>
           </nav>
 
-          <div className="flex items-center gap-2">
-            <Link href="/login" className="hidden h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700 sm:inline-flex">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:shrink-0 sm:items-center">
+            <Link href="/login" className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-2.5 text-center text-xs font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700 sm:px-4 sm:text-sm">
               Merchant login
             </Link>
-            <Link href="/register" className="inline-flex h-10 items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 text-sm font-extrabold text-white shadow-lg shadow-emerald-950/10 transition hover:-translate-y-0.5">
+            <Link href="/register" className="inline-flex min-h-10 items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-2.5 text-center text-xs font-extrabold text-white shadow-lg shadow-emerald-950/10 transition hover:-translate-y-0.5 sm:px-4 sm:text-sm">
               Register shop
             </Link>
           </div>
