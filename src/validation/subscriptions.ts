@@ -92,7 +92,8 @@ export const adminPaymentCreateSchema = z
   .object({
     shopId: z.string().trim().min(1),
     amount: paymentAmountSchema,
-    method: z.enum(["CASH", "UPI", "BANK_TRANSFER", "OTHER"]),
+    method: z.enum(["CASH", "UPI"]),
+    paymentReceiverId: z.string().trim().min(1).max(191),
     billingCycle: z
       .enum(["WEEKLY", "MONTHLY", "QUARTERLY", "HALF_YEARLY", "YEARLY", "CUSTOM"])
       .default("CUSTOM"),
@@ -154,7 +155,7 @@ export const merchantPaymentSubmissionSchema = z
       "YEARLY",
     ]),
     paidAt: z.string().trim().min(1).max(64),
-    recipientType: z.enum(["WEBBANAO", "REFERRAL_PARTNER", "OTHER"]),
+    recipientType: z.literal("WEBBANAO"),
     recipientName: z.string().trim().max(160).optional().nullable(),
     reference: z.string().trim().max(191).optional().nullable(),
     comment: z.string().trim().max(2000).optional().nullable(),
