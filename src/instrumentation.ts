@@ -16,7 +16,7 @@ export async function register() {
   const name = process.env.ADMIN_NAME?.trim() || "Webbanao Admin";
   const password = process.env.ADMIN_PASSWORD ?? "";
 
-  if (!email || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) ||
+  if (!email || !email.includes('@') || !email.split('@')[1]?.includes('.') ||
       name.length > 120 || email.length > 191 ||
       password.length < 12 || password.length > 128) {
     console.error("[admin-bootstrap] Invalid configuration; set ADMIN_EMAIL, ADMIN_NAME and a 12-128 character ADMIN_PASSWORD");
