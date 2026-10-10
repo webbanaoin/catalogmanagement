@@ -1,5 +1,6 @@
-import qrcode from "qrcode-generator";
 "use client";
+
+import qrcode from "qrcode-generator";
 
 import { useEffect, useState, type FormEvent } from "react";
 
