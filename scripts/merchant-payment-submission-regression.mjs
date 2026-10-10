@@ -222,6 +222,12 @@ async function main() {
     },
   });
 
+  const paymentReceiver = await prisma.officialPaymentReceiver.upsert({
+    where: { id: "test-receiver-" + suffix },
+    update: { active: true, upiId: "test-receiver@okaxis", cashEnabled: true },
+    create: { id: "test-receiver-" + suffix, name: "Test Authorized Collector", phone: "9168720245", upiId: "test-receiver@okaxis", active: true, cashEnabled: true },
+  });
+
   const adminCookie = await login(admin.email, adminPassword);
   const merchantCookie = await login(merchant.email, merchantPassword);
 
@@ -234,9 +240,10 @@ async function main() {
       method: "UPI",
       billingCycle: "MONTHLY",
       paidAt: new Date().toISOString(),
-      recipientType: "REFERRAL_PARTNER",
+      recipientType: "WEBBANAO",
+      paymentReceiverId: paymentReceiver.id,
       reference,
-      comment: "Paid monthly subscription amount to marketing partner.",
+      comment: "Paid the authorized Webbanao receiver.",
     },
     merchantCookie,
   );
@@ -395,6 +402,7 @@ async function main() {
       billingCycle: "QUARTERLY",
       paidAt: new Date().toISOString(),
       recipientType: "WEBBANAO",
+      paymentReceiverId: paymentReceiver.id,
       reference: quarterlyReference,
       comment: "Quarterly merchant-submitted payment",
     },
@@ -528,8 +536,8 @@ async function main() {
       method: "CASH",
       billingCycle: "MONTHLY",
       paidAt: new Date().toISOString(),
-      recipientType: "OTHER",
-      recipientName: "Local collection agent",
+      recipientType: "WEBBANAO",
+      paymentReceiverId: paymentReceiver.id,
       reference: rejectReference,
       comment: "Cash handed to local collection agent.",
     },
