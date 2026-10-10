@@ -17,15 +17,20 @@ const receiverSchema = z.object({
 export async function GET() {
   try {
     await requirePlatformAdmin();
-    const [receivers, history] = await Promise.all([
+    const [receivers, history, submissions] = await Promise.all([
       prisma.officialPaymentReceiver.findMany({ orderBy: { name: "asc" } }),
       prisma.auditLog.findMany({
         where: { action: "OFFICIAL_PAYMENT_RECEIVER_CHANGED" },
         include: { actorUser: { select: { name: true, email: true } } },
         orderBy: { createdAt: "desc" }, take: 100,
       }),
+      prisma.paymentSubmission.findMany({
+        where: { officialReceiverId: { not: null } },
+        select: { id: true, officialReceiverId: true, method: true, amount: true, status: true, paidAt: true, reference: true, recipientNameSnapshot: true, shop: { select: { name: true } } },
+        orderBy: { paidAt: "desc" }, take: 500,
+      }),
     ]);
-    return NextResponse.json({ data: { receivers, history } });
+    return NextResponse.json({ data: { receivers, history, submissions: submissions.map(item => ({ ...item, amount: item.amount.toString() })) } });
   } catch (error) { return errorResponse(error); }
 }
 
