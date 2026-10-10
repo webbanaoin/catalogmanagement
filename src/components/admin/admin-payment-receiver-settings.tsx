@@ -25,7 +25,21 @@ export function AdminPaymentReceiverSettings() {
     setSubmissions(body.data.submissions);
     setLoading(false);
   }
-  useEffect(() => { void load().catch((error) => { setMessage(String(error)); setLoading(false); }); }, []);
+  useEffect(() => {
+    void fetch("/api/admin/payment-receivers", { cache: "no-store" })
+      .then(async response => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error?.message || "Unable to load receivers");
+        return body;
+      })
+      .then(body => {
+        setReceivers(body.data.receivers);
+        setHistory(body.data.history);
+        setSubmissions(body.data.submissions);
+        setLoading(false);
+      })
+      .catch(error => { setMessage(String(error)); setLoading(false); });
+  }, []);
 
   async function save(event: FormEvent) {
     event.preventDefault();
