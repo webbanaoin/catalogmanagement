@@ -658,3 +658,18 @@ model AuditLog {
   @@index([entityType, entityId, createdAt])
   @@map("audit_logs")
 }
+
+
+model OfficialPaymentReceiver {
+  id String @id @default(cuid())
+  name String @db.VarChar(120)
+  phone String @db.VarChar(20)
+  upiId String? @map("upi_id") @db.VarChar(191)
+  active Boolean @default(true)
+  cashEnabled Boolean @default(true) @map("cash_enabled")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([active])
+  @@map("official_payment_receivers")
+}
