@@ -32,7 +32,7 @@ export default async function AdminOverviewPage() {
   ];
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <div className="min-w-0 space-y-6 sm:space-y-8">
       <PageHeader
         eyebrow="Sprint 6"
         title="Platform administration"
@@ -41,7 +41,7 @@ export default async function AdminOverviewPage() {
       <Alert title="Server-side administration">
         Admin mutations use the existing platform-admin APIs and server-side authorization. Browser state is never treated as the security boundary.
       </Alert>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {cards.map((card) => (
           <Card key={card.label}>
             <CardHeader>
