@@ -196,7 +196,7 @@ export default function MerchantPaymentsPage() {
 
       setReference("");
       setComment("");
-      setRecipientName("");
+
       setPaidAt(localDateTimeInput());
       setSuccess(
         "Payment details submitted. Verification may take some time. For urgent confirmation, please call the authorized recipient you paid. Your subscription activates only after Webbanao admin approval.",
