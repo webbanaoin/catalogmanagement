@@ -146,7 +146,8 @@ export const adminPaymentListQuerySchema = z.object({
 export const merchantPaymentSubmissionSchema = z
   .object({
     amount: paymentAmountSchema,
-    method: z.enum(["CASH", "UPI", "BANK_TRANSFER", "OTHER"]),
+    method: z.enum(["CASH", "UPI"]),
+    paymentReceiverId: z.string().trim().min(1).max(191),
     billingCycle: z.enum([
       "MONTHLY",
       "QUARTERLY",
@@ -154,26 +155,17 @@ export const merchantPaymentSubmissionSchema = z
       "YEARLY",
     ]),
     paidAt: z.string().trim().min(1).max(64),
-    recipientType: z.enum(["WEBBANAO", "REFERRAL_PARTNER", "OTHER"]),
+    recipientType: z.literal("WEBBANAO"),
     recipientName: z.string().trim().max(160).optional().nullable(),
     reference: z.string().trim().max(191).optional().nullable(),
     comment: z.string().trim().max(2000).optional().nullable(),
   })
   .superRefine((value, ctx) => {
-    if (value.method === "OTHER" && !value.comment?.trim()) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["comment"],
-        message: "Add a note when payment method is Other",
-      });
+    if (value.method === "UPI" && !value.reference?.trim()) {
+      ctx.addIssue({code:"custom",path:["reference"],message:"UPI transaction ID / UTR is required"});
     }
-
-    if (value.recipientType === "OTHER" && !value.recipientName?.trim()) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["recipientName"],
-        message: "Enter who received the payment",
-      });
+    if (value.method === "CASH" && !value.reference?.trim()) {
+      ctx.addIssue({code:"custom",path:["reference"],message:"Official cash receipt/reference is required"});
     }
 
     const paidAt = new Date(value.paidAt);

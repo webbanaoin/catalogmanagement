@@ -1,5 +1,7 @@
 "use client";
 
+import qrcode from "qrcode-generator";
+
 import { useEffect, useState, type FormEvent } from "react";
 
 import {
@@ -26,7 +28,6 @@ import {
   getShopSubscription,
   submitShopPayment,
   type MerchantPaymentMethod,
-  type MerchantPaymentRecipientType,
   type MerchantPaymentSubmissionStatus,
   type MerchantPaymentWorkspace,
   type MerchantShop,
@@ -39,11 +40,11 @@ import {
   type PaidBillingCycle,
 } from "@/lib/subscription-cycles";
 
+type OfficialReceiver = { id: string; name: string; phone: string; upiId: string | null; cashEnabled: boolean };
+
 const methods: Array<{ value: MerchantPaymentMethod; label: string }> = [
   { value: "UPI", label: "UPI" },
-  { value: "BANK_TRANSFER", label: "Bank transfer" },
   { value: "CASH", label: "Cash" },
-  { value: "OTHER", label: "Other" },
 ];
 
 function localDateTimeInput() {
@@ -103,9 +104,8 @@ export default function MerchantPaymentsPage() {
     useState<PaidBillingCycle>("MONTHLY");
   const [method, setMethod] = useState<MerchantPaymentMethod>("UPI");
   const [paidAt, setPaidAt] = useState(localDateTimeInput);
-  const [recipientType, setRecipientType] =
-    useState<MerchantPaymentRecipientType>("WEBBANAO");
-  const [recipientName, setRecipientName] = useState("");
+  const [receivers, setReceivers] = useState<OfficialReceiver[]>([]);
+  const [receiverId, setReceiverId] = useState("");
   const [reference, setReference] = useState("");
   const [comment, setComment] = useState("");
 
@@ -115,19 +115,22 @@ export default function MerchantPaymentsPage() {
     async function load() {
       try {
         const currentShop = await getCurrentMerchantShop();
-        const [paymentResponse, subscriptionResponse] = await Promise.all([
+        const [paymentResponse, subscriptionResponse, receiverResponse] = await Promise.all([
           getShopPayments(currentShop.id, {
             paymentPage,
             submissionPage,
             pageSize: 10,
           }),
           getShopSubscription(currentShop.id),
+          fetch("/api/payment-receivers", { cache: "no-store" }).then(async response => { if (!response.ok) throw new Error("Unable to load official payment recipients"); return response.json() as Promise<{data:OfficialReceiver[]}>; }),
         ]);
         if (!active) return;
 
         setShop(currentShop);
         setWorkspace(paymentResponse.data);
         setSubscription(subscriptionResponse.data);
+        setReceivers(receiverResponse.data);
+        setReceiverId(current => current || receiverResponse.data[0]?.id || "");
         if (subscriptionResponse.data) {
           setAmount((current) =>
             current ||
@@ -185,19 +188,18 @@ export default function MerchantPaymentsPage() {
         method,
         billingCycle,
         paidAt: new Date(paidAt).toISOString(),
-        recipientType,
-        recipientName:
-          recipientType === "OTHER" ? recipientName.trim() || null : null,
+        recipientType: "WEBBANAO",
+        paymentReceiverId: receiverId,
         reference: reference.trim() || null,
         comment: comment.trim() || null,
       });
 
       setReference("");
       setComment("");
-      setRecipientName("");
+
       setPaidAt(localDateTimeInput());
       setSuccess(
-        "Payment information submitted. It is pending Webbanao verification and will become an official payment only after admin approval.",
+        "Payment details submitted. Verification may take some time. For urgent confirmation, please call the authorized recipient you paid. Your subscription activates only after Webbanao admin approval.",
       );
       setSubmissionPage(1);
       setLoading(true);
@@ -284,9 +286,7 @@ export default function MerchantPaymentsPage() {
         <CardHeader>
           <CardTitle>I made a payment</CardTitle>
           <CardDescription>
-            Use this when you paid Webbanao directly, through your marketing/referral
-            person, or through another agreed medium. This submission does not
-            activate your subscription until Webbanao verifies receipt.
+            Pay only to the authorized Webbanao recipients listed below. Payment confirmation can take some time; for urgent help call the person you paid. Only an admin can approve and activate your subscription.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -359,53 +359,33 @@ export default function MerchantPaymentsPage() {
               </label>
 
               <label className="text-sm font-medium text-foreground sm:col-span-2">
-                Paid to
-                <Select
-                  className="mt-1"
-                  value={recipientType}
-                  onChange={(event) =>
-                    setRecipientType(
-                      event.target.value as MerchantPaymentRecipientType,
-                    )
-                  }
-                >
-                  <option value="WEBBANAO">Webbanao / Direct</option>
-                  {workspace?.referralPartner ? (
-                    <option value="REFERRAL_PARTNER">
-                      Marketing partner — {workspace.referralPartner.name} (
-                      {workspace.referralPartner.referralCode})
-                    </option>
-                  ) : null}
-                  <option value="OTHER">Other person / medium</option>
+                Official payment receiver
+                <Select className="mt-1" value={receiverId} onChange={event=>setReceiverId(event.target.value)} required>
+                  <option value="">Select Prashant or Parixit</option>
+                  {receivers.filter(r=>method==="UPI" ? Boolean(r.upiId) : r.cashEnabled).map(r=><option key={r.id} value={r.id}>{r.name} · {r.phone}</option>)}
                 </Select>
               </label>
-
-              {recipientType === "OTHER" ? (
-                <label className="text-sm font-medium text-foreground sm:col-span-2">
-                  Who received the payment?
-                  <Input
-                    className="mt-1"
-                    value={recipientName}
-                    onChange={(event) => setRecipientName(event.target.value)}
-                    maxLength={160}
-                    placeholder="Person / agency / other payment channel"
-                    required
-                  />
-                </label>
-              ) : (
-                <div className="rounded-lg border border-border bg-surface-muted/40 p-3 text-sm sm:col-span-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">
-                    Recipient
-                  </p>
-                  <p className="mt-1 font-medium text-foreground">
-                    {recipientType === "REFERRAL_PARTNER" &&
-                    workspace?.referralPartner
-                      ? `${workspace.referralPartner.name} (${workspace.referralPartner.referralCode})`
-                      : "Webbanao Digital Showroom"}
-                  </p>
-                </div>
-              )}
-
+              {(() => {
+                const receiver=receivers.find(r=>r.id===receiverId);
+                if(!receiver) return null;
+                const upiUrl=method==="UPI" && receiver.upiId
+                  ? "upi://pay?pa="+encodeURIComponent(receiver.upiId)+"&pn="+encodeURIComponent(receiver.name)+"&am="+encodeURIComponent(amount)+"&cu=INR&tn="+encodeURIComponent("Webbanao Digital Showroom subscription")
+                  : null;
+                let svg="";
+                if(upiUrl && Number(amount)>0){
+                  const qr=qrcode(0,"M");qr.addData(upiUrl);qr.make();svg=qr.createSvgTag({cellSize:5,margin:4,scalable:true});
+                }
+                return <div className="rounded-xl border p-4 space-y-3 sm:col-span-4">
+                  <p className="font-bold">{receiver.name} — Authorized Webbanao receiver</p>
+                  <p>Contact: <a className="underline font-semibold" href={`tel:+91${receiver.phone}`}>+91 {receiver.phone}</a></p>
+                  {method==="UPI" && upiUrl ? <>
+                    <p className="text-sm">UPI ID: <strong>{receiver.upiId}</strong>. Confirm the payee name in your UPI app before paying.</p>
+                    {svg?<div className="max-w-52 rounded-lg bg-white p-2" aria-label={`UPI QR for ${receiver.name}`} dangerouslySetInnerHTML={{__html:svg}} />:null}
+                    <a className="inline-block rounded-lg border px-4 py-2 font-semibold" href={upiUrl}>Pay with UPI app</a>
+                    <p className="text-xs text-muted">The amount is prefilled but some UPI apps allow editing. Verify the amount and payee before confirming.</p>
+                  </>:<p className="text-sm">Cash may be given only to {receiver.name}. Request an official receipt/reference number.</p>}
+                </div>;
+              })()}
               <label className="text-sm font-medium text-foreground sm:col-span-2">
                 Reference / UTR / receipt
                 <Input
@@ -413,7 +393,7 @@ export default function MerchantPaymentsPage() {
                   value={reference}
                   onChange={(event) => setReference(event.target.value)}
                   maxLength={191}
-                  placeholder="Recommended for UPI / bank payments"
+                  placeholder="Transaction UTR / official cash receipt"
                 />
               </label>
 
@@ -425,16 +405,14 @@ export default function MerchantPaymentsPage() {
                   onChange={(event) => setComment(event.target.value)}
                   maxLength={2000}
                   placeholder="Any useful payment detail for Webbanao admin."
-                  required={method === "OTHER"}
+                  required={false}
                 />
               </label>
             </div>
 
+            <Alert title="Payment safety — important">Marketing Partners are NOT authorized to collect cash or UPI payments for Webbanao. Pay only Prashant or Parixit using the official details displayed above. Never pay to a partner\u0027s personal QR.</Alert>
             <Alert title="Verification required">
-              Your entry will first show as Pending. Webbanao admin will verify the
-              payment. Only after approval will it appear in Verified Payment
-              History, update your subscription and trigger any applicable referral
-              commission.
+              After submission, approval may take some time while Webbanao confirms actual receipt. For urgent confirmation, call the person you paid at the number shown above. Only an admin can approve a payment and activate the subscription.
             </Alert>
 
             <Button
@@ -442,8 +420,9 @@ export default function MerchantPaymentsPage() {
               disabled={
                 saving ||
                 !amount ||
-                (recipientType === "OTHER" && !recipientName.trim()) ||
-                (method === "OTHER" && !comment.trim())
+                !receiverId ||
+                (method==="UPI" && !receivers.find(r=>r.id===receiverId)?.upiId) ||
+                (method==="CASH" && !receivers.find(r=>r.id===receiverId)?.cashEnabled)
               }
             >
               {saving ? "Submitting…" : "Submit payment for verification"}

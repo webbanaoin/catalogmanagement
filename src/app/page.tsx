@@ -821,7 +821,10 @@ export default async function Home() {
               <div className="rounded-2xl border border-white/15 bg-white/[0.06] p-5 backdrop-blur">
                 <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Contact us</p>
                 <a href="tel:+919168720245" className="mt-2 block text-2xl font-black text-white transition hover:text-cyan-300">
-                  +91 9168720245
+                  Prashant: +91 9168720245
+                </a>
+                <a href="tel:+919643819986" className="mt-2 block text-lg font-bold text-white transition hover:text-cyan-300">
+                  Parixit: +91 9643819986
                 </a>
 
                 <div className="mt-5 grid gap-3">

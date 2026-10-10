@@ -69,6 +69,11 @@ export function PartnerRegisterForm() {
       return;
     }
 
+    if (data.get("paymentCollectionPolicy") !== "accepted") {
+      setFormError("You must acknowledge the Webbanao payment-collection restriction before registering.");
+      return;
+    }
+
     setSubmitting(true);
     setFieldErrors({});
 
@@ -184,6 +189,11 @@ export function PartnerRegisterForm() {
         After registration, Webbanao admin will review your account. Once approved,
         your unique referral code and referral link will appear in your partner dashboard.
       </Alert>
+
+      <label className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold text-amber-950">
+        <input type="checkbox" name="paymentCollectionPolicy" value="accepted" className="mt-1" required />
+        I understand that Marketing Partners are NOT authorized to collect subscription payments in cash, via UPI, or by bank transfer. Customers must only pay Webbanao-approved recipients displayed on the official platform.
+      </label>
 
       <Button type="submit" className="w-full" disabled={submitting}>
         {submitting ? "Submitting…" : "Register as marketing partner"}
