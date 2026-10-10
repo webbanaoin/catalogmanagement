@@ -392,6 +392,7 @@ export async function POST(
           shopId,
           submittedByUserId: user.id,
           referralPartnerId,
+          officialReceiverId: receiver.id,
           amount: input.amount,
           currency: "INR",
           method: input.method,
