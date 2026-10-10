@@ -741,6 +741,7 @@ export async function submitShopPayment(
       | "YEARLY";
     paidAt: string;
     recipientType: MerchantPaymentRecipientType;
+    paymentReceiverId: string;
     recipientName?: string | null;
     reference?: string | null;
     comment?: string | null;
