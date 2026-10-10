@@ -342,29 +342,22 @@ export async function POST(
       });
     }
 
-    let referralPartnerId: string | null = null;
-    let recipientNameSnapshot = "Webbanao Digital Showroom";
-
-    if (input.recipientType === "REFERRAL_PARTNER") {
-      const partner = shop.referralPartner;
-      if (
-        !partner ||
-        partner.status !== "ACTIVE" ||
-        !partner.referralCode
-      ) {
-        throw new AppError({
-          code: "REFERRAL_PARTNER_UNAVAILABLE",
-          message:
-            "This shop does not currently have an active referral partner. Select Other if you paid another person.",
-          status: 400,
-        });
-      }
-      referralPartnerId = partner.id;
-      recipientNameSnapshot =
-        partner.user.name + " (" + partner.referralCode + ")";
-    } else if (input.recipientType === "OTHER") {
-      recipientNameSnapshot = input.recipientName?.trim() || "";
+    // Referrals remain attributed to the shop; referral partners cannot receive subscription funds.
+    const receiver = await prisma.officialPaymentReceiver.findUnique({
+      where: { id: input.paymentReceiverId },
+    });
+    if (!receiver || !receiver.active ||
+        (input.method === "UPI" && !receiver.upiId) ||
+        (input.method === "CASH" && !receiver.cashEnabled)) {
+      throw new AppError({
+        code: "UNAUTHORIZED_PAYMENT_RECEIVER",
+        message: "Choose an active, officially authorized Webbanao payment receiver.",
+        status: 400,
+      });
     }
+    const recipientNameSnapshot = receiver.name + " (" + receiver.phone + ")" +
+      (input.method === "UPI" ? " · " + receiver.upiId : " · Cash");
+    const referralPartnerId: string | null = null;
 
     const reference = input.reference?.trim() || null;
     if (reference) {
@@ -443,6 +436,7 @@ export async function POST(
             paidAt: created.paidAt.toISOString(),
             recipientType: created.recipientType,
             recipientName: created.recipientNameSnapshot,
+            paymentReceiverId: receiver.id,
             reference: created.reference,
           },
         },
