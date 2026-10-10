@@ -10,3 +10,8 @@ CREATE TABLE `official_payment_receivers` (
   INDEX `official_payment_receivers_active_idx`(`active`),
   PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+INSERT INTO `official_payment_receivers` (`id`, `name`, `phone`, `upi_id`, `active`, `cash_enabled`, `updated_at`)
+VALUES
+ ('official-prashant', 'Prashant Patel', '9168720245', 'prashantpatel238-1@okaxis', true, true, CURRENT_TIMESTAMP(3)),
+ ('official-parixit', 'Parixit', '9643819986', NULL, true, true, CURRENT_TIMESTAMP(3));
