@@ -226,6 +226,7 @@ export default async function PartnerDashboardPage({
 
   return (
     <div className="space-y-8">
+      <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold text-amber-950">Payment safety: Marketing Partners are NOT authorized to collect subscription payments by cash, UPI, bank transfer or personal QR. Merchants must pay only Webbanao-authorized recipients shown in their payment dashboard. Commission is earned only after admin verification.</div>
       <PageHeader
         eyebrow="Partner dashboard"
         title={`Welcome, ${current.name}`}
