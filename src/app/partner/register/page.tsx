@@ -20,6 +20,7 @@ export default function PartnerRegisterPage() {
         </>
       }
     >
+      <div className="mb-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-950">Marketing Partners are NOT authorized to collect cash, UPI or bank payments on behalf of Webbanao. All customers must pay only the official recipients shown on the merchant payment page.</div>
       <PartnerRegisterForm />
     </AuthShell>
   );
