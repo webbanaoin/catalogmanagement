@@ -8,6 +8,7 @@ import { AuthApiError, registerMerchant } from "@/lib/auth-api";
 import { getBusinessCategories, type BusinessCategory } from "@/lib/catalog-api";
 import {
   isValidEmail,
+  isValidEnglishPersonName,
   isValidIndianMobile,
   isValidIndianPhone,
   isValidIndianPincode,
@@ -37,6 +38,8 @@ function validateRegistration(formData: FormData): FieldErrors {
     errors.name = name ? "Name must contain at least 2 characters." : "Name is required.";
   } else if (name.length > 120) {
     errors.name = "Name must contain at most 120 characters.";
+  } else if (!isValidEnglishPersonName(name)) {
+    errors.name = "Use English letters and spaces only (first name and surname).";
   }
 
   if (!email) {
@@ -71,9 +74,9 @@ function validateRegistration(formData: FormData): FieldErrors {
   }
 
   const mobile = rawValue(formData, "mobile");
-  if (mobile && !mobile.trim()) {
-    errors.mobile = "Mobile number cannot contain only spaces.";
-  } else if (mobile.trim() && !isValidIndianMobile(mobile)) {
+  if (!mobile.trim()) {
+    errors.mobile = "Indian mobile number is required.";
+  } else if (!isValidIndianMobile(mobile)) {
     errors.mobile = "Enter a valid 10-digit Indian mobile number.";
   }
 
@@ -104,6 +107,10 @@ function validateRegistration(formData: FormData): FieldErrors {
       errors[field] = `${label} must contain at most 120 characters.`;
     }
   }
+
+  const address = rawValue(formData, "address");
+  if (address && !address.trim()) errors.address = "Address cannot contain only spaces.";
+  else if (address.trim().length > 500) errors.address = "Address must contain at most 500 characters.";
 
   const pincode = rawValue(formData, "pincode");
   if (pincode && !pincode.trim()) {
@@ -191,6 +198,7 @@ export function RegisterForm({
             : undefined,
         phone: optionalValue(formData, "phone"),
         whatsapp: optionalValue(formData, "whatsapp"),
+        address: optionalValue(formData, "address"),
         city: optionalValue(formData, "city"),
         state: optionalValue(formData, "state"),
         pincode: optionalValue(formData, "pincode"),
@@ -214,9 +222,10 @@ export function RegisterForm({
   return (
     <form className="space-y-5" onSubmit={handleSubmit} noValidate>
       {formError ? <Alert variant="error">{formError}</Alert> : null}
+      <Alert title="Please provide accurate contact details">Enter an active email address that you can access and your correct Indian mobile number. Webbanao uses these details for verification, registration updates, and important account notices.</Alert>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Your name" htmlFor="name" error={fieldErrors.name} required>
+        <Field label="Your name" htmlFor="name" hint="Use English letters only, for example: Prashant Patel." error={fieldErrors.name} required>
           <Input
             id="name"
             name="name"
@@ -337,12 +346,14 @@ export function RegisterForm({
         <Field
           label="Mobile"
           htmlFor="mobile"
-          hint="10-digit Indian mobile number; +91 formatting is also accepted."
+          hint="Required: valid Indian mobile starting with 6, 7, 8 or 9. +91 is accepted."
           error={fieldErrors.mobile}
+          required
         >
           <Input
             id="mobile"
             name="mobile"
+            required
             type="tel"
             inputMode="tel"
             autoComplete="tel"
@@ -386,6 +397,10 @@ export function RegisterForm({
           aria-invalid={Boolean(fieldErrors.whatsapp)}
           aria-describedby={describedBy("whatsapp", fieldErrors.whatsapp, true)}
         />
+      </Field>
+
+      <Field label="Shop address" htmlFor="address" hint="Optional. Building, street, area or landmark so customers can locate your shop." error={fieldErrors.address}>
+        <Input id="address" name="address" autoComplete="street-address" maxLength={500} placeholder="Shop number, street, area, landmark" />
       </Field>
 
       <div className="grid gap-5 sm:grid-cols-3">
