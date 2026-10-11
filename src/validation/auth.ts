@@ -54,6 +54,7 @@ export const registerSchema = z
       .max(120, "Name must contain at most 120 characters")
       .refine(isValidEnglishPersonName, "Use English letters and spaces only for your name."),
     email,
+    emailVerificationToken: z.string().min(32).max(128),
     mobile: z.string().trim().refine(isValidIndianMobile, "Enter a valid 10-digit Indian mobile number (starting with 6–9)."),
     password,
     shopName: z
