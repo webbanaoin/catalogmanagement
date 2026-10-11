@@ -87,6 +87,7 @@ export interface RegisterPayload {
   requestedBusinessType?: string;
   phone?: string;
   whatsapp?: string;
+  address?: string;
   city?: string;
   state?: string;
   pincode?: string;
