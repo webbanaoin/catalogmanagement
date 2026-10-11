@@ -62,7 +62,6 @@ export default async function PlatformAnalyticsPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Sprint 6"
         title="Platform analytics"
         description="A protected operational view of platform catalogue activity over the last 30 days."
       />
