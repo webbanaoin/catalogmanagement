@@ -40,7 +40,7 @@ export function StorefrontFilters({
         attributeValue ?? "",
         availability ?? "",
       ].join("|")}
-      action={`/s/${shopSlug}`}
+      action={`/s/${shopSlug}#storefront-products`}
       method="get"
       className="overflow-hidden rounded-[1.35rem] border border-border bg-surface shadow-[0_8px_30px_rgba(23,32,29,0.045)]"
       aria-label="Search and filter products"
