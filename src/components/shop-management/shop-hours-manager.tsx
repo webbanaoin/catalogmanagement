@@ -39,9 +39,6 @@ type EditableHour = {
   closeTime: string;
 };
 
-const DEFAULT_OPEN = "09:00";
-const DEFAULT_CLOSE = "18:00";
-
 function emptyWeek(): EditableHour[] {
   return days.map((_, dayOfWeek) => ({
     dayOfWeek,
@@ -64,20 +61,11 @@ function normalizeHours(items: ShopHour[]): EditableHour[] {
   });
 }
 
-function usesDifferentTimings(week: EditableHour[]): boolean {
-  const schedules = new Set(
-    week
-      .filter((hour) => !hour.isClosed)
-      .map((hour) => `${hour.openTime}|${hour.closeTime}`),
-  );
-  return schedules.size > 1;
-}
-
 export function ShopHoursManager() {
   const [shopId, setShopId] = useState("");
   const [hours, setHours] = useState<EditableHour[]>(emptyWeek);
-  const [commonOpen, setCommonOpen] = useState(DEFAULT_OPEN);
-  const [commonClose, setCommonClose] = useState(DEFAULT_CLOSE);
+  const [commonOpen, setCommonOpen] = useState("09:00");
+  const [commonClose, setCommonClose] = useState("18:00");
   const [customTimings, setCustomTimings] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -94,16 +82,15 @@ export function ShopHoursManager() {
         const shop = await getCurrentMerchantShop();
         const response = await getShopHours(shop.id);
         if (!active) return;
-
-        const week = normalizeHours(response.items);
-        const firstOpenDay = week.find((hour) => !hour.isClosed);
         setShopId(shop.id);
+        const week = normalizeHours(response.items);
+        const openDays = week.filter((hour) => !hour.isClosed);
+        const first = openDays[0];
         setHours(week);
-        setCommonOpen(firstOpenDay?.openTime || DEFAULT_OPEN);
-        setCommonClose(firstOpenDay?.closeTime || DEFAULT_CLOSE);
-        // Preserve existing shops with different hours across days.
-        // No old schedule is silently collapsed into common timings.
-        setCustomTimings(usesDifferentTimings(week));
+        setCommonOpen(first?.openTime || "09:00");
+        setCommonClose(first?.closeTime || "18:00");
+        // Existing different daily hours stay in custom mode until explicitly changed.
+        setCustomTimings(new Set(openDays.map((h) => h.openTime + "|" + h.closeTime)).size > 1);
       } catch (error) {
         if (!active) return;
         setFeedback({
@@ -124,58 +111,15 @@ export function ShopHoursManager() {
     };
   }, []);
 
-  const selectedDays = useMemo(
-    () => hours.filter((hour) => !hour.isClosed),
-    [hours],
-  );
-
   const validationError = useMemo(() => {
-    if (!selectedDays.length) return null;
+    const openDays = hours.filter((h) => !h.isClosed);
+    if (!openDays.length) return null;
     if (!customTimings) {
-      return !commonOpen || !commonClose
-        ? "Set both opening and closing times for the selected days."
-        : null;
+      return commonOpen && commonClose ? null : "Set both common opening and closing times.";
     }
-    const invalid = selectedDays.find(
-      (hour) => !hour.openTime || !hour.closeTime,
-    );
-    return invalid
-      ? `Set both opening and closing times for ${days[invalid.dayOfWeek]}.`
-      : null;
-  }, [commonClose, commonOpen, customTimings, selectedDays]);
-
-  function toggleOpen(dayOfWeek: number, isOpen: boolean) {
-    setHours((current) =>
-      current.map((hour) =>
-        hour.dayOfWeek === dayOfWeek
-          ? {
-              ...hour,
-              isClosed: !isOpen,
-              openTime: isOpen ? hour.openTime || commonOpen : hour.openTime,
-              closeTime: isOpen ? hour.closeTime || commonClose : hour.closeTime,
-            }
-          : hour,
-      ),
-    );
-    setFeedback(null);
-  }
-
-  function selectDays(dayIndexes: readonly number[]) {
-    const openDays = new Set(dayIndexes);
-    setHours((current) =>
-      current.map((hour) => ({
-        ...hour,
-        isClosed: !openDays.has(hour.dayOfWeek),
-        openTime: openDays.has(hour.dayOfWeek)
-          ? hour.openTime || commonOpen
-          : hour.openTime,
-        closeTime: openDays.has(hour.dayOfWeek)
-          ? hour.closeTime || commonClose
-          : hour.closeTime,
-      })),
-    );
-    setFeedback(null);
-  }
+    const invalid = openDays.find((h) => !h.openTime || !h.closeTime);
+    return invalid ? `${days[invalid.dayOfWeek]} needs opening and closing times.` : null;
+  }, [hours, commonOpen, commonClose, customTimings]);
 
   function updateDay(dayOfWeek: number, patch: Partial<EditableHour>) {
     setHours((current) =>
@@ -186,17 +130,40 @@ export function ShopHoursManager() {
     setFeedback(null);
   }
 
-  function changeTimingMode(useCustom: boolean) {
-    if (
-      !useCustom &&
-      usesDifferentTimings(hours) &&
-      !window.confirm(
-        "Use the same hours for all selected days? Their individual timings will be replaced with the common opening and closing times when you save.",
-      )
-    ) {
-      return;
+  function toggleClosed(dayOfWeek: number, isClosed: boolean) {
+    setHours((current) =>
+      current.map((hour) => {
+        if (hour.dayOfWeek !== dayOfWeek) return hour;
+        if (isClosed) return { ...hour, isClosed: true };
+
+        return {
+          ...hour,
+          isClosed: false,
+          openTime: hour.openTime || commonOpen,
+          closeTime: hour.closeTime || commonClose,
+        };
+      }),
+    );
+    setFeedback(null);
+  }
+
+  function selectOpenDays(dayIndexes: readonly number[]) {
+    const selected = new Set(dayIndexes);
+    setHours((current) => current.map((hour) => ({
+      ...hour,
+      isClosed: !selected.has(hour.dayOfWeek),
+      openTime: selected.has(hour.dayOfWeek) ? hour.openTime || commonOpen : hour.openTime,
+      closeTime: selected.has(hour.dayOfWeek) ? hour.closeTime || commonClose : hour.closeTime,
+    })));
+    setFeedback(null);
+  }
+
+  function toggleCustom(next: boolean) {
+    if (!next && customTimings) {
+      const schedules = new Set(hours.filter((h) => !h.isClosed).map((h) => h.openTime + "|" + h.closeTime));
+      if (schedules.size > 1 && !window.confirm("Replace the individual daily times with the common opening and closing time when you save?")) return;
     }
-    setCustomTimings(useCustom);
+    setCustomTimings(next);
     setFeedback(null);
   }
 
@@ -210,34 +177,27 @@ export function ShopHoursManager() {
       return;
     }
 
-    const payload = hours.map((hour) => ({
-      dayOfWeek: hour.dayOfWeek,
-      isClosed: hour.isClosed,
-      openTime: hour.isClosed
-        ? null
-        : customTimings
-          ? hour.openTime
-          : commonOpen,
-      closeTime: hour.isClosed
-        ? null
-        : customTimings
-          ? hour.closeTime
-          : commonClose,
-    }));
-
     setSaving(true);
     setFeedback(null);
     try {
-      const response = await updateShopHours(shopId, payload);
-      const savedWeek = normalizeHours(response.items);
-      const firstOpenDay = savedWeek.find((hour) => !hour.isClosed);
-      setHours(savedWeek);
-      setCommonOpen(firstOpenDay?.openTime || commonOpen);
-      setCommonClose(firstOpenDay?.closeTime || commonClose);
-      setCustomTimings(usesDifferentTimings(savedWeek));
+      const response = await updateShopHours(
+        shopId,
+        hours.map((hour) => ({
+          dayOfWeek: hour.dayOfWeek,
+          isClosed: hour.isClosed,
+          openTime: hour.isClosed ? null : customTimings ? hour.openTime : commonOpen,
+          closeTime: hour.isClosed ? null : customTimings ? hour.closeTime : commonClose,
+        })),
+      );
+      const saved = normalizeHours(response.items);
+      const openDays = saved.filter((h) => !h.isClosed);
+      setHours(saved);
+      setCommonOpen(openDays[0]?.openTime || commonOpen);
+      setCommonClose(openDays[0]?.closeTime || commonClose);
+      setCustomTimings(new Set(openDays.map((h) => h.openTime + "|" + h.closeTime)).size > 1);
       setFeedback({
         variant: "success",
-        message: "Shop opening days and timings saved successfully.",
+        message: "Opening hours saved successfully.",
       });
     } catch (error) {
       setFeedback({
@@ -266,182 +226,80 @@ export function ShopHoursManager() {
       <CardHeader>
         <CardTitle>Shop opening days &amp; timings</CardTitle>
         <CardDescription>
-          Select the days your shop is open, then set its opening and closing
-          time once. Unselected days will be marked as closed on your storefront.
+          Select your open days and set the same opening and closing time once. Unselected days stay closed.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         {feedback ? <Alert variant={feedback.variant}>{feedback.message}</Alert> : null}
 
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-foreground">
-              Open on these days
-            </p>
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-foreground">Select open days</p>
             <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                onClick={() => selectDays([0, 1, 2, 3, 4, 5])}
-                disabled={saving}
-              >
-                Mon–Sat
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                onClick={() => selectDays([0, 1, 2, 3, 4, 5, 6])}
-                disabled={saving}
-              >
-                All days
-              </Button>
+              <Button type="button" size="sm" variant="secondary" onClick={() => selectOpenDays([0, 1, 2, 3, 4, 5])} disabled={saving}>Mon–Sat</Button>
+              <Button type="button" size="sm" variant="secondary" onClick={() => selectOpenDays([0, 1, 2, 3, 4, 5, 6])} disabled={saving}>All days</Button>
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-            {hours.map((hour) => {
-              const isOpen = !hour.isClosed;
-              return (
-                <label
-                  key={hour.dayOfWeek}
-                  className={[
-                    "flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border px-2 py-3 text-sm font-medium transition",
-                    isOpen
-                      ? "border-primary bg-primary-soft text-primary"
-                      : "border-border bg-background text-muted",
-                  ].join(" ")}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isOpen}
-                    onChange={(event) =>
-                      toggleOpen(hour.dayOfWeek, event.target.checked)
-                    }
-                    disabled={saving}
-                    className="accent-emerald-700"
-                  />
-                  <span>{days[hour.dayOfWeek]}</span>
-                </label>
-              );
-            })}
+            {hours.map((hour) => (
+              <label key={hour.dayOfWeek}
+                className={`flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border p-2 text-sm font-medium ${hour.isClosed ? "border-border bg-background text-muted" : "border-primary bg-primary-soft text-primary"}`}>
+                <input type="checkbox" checked={!hour.isClosed} disabled={saving}
+                  onChange={(event) => toggleClosed(hour.dayOfWeek, !event.target.checked)} />
+                {days[hour.dayOfWeek]}
+              </label>
+            ))}
           </div>
-          <p className="text-xs text-muted">
-            Checked = Open · Unchecked = Closed. {selectedDays.length} of 7 days selected.
-          </p>
+          <p className="text-xs text-muted">Checked = Open, unchecked = Closed.</p>
+          {hours.some((hour) => !hour.isClosed) ? (
+            <>
+              {customTimings ? (
+                <div className="space-y-2">
+                  {hours.filter((hour) => !hour.isClosed).map((hour) => (
+                    <div key={hour.dayOfWeek} className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-[8rem_1fr_1fr] sm:items-end">
+                      <p className="text-sm font-semibold text-foreground">{days[hour.dayOfWeek]}</p>
+                      <Field label="Opens" htmlFor={`shop-hours-open-${hour.dayOfWeek}`}>
+                        <Input id={`shop-hours-open-${hour.dayOfWeek}`} type="time" value={hour.openTime} disabled={saving}
+                          onChange={(event) => updateDay(hour.dayOfWeek, { openTime: event.target.value })} />
+                      </Field>
+                      <Field label="Closes" htmlFor={`shop-hours-close-${hour.dayOfWeek}`}>
+                        <Input id={`shop-hours-close-${hour.dayOfWeek}`} type="time" value={hour.closeTime} disabled={saving}
+                          onChange={(event) => updateDay(hour.dayOfWeek, { closeTime: event.target.value })} />
+                      </Field>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid gap-3 rounded-xl border border-border bg-background p-4 sm:grid-cols-2">
+                  <Field label="Opening time" htmlFor="shop-hours-common-open">
+                    <Input id="shop-hours-common-open" type="time" value={commonOpen} disabled={saving}
+                      onChange={(event) => { setCommonOpen(event.target.value); setFeedback(null); }} />
+                  </Field>
+                  <Field label="Closing time" htmlFor="shop-hours-common-close">
+                    <Input id="shop-hours-common-close" type="time" value={commonClose} disabled={saving}
+                      onChange={(event) => { setCommonClose(event.target.value); setFeedback(null); }} />
+                  </Field>
+                  <p className="text-xs text-muted sm:col-span-2">These timings apply to all selected open days.</p>
+                </div>
+              )}
+              <label className="flex items-center gap-2 text-sm text-foreground">
+                <input type="checkbox" checked={customTimings} disabled={saving}
+                  onChange={(event) => toggleCustom(event.target.checked)} />
+                Set different timings for individual days (optional)
+              </label>
+            </>
+          ) : (
+            <p className="text-sm text-muted">All days are closed. Select days above to add opening hours.</p>
+          )}
+          {validationError ? <p role="alert" className="text-sm text-danger">{validationError}</p> : null}
         </div>
 
-        {selectedDays.length > 0 ? (
-          <>
-            {!customTimings ? (
-              <div className="grid gap-4 rounded-xl border border-border bg-surface-muted/30 p-4 sm:grid-cols-2">
-                <Field label="Opening time" htmlFor="shop-hours-common-open">
-                  <Input
-                    id="shop-hours-common-open"
-                    type="time"
-                    value={commonOpen}
-                    disabled={saving}
-                    onChange={(event) => {
-                      setCommonOpen(event.target.value);
-                      setFeedback(null);
-                    }}
-                  />
-                </Field>
-                <Field label="Closing time" htmlFor="shop-hours-common-close">
-                  <Input
-                    id="shop-hours-common-close"
-                    type="time"
-                    value={commonClose}
-                    disabled={saving}
-                    onChange={(event) => {
-                      setCommonClose(event.target.value);
-                      setFeedback(null);
-                    }}
-                  />
-                </Field>
-                <p className="text-xs text-muted sm:col-span-2">
-                  These timings apply automatically to every checked day.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3 rounded-xl border border-border bg-surface-muted/30 p-4">
-                <p className="text-sm font-medium text-foreground">
-                  Different timings by day
-                </p>
-                {selectedDays.map((hour) => (
-                  <div
-                    key={hour.dayOfWeek}
-                    className="grid items-center gap-3 border-t border-border pt-3 sm:grid-cols-[8rem_minmax(0,1fr)_minmax(0,1fr)]"
-                  >
-                    <span className="text-sm font-semibold text-foreground">
-                      {days[hour.dayOfWeek]}
-                    </span>
-                    <Field
-                      label="Opens"
-                      htmlFor={`shop-hours-open-${hour.dayOfWeek}`}
-                    >
-                      <Input
-                        id={`shop-hours-open-${hour.dayOfWeek}`}
-                        type="time"
-                        value={hour.openTime}
-                        disabled={saving}
-                        onChange={(event) =>
-                          updateDay(hour.dayOfWeek, { openTime: event.target.value })
-                        }
-                      />
-                    </Field>
-                    <Field
-                      label="Closes"
-                      htmlFor={`shop-hours-close-${hour.dayOfWeek}`}
-                    >
-                      <Input
-                        id={`shop-hours-close-${hour.dayOfWeek}`}
-                        type="time"
-                        value={hour.closeTime}
-                        disabled={saving}
-                        onChange={(event) =>
-                          updateDay(hour.dayOfWeek, { closeTime: event.target.value })
-                        }
-                      />
-                    </Field>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-muted">
-              <input
-                type="checkbox"
-                checked={customTimings}
-                onChange={(event) => changeTimingMode(event.target.checked)}
-                disabled={saving}
-                className="accent-emerald-700"
-              />
-              Set different timings for individual days (optional)
-            </label>
-          </>
-        ) : (
-          <p className="rounded-lg border border-border bg-background p-3 text-sm text-muted">
-            No open days selected. Select at least one day to set hours, or save
-            all days as closed.
-          </p>
-        )}
-
-        {validationError ? (
-          <p role="alert" className="text-sm text-danger">{validationError}</p>
-        ) : null}
-
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Button
-            type="button"
-            onClick={() => void save()}
-            disabled={saving || Boolean(validationError)}
-          >
+          <Button type="button" onClick={() => void save()} disabled={saving}>
             {saving ? "Saving…" : "Save opening hours"}
           </Button>
-          <p className="text-sm text-muted">
-            Unchecked days will show as Closed.
+          <p className="text-sm leading-6 text-muted">
+            Unchecked days will be marked Closed on the storefront.
           </p>
         </div>
       </CardContent>
