@@ -181,10 +181,8 @@ export default function CategoriesPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Sprint 2"
         title="Shop categories"
         description="Recommended categories are created automatically from the shop business type. You can add, edit, deactivate or delete categories for your own catalogue."
-        actions={<Badge variant="success">API connected</Badge>}
       />
 
       {feedback ? <Alert variant={feedback.variant}>{feedback.message}</Alert> : null}
