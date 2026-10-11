@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 
 import { Alert, Button, Field, Input, Select } from "@/components/ui";
+import { RegistrationEmailOtp } from "@/components/auth/registration-email-otp";
 import { AuthApiError, registerMerchant } from "@/lib/auth-api";
 import { getBusinessCategories, type BusinessCategory } from "@/lib/catalog-api";
 import {
@@ -145,6 +146,9 @@ export function RegisterForm({
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [otpEmail, setOtpEmail] = useState("");
+  const [verifiedEmail, setVerifiedEmail] = useState("");
+  const [emailVerificationToken, setEmailVerificationToken] = useState("");
   const [businessCategories, setBusinessCategories] = useState<BusinessCategory[]>([]);
   const [businessTypeChoice, setBusinessTypeChoice] = useState("");
   const [referralCode, setReferralCode] = useState(initialReferralCode);
@@ -169,6 +173,9 @@ export function RegisterForm({
     const form = event.currentTarget;
     const formData = new FormData(form);
     const clientErrors = validateRegistration(formData);
+    if (!emailVerificationToken || verifiedEmail !== rawValue(formData, "email").trim().toLowerCase()) {
+      clientErrors.email = "Verify your email address with the 6-digit OTP first.";
+    }
 
     setFormError("");
 
@@ -185,6 +192,7 @@ export function RegisterForm({
       await registerMerchant({
         name: rawValue(formData, "name").trim(),
         email: rawValue(formData, "email").trim(),
+        emailVerificationToken,
         mobile: optionalValue(formData, "mobile"),
         password: rawValue(formData, "password"),
         shopName: rawValue(formData, "shopName").trim(),
@@ -244,12 +252,16 @@ export function RegisterForm({
             name="email"
             type="email"
             autoComplete="email"
+            onChange={event => { setOtpEmail(event.target.value); setVerifiedEmail(""); setEmailVerificationToken(""); }}
             required
             aria-invalid={Boolean(fieldErrors.email)}
             aria-describedby={describedBy("email", fieldErrors.email)}
           />
         </Field>
       </div>
+
+      <RegistrationEmailOtp key={otpEmail.trim().toLowerCase()} email={otpEmail.trim()} purpose="MERCHANT"
+        onVerified={(token, email) => { setEmailVerificationToken(token); setVerifiedEmail(email); setFieldErrors(current => ({ ...current, email: "" })); }} />
 
       <Field
         label="Password"
