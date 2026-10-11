@@ -405,7 +405,7 @@ export function ShopProfileForm() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Social links</CardTitle><CardDescription>Optional links shown on the public storefront in a later sprint.</CardDescription></CardHeader>
+        <CardHeader><CardTitle>Social links</CardTitle><CardDescription>Optional social profiles for your shop. Save the full URL of each profile.</CardDescription></CardHeader>
         <CardContent className="grid gap-5 sm:grid-cols-2">
           <Field label="Instagram URL" htmlFor="profile-instagram-url" error={fieldErrors.instagramUrl}><Input id="profile-instagram-url" name="instagramUrl" type="url" defaultValue={profile.instagramUrl ?? ""} maxLength={1024} /></Field>
           <Field label="Facebook URL" htmlFor="profile-facebook-url" error={fieldErrors.facebookUrl}><Input id="profile-facebook-url" name="facebookUrl" type="url" defaultValue={profile.facebookUrl ?? ""} maxLength={1024} /></Field>
