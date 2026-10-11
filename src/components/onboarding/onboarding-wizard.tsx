@@ -182,7 +182,7 @@ export function OnboardingWizard() {
           <CardHeader>
             <CardTitle>Setup progress</CardTitle>
             <CardDescription>
-              Sprint 1 keeps profile setup local until server-side onboarding contracts are available.
+              This setup preview does not save changes to your shop profile. Use Shop Profile to update your live details.
             </CardDescription>
           </CardHeader>
           <CardContent>
