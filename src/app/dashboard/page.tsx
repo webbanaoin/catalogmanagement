@@ -1,8 +1,6 @@
 import Link from "next/link";
 
 import {
-  Alert,
-  Badge,
   Card,
   CardContent,
   CardDescription,
@@ -59,14 +57,10 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Sprint 6"
         title="Merchant dashboard"
         description="Manage your shop profile, catalogue, products, sharing, analytics, payments and subscription from one workspace."
       />
 
-      <Alert title="Sprint 6 staging validation">
-        Core merchant workflows are connected end-to-end. Complete the final Golden Flow and staging validation before promoting this release to production.
-      </Alert>
 
       <section aria-labelledby="merchant-workspaces-heading">
         <h2 id="merchant-workspaces-heading" className="sr-only">
@@ -78,7 +72,6 @@ export default function DashboardPage() {
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <CardTitle>{workspace.title}</CardTitle>
-                  <Badge variant="success">Ready</Badge>
                 </div>
                 <CardDescription>{workspace.description}</CardDescription>
               </CardHeader>
