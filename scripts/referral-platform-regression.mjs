@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
+import { seedRegressionEmailGrant } from "./helpers/registration-email-grant.mjs";
 
 const prisma = new PrismaClient();
 const baseUrl = (process.env.BASE_URL || "http://localhost:3000").replace(/\/$/, "");
@@ -133,6 +134,7 @@ async function main() {
     {
       name: "Referral Regression Partner",
       email: partnerEmail,
+      emailVerificationToken: await seedRegressionEmailGrant(prisma, partnerEmail, "PARTNER"),
       mobile: "9876543210",
       password: partnerPassword,
       confirmPassword: partnerPassword,
@@ -199,6 +201,7 @@ async function main() {
     {
       name: "Referral Merchant",
       email: merchantEmail,
+      emailVerificationToken: await seedRegressionEmailGrant(prisma, merchantEmail, "MERCHANT"),
       mobile: "9876501234",
       password: merchantPassword,
       shopName: `Referral Shop ${suffix}`,
@@ -356,6 +359,7 @@ async function main() {
     {
       name: "Referral Reconcile Merchant",
       email: reconcileMerchantEmail,
+      emailVerificationToken: await seedRegressionEmailGrant(prisma, reconcileMerchantEmail, "MERCHANT"),
       mobile: "9876505678",
       password: merchantPassword,
       shopName: `Referral Reconcile Shop ${suffix}`,
