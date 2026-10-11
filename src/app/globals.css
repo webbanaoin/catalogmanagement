@@ -86,9 +86,13 @@ select {
   font: inherit;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+/* Keep link resets in the base cascade layer so Tailwind text-* utilities
+   can override them (e.g. white text on green storefront CTA links). */
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 ::selection {
