@@ -38,7 +38,6 @@ export default async function ShopQrPage() {
     return (
       <div className="space-y-6">
         <PageHeader
-          eyebrow="Sprint 4"
           title="Shop QR"
           description="Create and share the permanent QR for your public Digital Showroom."
         />
@@ -60,13 +59,12 @@ export default async function ShopQrPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Sprint 4"
         title="Permanent shop QR"
         description={`Share ${activeShop.name}'s Digital Showroom with one permanent QR.`}
       />
 
       <Alert title="QR source tracking">
-        This QR opens the permanent shop route with <code>src=qr</code>. Sprint 4 analytics can attribute catalogue visits to QR scans without exposing private merchant identifiers.
+        This QR opens the permanent shop route with <code>src=qr</code>. Catalogue analytics can attribute visits to QR scans without exposing private merchant identifiers.
       </Alert>
 
       <Card>
