@@ -30,6 +30,7 @@ import {
 } from "@/lib/catalog-api";
 import {
   isValidEmail,
+  isValidEnglishPersonName,
   isValidHttpUrl,
   isValidIndianMobile,
   isValidIndianPhone,
@@ -55,6 +56,7 @@ function validateProfile(formData: FormData): FieldErrors {
   const ownerName = rawValue(formData, "ownerName").trim();
   if (ownerName.length < 2) errors.ownerName = ownerName ? "Owner name must contain at least 2 characters." : "Owner name is required.";
   else if (ownerName.length > 120) errors.ownerName = "Owner name must contain at most 120 characters.";
+  else if (!isValidEnglishPersonName(ownerName)) errors.ownerName = "Use English letters and spaces only.";
 
   const ownerMobile = rawValue(formData, "ownerMobile");
   if (ownerMobile && !ownerMobile.trim()) errors.ownerMobile = "Owner mobile cannot contain only spaces.";
@@ -361,9 +363,9 @@ export function ShopProfileForm() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Location</CardTitle><CardDescription>Address fields stay flexible while PIN validation follows the India-only Phase 1 decision.</CardDescription></CardHeader>
+        <CardHeader><CardTitle>Shop address & location</CardTitle><CardDescription>Enter your complete shop address, city, state and PIN so customers can find you easily.</CardDescription></CardHeader>
         <CardContent className="space-y-5">
-          <Field label="Address" htmlFor="profile-address" error={fieldErrors.address}>
+          <Field label="Full shop address" htmlFor="profile-address" hint="Shop number, building, street, area and landmark." error={fieldErrors.address}>
             <Textarea id="profile-address" name="address" autoComplete="street-address" defaultValue={profile.address ?? ""} maxLength={500} />
           </Field>
           <div className="grid gap-5 sm:grid-cols-3">

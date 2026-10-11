@@ -360,6 +360,7 @@ async function main() {
   const registrationResponse = await jsonRequest("/api/auth/register", "POST", {
     name: "Preset Registration Merchant",
     email: registrationEmail,
+    mobile: "9876501234",
     password: `Preset-Aa9!${randomUUID().slice(0, 12)}`,
     shopName: `Preset Registration Shop ${suffix}`,
     businessCategoryId: fixture.jewelleryBusinessCategory.id,
@@ -397,6 +398,7 @@ async function main() {
     {
       name: "Other Business Merchant",
       email: `sprint6-other-business-${suffix}@example.test`,
+      mobile: "9876505678",
       password: `Other-Aa9!${randomUUID().slice(0, 12)}`,
       shopName: `Other Business Shop ${suffix}`,
       requestedBusinessType,

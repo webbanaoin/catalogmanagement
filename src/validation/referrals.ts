@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { isValidIndianMobile } from "@/lib/validation";
+import { isValidEnglishPersonName, isValidIndianMobile } from "@/lib/validation";
 
 const email = z
   .string()
@@ -17,7 +17,7 @@ const money = z.coerce.number().finite().min(0).max(10000000);
 
 export const partnerRegisterSchema = z
   .object({
-    name: z.string().trim().min(2).max(120),
+    name: z.string().trim().min(2).max(120).refine(isValidEnglishPersonName, "Use English letters and spaces only for your name."),
     email,
     mobile: z
       .string()

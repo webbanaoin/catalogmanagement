@@ -85,6 +85,7 @@ export async function POST(request: Request) {
           phone: input.phone || input.mobile || null,
           whatsapp: input.whatsapp || input.phone || input.mobile || null,
           email: input.email,
+          address: input.address || null,
           city: input.city || null,
           state: input.state || null,
           pincode: input.pincode || null,

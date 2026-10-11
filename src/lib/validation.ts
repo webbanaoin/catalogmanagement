@@ -35,6 +35,12 @@ function indianNationalNumber(value: string): string | null {
   return compact;
 }
 
+export function isValidEnglishPersonName(value: string): boolean {
+  // Personal names: ASCII letters with single or multiple spaces between words.
+  // Shop/business names remain unrestricted by this rule.
+  return /^[A-Za-z]+(?: +[A-Za-z]+)*$/.test(value.trim());
+}
+
 export function isValidEmail(value: string): boolean {
   return EMAIL_PATTERN.test(value.trim());
 }

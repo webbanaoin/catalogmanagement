@@ -10,6 +10,7 @@ import {
 } from "@/lib/auth-api";
 import {
   isValidEmail,
+  isValidEnglishPersonName,
   isValidIndianMobile,
 } from "@/lib/validation";
 
@@ -49,6 +50,7 @@ export function PartnerRegisterForm() {
     const confirmPassword = value(data, "confirmPassword");
 
     if (name.length < 2) errors.name = "Name is required.";
+    else if (!isValidEnglishPersonName(name)) errors.name = "Use English letters and spaces only (first name and surname).";
     if (!email) errors.email = "Email is required.";
     else if (!isValidEmail(email)) errors.email = "Enter a valid email address.";
     if (!mobile) errors.mobile = "Mobile number is required.";
@@ -105,12 +107,13 @@ export function PartnerRegisterForm() {
   return (
     <form className="space-y-5" onSubmit={submit} noValidate>
       {formError ? <Alert variant="error">{formError}</Alert> : null}
+      <Alert title="Use your correct contact details">Please enter an active email address you can access and a valid Indian mobile number. Webbanao will use them for verification and important partner account updates.</Alert>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Full name" htmlFor="name" error={fieldErrors.name} required>
+        <Field label="Full name" htmlFor="name" hint="English letters and spaces only, e.g. Rahul Sharma." error={fieldErrors.name} required>
           <Input id="name" name="name" autoComplete="name" maxLength={120} required />
         </Field>
-        <Field label="Mobile" htmlFor="mobile" error={fieldErrors.mobile} required>
+        <Field label="Mobile" htmlFor="mobile" hint="10-digit Indian number starting with 6–9. +91 accepted." error={fieldErrors.mobile} required>
           <Input
             id="mobile"
             name="mobile"

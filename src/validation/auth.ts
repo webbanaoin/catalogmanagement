@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  isValidEnglishPersonName,
   isValidIndianMobile,
   isValidIndianPhone,
   isValidIndianPincode,
@@ -50,9 +51,10 @@ export const registerSchema = z
       .string()
       .trim()
       .min(2, "Name must contain at least 2 characters")
-      .max(120, "Name must contain at most 120 characters"),
+      .max(120, "Name must contain at most 120 characters")
+      .refine(isValidEnglishPersonName, "Use English letters and spaces only for your name."),
     email,
-    mobile: optionalIndianMobile("mobile number"),
+    mobile: z.string().trim().refine(isValidIndianMobile, "Enter a valid 10-digit Indian mobile number (starting with 6–9)."),
     password,
     shopName: z
       .string()
@@ -63,6 +65,7 @@ export const registerSchema = z
     requestedBusinessType: optionalNonBlankText("Business type", 160),
     phone: optionalIndianPhone,
     whatsapp: optionalIndianMobile("WhatsApp number"),
+    address: optionalNonBlankText("Address", 500),
     city: optionalNonBlankText("City", 120),
     state: optionalNonBlankText("State", 120),
     pincode: optionalIndianPincode,
