@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { hashPassword } from "@/server/auth/password";
+import { consumeRegistrationEmailGrant } from "@/server/auth/registration-email-otp";
 import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
@@ -32,6 +33,8 @@ export async function POST(request: Request) {
           status: 409,
         });
       }
+
+      await consumeRegistrationEmailGrant(tx, input.email, "PARTNER", input.emailVerificationToken);
 
       const user = await tx.user.create({
         data: {

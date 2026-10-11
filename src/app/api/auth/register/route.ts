@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { hashPassword } from "@/server/auth/password";
+import { consumeRegistrationEmailGrant } from "@/server/auth/registration-email-otp";
 import { ensureDefaultShopCategories } from "@/server/catalog/default-categories";
 import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
@@ -37,6 +38,8 @@ export async function POST(request: Request) {
       if (await tx.user.findUnique({ where: { email: input.email }, select: { id: true } })) {
         throw new AppError({ code: "EMAIL_IN_USE", message: "An account with this email already exists", status: 409 });
       }
+
+      await consumeRegistrationEmailGrant(tx, input.email, "MERCHANT", input.emailVerificationToken);
 
       let referralPartner: { id: string; referralCode: string | null } | null = null;
       if (input.referralCode?.trim()) {

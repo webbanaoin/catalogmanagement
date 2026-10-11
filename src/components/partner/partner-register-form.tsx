@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { Alert, Button, Field, Input } from "@/components/ui";
+import { RegistrationEmailOtp } from "@/components/auth/registration-email-otp";
 import {
   AuthApiError,
   registerReferralPartner,
@@ -36,6 +37,9 @@ export function PartnerRegisterForm() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [otpEmail, setOtpEmail] = useState("");
+  const [verifiedEmail, setVerifiedEmail] = useState("");
+  const [emailVerificationToken, setEmailVerificationToken] = useState("");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -53,6 +57,7 @@ export function PartnerRegisterForm() {
     else if (!isValidEnglishPersonName(name)) errors.name = "Use English letters and spaces only (first name and surname).";
     if (!email) errors.email = "Email is required.";
     else if (!isValidEmail(email)) errors.email = "Enter a valid email address.";
+    if (!emailVerificationToken || verifiedEmail !== email.toLowerCase()) errors.email = "Verify your email with the 6-digit OTP before registering.";
     if (!mobile) errors.mobile = "Mobile number is required.";
     else if (!isValidIndianMobile(mobile)) {
       errors.mobile = "Enter a valid 10-digit Indian mobile number.";
@@ -83,6 +88,7 @@ export function PartnerRegisterForm() {
       await registerReferralPartner({
         name,
         email,
+        emailVerificationToken,
         mobile,
         password,
         confirmPassword,
@@ -127,8 +133,11 @@ export function PartnerRegisterForm() {
       </div>
 
       <Field label="Email" htmlFor="email" error={fieldErrors.email} required>
-        <Input id="email" name="email" type="email" autoComplete="email" required />
+        <Input id="email" name="email" type="email" autoComplete="email" onChange={event => { setOtpEmail(event.target.value); setVerifiedEmail(""); setEmailVerificationToken(""); }} required />
       </Field>
+
+      <RegistrationEmailOtp key={otpEmail.trim().toLowerCase()} email={otpEmail.trim()} purpose="PARTNER"
+        onVerified={(token, email) => { setEmailVerificationToken(token); setVerifiedEmail(email); setFieldErrors(current => ({ ...current, email: "" })); }} />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field

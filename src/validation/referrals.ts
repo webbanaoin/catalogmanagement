@@ -19,6 +19,7 @@ export const partnerRegisterSchema = z
   .object({
     name: z.string().trim().min(2).max(120).refine(isValidEnglishPersonName, "Use English letters and spaces only for your name."),
     email,
+    emailVerificationToken: z.string().min(32).max(128),
     mobile: z
       .string()
       .trim()

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
+import { seedRegressionEmailGrant } from "./helpers/registration-email-grant.mjs";
 
 const prisma = new PrismaClient();
 const baseUrl = (process.env.BASE_URL || "http://localhost:3000").replace(/\/$/, "");
@@ -360,6 +361,7 @@ async function main() {
   const registrationResponse = await jsonRequest("/api/auth/register", "POST", {
     name: "Preset Registration Merchant",
     email: registrationEmail,
+    emailVerificationToken: await seedRegressionEmailGrant(prisma, registrationEmail, "MERCHANT"),
     mobile: "9876501234",
     password: `Preset-Aa9!${randomUUID().slice(0, 12)}`,
     shopName: `Preset Registration Shop ${suffix}`,
@@ -392,12 +394,14 @@ async function main() {
   }
 
   const requestedBusinessType = `Medical Equipment ${suffix}`;
+  const otherRegistrationEmail = `sprint6-other-business-${suffix}@example.test`;
   const otherRegistrationResponse = await jsonRequest(
     "/api/auth/register",
     "POST",
     {
       name: "Other Business Merchant",
-      email: `sprint6-other-business-${suffix}@example.test`,
+      email: otherRegistrationEmail,
+      emailVerificationToken: await seedRegressionEmailGrant(prisma, otherRegistrationEmail, "MERCHANT"),
       mobile: "9876505678",
       password: `Other-Aa9!${randomUUID().slice(0, 12)}`,
       shopName: `Other Business Shop ${suffix}`,

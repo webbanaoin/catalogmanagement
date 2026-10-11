@@ -675,3 +675,23 @@ model OfficialPaymentReceiver {
   @@index([active])
   @@map("official_payment_receivers")
 }
+
+
+model RegistrationEmailOtp {
+  id String @id @default(cuid())
+  email String @db.VarChar(191)
+  purpose String @db.VarChar(16)
+  codeHash String @map("code_hash") @db.Char(64)
+  verificationTokenHash String? @map("verification_token_hash") @db.Char(64)
+  expiresAt DateTime @map("expires_at")
+  verifiedAt DateTime? @map("verified_at")
+  consumedAt DateTime? @map("consumed_at")
+  attempts Int @default(0)
+  lastSentAt DateTime @map("last_sent_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([email, purpose])
+  @@index([expiresAt])
+  @@map("registration_email_otps")
+}

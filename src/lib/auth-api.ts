@@ -80,6 +80,7 @@ async function postJson<T>(path: string, payload: unknown): Promise<T> {
 export interface RegisterPayload {
   name: string;
   email: string;
+  emailVerificationToken: string;
   mobile?: string;
   password: string;
   shopName: string;
@@ -111,12 +112,21 @@ export interface ResetPasswordPayload {
 export interface PartnerRegisterPayload {
   name: string;
   email: string;
+  emailVerificationToken: string;
   mobile: string;
   password: string;
   confirmPassword: string;
   city?: string;
   state?: string;
   marketingArea?: string;
+}
+
+export function requestRegistrationEmailOtp(payload: {email:string;purpose:"MERCHANT"|"PARTNER"}) {
+  return postJson<{data:{message:string;expiresInMinutes:number}}>("/api/registration/email-otp/send", payload);
+}
+
+export function verifyRegistrationEmailOtp(payload: {email:string;purpose:"MERCHANT"|"PARTNER";code:string}) {
+  return postJson<{data:{verificationToken:string;email:string}}>("/api/registration/email-otp/verify", payload);
 }
 
 export function registerMerchant(payload: RegisterPayload) {
