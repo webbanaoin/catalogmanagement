@@ -9,7 +9,6 @@ export default async function AdminBusinessCategoriesPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Sprint 6"
         title="Business categories"
         description="Manage platform branding, business-type covers and shared category images inherited by matching storefronts."
       />
