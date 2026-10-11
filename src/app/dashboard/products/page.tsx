@@ -434,10 +434,8 @@ export default function ProductsPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Sprint 6"
         title="Products"
         description="Create, edit, duplicate, hide or remove products and upload one or multiple product images from one merchant workspace."
-        actions={<Badge variant="success">Ready</Badge>}
       />
 
       {feedback ? <Alert variant={feedback.variant}>{feedback.message}</Alert> : null}
@@ -757,7 +755,7 @@ export default function ProductsPage() {
                         {product.priceType === "ASK_PRICE" ? "Ask price" : money(product.discountPrice ?? product.price)}
                       </p>
                       <p className="text-xs text-muted">
-                        Slug: {product.slug} · Primary image: {primaryImage ? "Ready" : "Not set"}
+                        Slug: {product.slug} · Primary image: {primaryImage ? "Uploaded" : "Not set"}
                       </p>
                       {primaryImage?.url ? (
                         <a

@@ -504,13 +504,14 @@ function productsWorksheet(
   <sheetFormatPr defaultRowHeight="18"/>
   <cols>${widthColumns}</cols>
   <sheetData>${sheetRows.join("")}</sheetData>
+  <!-- SpreadsheetML requires autoFilter before mergeCells and dataValidations. -->
+  <autoFilter ref="A${headerRow}:${cellRef(lastColumn, headerRow)}"/>
   <mergeCells count="4">
     <mergeCell ref="A1:${cellRef(lastColumn, 1)}"/>
     <mergeCell ref="A2:${cellRef(lastColumn, 2)}"/>
     <mergeCell ref="A3:${cellRef(lastColumn, 3)}"/>
     <mergeCell ref="A6:${cellRef(lastColumn, 6)}"/>
   </mergeCells>
-  <autoFilter ref="A${headerRow}:${cellRef(lastColumn, headerRow)}"/>
   ${validationXml}
 </worksheet>`,
   };

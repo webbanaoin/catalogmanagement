@@ -529,7 +529,11 @@ function ShopCard({
               disabled={working}
               onClick={() => changeStatus(next)}
             >
-              {titleCase(next)}
+              {shop.status === "PENDING" && next === "APPROVED"
+                ? "Approve"
+                : shop.status === "PENDING" && next === "REJECTED"
+                  ? "Reject"
+                  : titleCase(next)}
             </Button>
           ))}
         </div>

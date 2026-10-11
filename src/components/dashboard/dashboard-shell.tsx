@@ -3,25 +3,25 @@ import type { ReactNode } from "react";
 
 import { MerchantLogoutButton } from "@/components/auth/merchant-logout-button";
 import { PwaInstallPrompt } from "@/components/pwa/pwa-install-prompt";
-import { Badge, Container } from "@/components/ui";
+import { MobileMerchantMenu } from "@/components/dashboard/mobile-merchant-menu";
+import { Container } from "@/components/ui";
 import { cn } from "@/lib/cn";
 
 interface DashboardNavigationItem {
   label: string;
   href?: string;
-  badge?: string;
 }
 
 const navigationItems: DashboardNavigationItem[] = [
   { label: "Dashboard", href: "/dashboard" },
-  { label: "Products", href: "/dashboard/products", badge: "Ready" },
-  { label: "Categories", href: "/dashboard/categories", badge: "Ready" },
-  { label: "Excel Import", href: "/dashboard/import", badge: "Ready" },
-  { label: "QR", href: "/dashboard/qr", badge: "Ready" },
-  { label: "Shop Profile", href: "/dashboard/shop", badge: "Ready" },
-  { label: "Analytics", href: "/dashboard/analytics", badge: "Ready" },
-  { label: "Payments", href: "/dashboard/payments", badge: "Ready" },
-  { label: "Subscription", href: "/dashboard/subscription", badge: "Ready" },
+  { label: "Products", href: "/dashboard/products" },
+  { label: "Categories", href: "/dashboard/categories" },
+  { label: "Excel Import", href: "/dashboard/import" },
+  { label: "QR", href: "/dashboard/qr" },
+  { label: "Shop Profile", href: "/dashboard/shop" },
+  { label: "Analytics", href: "/dashboard/analytics" },
+  { label: "Payments", href: "/dashboard/payments" },
+  { label: "Subscription", href: "/dashboard/subscription" },
 ];
 
 function DashboardNavigation({ compact = false }: { compact?: boolean }) {
@@ -38,12 +38,10 @@ function DashboardNavigation({ compact = false }: { compact?: boolean }) {
         return item.href ? (
           <Link key={item.label} href={item.href} className={itemClasses}>
             <span>{item.label}</span>
-            {item.badge ? <Badge variant="info">{item.badge}</Badge> : null}
           </Link>
         ) : (
           <span key={item.label} className={itemClasses}>
             <span>{item.label}</span>
-            <Badge>{item.badge ?? "Later sprint"}</Badge>
           </span>
         );
       })}
@@ -60,17 +58,12 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             <p className="text-sm font-semibold text-foreground">Digital Showroom</p>
             <p className="text-xs text-muted">Merchant dashboard</p>
           </div>
-          <details className="relative">
-            <summary className="cursor-pointer list-none rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
-              Menu
-            </summary>
-            <div className="absolute right-0 mt-2 w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-border bg-surface p-2 shadow-lg">
-              <DashboardNavigation compact />
-              <div className="mt-2 border-t border-border pt-2">
-                <MerchantLogoutButton className="w-full justify-center" />
-              </div>
+          <MobileMerchantMenu>
+            <DashboardNavigation compact />
+            <div className="mt-2 border-t border-border pt-2">
+              <MerchantLogoutButton className="w-full justify-center" />
             </div>
-          </details>
+          </MobileMerchantMenu>
         </Container>
       </header>
 
@@ -85,9 +78,6 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           </div>
           <div className="shrink-0 border-t border-border bg-surface p-4">
             <MerchantLogoutButton className="w-full justify-center" />
-            <p className="mt-3 text-xs leading-5 text-muted">
-              Sprint 6 staging validation: merchant catalogue, sharing, analytics and subscription workflows are connected for final production testing.
-            </p>
           </div>
         </aside>
 

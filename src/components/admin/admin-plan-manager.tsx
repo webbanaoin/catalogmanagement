@@ -291,7 +291,7 @@ export function AdminPlanManager() {
       ) : null}
 
       <Alert title="Phase 1 boundary">
-        Plan administration changes limits and feature flags only. Sprint 6 does not add a payment gateway.
+        Plan administration changes limits and feature flags only. Offline payments require Webbanao admin verification.
       </Alert>
     </div>
   );

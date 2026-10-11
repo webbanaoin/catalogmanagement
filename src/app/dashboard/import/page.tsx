@@ -237,10 +237,8 @@ export default function ProductImportPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Sprint 4"
         title="Smart Excel product import"
         description="Download a shop-specific workbook with your categories, business-type fields, dropdowns and Quick Defaults. Enter only what is different for each product."
-        actions={<Badge variant="success">API connected</Badge>}
       />
 
       {feedback ? <Alert variant={feedback.variant}>{feedback.message}</Alert> : null}

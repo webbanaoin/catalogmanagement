@@ -100,7 +100,6 @@ export default function SubscriptionPage() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Sprint 6"
         title="Subscription"
         description="Review your current plan, validity, catalogue limits and enabled features."
         actions={

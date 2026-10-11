@@ -399,7 +399,7 @@ export function AdminBusinessCategoryManager() {
       ) : null}
 
       <Alert title="Safe category lifecycle">
-        Sprint 6 supports create and update, including activation/inactivation.
+        Manage business categories and their active/inactive status.
         Permanent deletion is intentionally not exposed because categories may
         already be referenced by merchant shops.
       </Alert>

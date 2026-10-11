@@ -34,7 +34,6 @@ export default async function AdminOverviewPage() {
   return (
     <div className="min-w-0 space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Sprint 6"
         title="Platform administration"
         description="Review shops, plans, categories and platform-level catalogue activity from one protected workspace."
       />
