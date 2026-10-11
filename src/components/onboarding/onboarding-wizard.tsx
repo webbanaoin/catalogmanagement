@@ -498,7 +498,7 @@ function DeferredStep({ title, description }: { title: string; description: stri
 
 function CompletionStep() {
   return (
-    <Alert variant="success" title="Onboarding UI reviewed">
+    <Alert variant="success" title="Onboarding preview complete">
       Sprint 1 now has the complete presentation flow. Persisting shop profile, hours, category and first-product data will be connected only after the corresponding server contracts are merged.
     </Alert>
   );
