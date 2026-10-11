@@ -244,7 +244,7 @@ function GroupLinks({
         aria-label={label}
       >
         <Link
-          href={`/s/${shopSlug}`}
+          href={`/s/${shopSlug}#storefront-products`}
           className={buttonClassName(
             activeGroup ? "secondary" : "primary",
             "sm",
@@ -258,7 +258,7 @@ function GroupLinks({
           return (
             <Link
               key={group}
-              href={`/s/${shopSlug}?${params.toString()}`}
+              href={`/s/${shopSlug}?${params.toString()}#storefront-products`}
               className={buttonClassName(
                 activeGroup === group ? "primary" : "secondary",
                 "sm",
@@ -294,7 +294,7 @@ function CategoryShowcase({
     if (catalogGroup) params.set("group", catalogGroup);
     if (attributeValue) params.set("spec", attributeValue);
     params.set("category", category);
-    return `/s/${shopSlug}?${params.toString()}`;
+    return `/s/${shopSlug}?${params.toString()}#storefront-products`;
   }
 
   return (
@@ -394,7 +394,7 @@ function Pagination({
     if (attributeValue) params.set("spec", attributeValue);
     if (availability) params.set("availability", availability);
     params.set("page", String(target));
-    return `${basePath}?${params.toString()}`;
+    return `${basePath}?${params.toString()}#storefront-products`;
   }
 
   return (
