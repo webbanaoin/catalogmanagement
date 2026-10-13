@@ -1,0 +1,156 @@
+export const PAID_BILLING_CYCLES = [
+  "MONTHLY",
+  "QUARTERLY",
+  "HALF_YEARLY",
+  "YEARLY",
+] as const;
+
+export type PaidBillingCycle = (typeof PAID_BILLING_CYCLES)[number];
+
+export interface SubscriptionPriceSource {
+  monthlyPrice: string | number;
+  quarterlyPrice: string | number;
+  halfYearlyPrice: string | number;
+  annualPrice: string | number;
+  regularMonthlyPrice?: string | number | null;
+  regularQuarterlyPrice?: string | number | null;
+  regularHalfYearlyPrice?: string | number | null;
+  regularAnnualPrice?: string | number | null;
+  offerEnabled?: boolean;
+  offerStartsAt?: string | Date | null;
+  offerEndsAt?: string | Date | null;
+}
+
+export interface ReferralCommissionSource {
+  monthlyCommission: string | number;
+  quarterlyCommission: string | number;
+  halfYearlyCommission: string | number;
+  yearlyCommission: string | number;
+}
+
+export const SUBSCRIPTION_CYCLE_CONFIG: Record<
+  PaidBillingCycle,
+  {
+    label: string;
+    shortLabel: string;
+    months: number;
+    extensionDays: number;
+    priceKey:
+      | "monthlyPrice"
+      | "quarterlyPrice"
+      | "halfYearlyPrice"
+      | "annualPrice";
+    commissionKey:
+      | "monthlyCommission"
+      | "quarterlyCommission"
+      | "halfYearlyCommission"
+      | "yearlyCommission";
+  }
+> = {
+  MONTHLY: {
+    label: "Monthly",
+    shortLabel: "1 month",
+    months: 1,
+    extensionDays: 30,
+    priceKey: "monthlyPrice",
+    commissionKey: "monthlyCommission",
+  },
+  QUARTERLY: {
+    label: "Quarterly",
+    shortLabel: "3 months",
+    months: 3,
+    extensionDays: 90,
+    priceKey: "quarterlyPrice",
+    commissionKey: "quarterlyCommission",
+  },
+  HALF_YEARLY: {
+    label: "Half-Yearly",
+    shortLabel: "6 months",
+    months: 6,
+    extensionDays: 182,
+    priceKey: "halfYearlyPrice",
+    commissionKey: "halfYearlyCommission",
+  },
+  YEARLY: {
+    label: "Yearly",
+    shortLabel: "12 months",
+    months: 12,
+    extensionDays: 365,
+    priceKey: "annualPrice",
+    commissionKey: "yearlyCommission",
+  },
+};
+
+export function isPaidBillingCycle(value: string): value is PaidBillingCycle {
+  return PAID_BILLING_CYCLES.includes(value as PaidBillingCycle);
+}
+
+export function billingCycleLabel(cycle: PaidBillingCycle) {
+  return SUBSCRIPTION_CYCLE_CONFIG[cycle].label;
+}
+
+export function billingCycleExtensionDays(cycle: PaidBillingCycle) {
+  return SUBSCRIPTION_CYCLE_CONFIG[cycle].extensionDays;
+}
+
+const REGULAR_PRICE_KEYS: Record<PaidBillingCycle, keyof SubscriptionPriceSource> = {
+  MONTHLY: "regularMonthlyPrice",
+  QUARTERLY: "regularQuarterlyPrice",
+  HALF_YEARLY: "regularHalfYearlyPrice",
+  YEARLY: "regularAnnualPrice",
+};
+
+export function offerIsActive(
+  plan: Pick<SubscriptionPriceSource, "offerEnabled" | "offerStartsAt" | "offerEndsAt">,
+  now = new Date(),
+): boolean {
+  if (!plan.offerEnabled || !plan.offerStartsAt || !plan.offerEndsAt) return false;
+  const start = new Date(plan.offerStartsAt).getTime();
+  const end = new Date(plan.offerEndsAt).getTime();
+  const timestamp = now.getTime();
+  return Number.isFinite(start) && Number.isFinite(end) && start <= timestamp && timestamp < end;
+}
+
+/** Configured discounted price. This is an offer only if the sale window is active. */
+export function offerPriceForCycle(plan: SubscriptionPriceSource, cycle: PaidBillingCycle): number {
+  return Number(plan[SUBSCRIPTION_CYCLE_CONFIG[cycle].priceKey] ?? 0);
+}
+
+export function regularPriceForCycle(plan: SubscriptionPriceSource, cycle: PaidBillingCycle): number {
+  const value = plan[REGULAR_PRICE_KEYS[cycle]];
+  return value === null || value === undefined ? offerPriceForCycle(plan, cycle) : Number(value);
+}
+
+export function planPriceForCycle(
+  plan: SubscriptionPriceSource,
+  cycle: PaidBillingCycle,
+  now = new Date(),
+) {
+  const discounted = offerPriceForCycle(plan, cycle);
+  const regular = regularPriceForCycle(plan, cycle);
+  return offerIsActive(plan, now) && discounted < regular ? discounted : regular;
+}
+
+export function commissionForCycle(
+  settings: ReferralCommissionSource,
+  cycle: PaidBillingCycle,
+) {
+  return Number(settings[SUBSCRIPTION_CYCLE_CONFIG[cycle].commissionKey] ?? 0);
+}
+
+export function effectiveMonthlyPrice(
+  plan: SubscriptionPriceSource,
+  cycle: PaidBillingCycle,
+) {
+  const amount = planPriceForCycle(plan, cycle);
+  return amount / SUBSCRIPTION_CYCLE_CONFIG[cycle].months;
+}
+
+export function savingsAgainstMonthly(
+  plan: SubscriptionPriceSource,
+  cycle: PaidBillingCycle,
+) {
+  const monthly = planPriceForCycle(plan, "MONTHLY");
+  const expected = monthly * SUBSCRIPTION_CYCLE_CONFIG[cycle].months;
+  return Math.max(0, expected - planPriceForCycle(plan, cycle));
+}

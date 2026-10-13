@@ -1,0 +1,60 @@
+{
+  "name": "catalog-management",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "npm install --include=dev --no-audit --no-fund && prisma generate && node scripts/staging-migrate-on-build.mjs && next build --webpack",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:validate": "prisma validate",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:migrate:status": "prisma migrate status",
+    "db:studio": "prisma studio",
+    "admin:grant": "node scripts/grant-platform-admin.mjs",
+    "admin:create": "node scripts/create-platform-admin.mjs",
+    "ops:healthcheck": "node scripts/check-production-health.mjs",
+    "subscriptions:send-reminders": "node scripts/send-subscription-reminders.mjs",
+    "security:cleanup-reset-tokens": "node scripts/cleanup-password-reset-tokens.mjs",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "release:check": "npm run prisma:validate && npm run prisma:generate && npm run lint && npm run typecheck && npm run build",
+    "test:sprint6:smoke": "node scripts/sprint6-smoke.mjs",
+    "test:sprint6:tenant": "node scripts/sprint6-tenant-regression.mjs",
+    "test:sprint6:security": "node scripts/sprint6-security-regression.mjs",
+    "release:preflight": "node scripts/production-preflight.mjs",
+    "security:audit": "npm audit --omit=dev",
+    "test:sprint6:runtime": "npm run test:sprint6:smoke && npm run test:sprint6:security && npm run test:sprint6:tenant",
+    "test:admin:payments": "node scripts/admin-payment-regression.mjs",
+    "test:referrals": "node scripts/referral-platform-regression.mjs",
+    "test:merchant:payments": "node scripts/merchant-payment-submission-regression.mjs",
+    "test:auth:password-reset": "node scripts/password-reset-regression.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.922.0",
+    "@aws-sdk/s3-request-presigner": "^3.922.0",
+    "@prisma/client": "^6.19.0",
+    "next": "^16.0.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.1.12",
+    "bcryptjs": "^3.0.2",
+    "jose": "^6.1.0",
+    "qrcode-generator": "^2.0.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.17",
+    "@types/node": "^24.10.0",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^16.0.1",
+    "prisma": "^6.19.0",
+    "tailwindcss": "^4.1.17",
+    "typescript": "^5.9.3"
+  }
+}

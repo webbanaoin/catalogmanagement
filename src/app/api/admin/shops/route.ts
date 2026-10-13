@@ -1,0 +1,132 @@
+import { NextResponse } from "next/server";
+
+import { requirePlatformAdmin } from "@/server/auth/admin-access";
+import { prisma } from "@/server/database/prisma";
+import { errorResponse } from "@/server/http/error-response";
+import { effectiveSubscriptionStatus } from "@/server/subscriptions/access";
+import { adminShopListQuerySchema } from "@/validation/admin";
+
+export async function GET(request: Request) {
+  try {
+    await requirePlatformAdmin();
+    const url = new URL(request.url);
+    const query = adminShopListQuerySchema.parse({
+      status: url.searchParams.get("status") ?? undefined,
+      page: url.searchParams.get("page") ?? undefined,
+      pageSize: url.searchParams.get("pageSize") ?? undefined,
+    });
+    const skip = (query.page - 1) * query.pageSize;
+
+    const [items, total] = await prisma.$transaction([
+      prisma.shop.findMany({
+        where: { status: query.status },
+        orderBy: { createdAt: "asc" },
+        skip,
+        take: query.pageSize,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          status: true,
+          email: true,
+          phone: true,
+          city: true,
+          state: true,
+          requestedBusinessType: true,
+          referralAssignedAt: true,
+          referralPartner: {
+            select: {
+              id: true,
+              referralCode: true,
+              status: true,
+              user: { select: { name: true, email: true, mobile: true } },
+            },
+          },
+          businessCategory: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              status: true,
+            },
+          },
+          createdAt: true,
+          updatedAt: true,
+          shopUsers: {
+            where: { role: "OWNER" },
+            select: {
+              user: {
+                select: { id: true, name: true, email: true, mobile: true },
+              },
+            },
+          },
+          subscription: {
+            select: {
+              status: true,
+              paymentStatus: true,
+              endDate: true,
+              graceEndsAt: true,
+              plan: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  monthlyPrice: true,
+                  quarterlyPrice: true,
+                  halfYearlyPrice: true,
+                  annualPrice: true,
+                  regularMonthlyPrice: true,
+                  regularQuarterlyPrice: true,
+                  regularHalfYearlyPrice: true,
+                  regularAnnualPrice: true,
+                  offerEnabled: true,
+                  offerStartsAt: true,
+                  offerEndsAt: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      prisma.shop.count({ where: { status: query.status } }),
+    ]);
+
+    return NextResponse.json({
+      items: items.map(({ shopUsers, subscription, ...shop }) => ({
+        ...shop,
+        owners: shopUsers.map(({ user }) => user),
+        subscription: subscription
+          ? {
+              planId: subscription.plan.id,
+              planName: subscription.plan.name,
+              planSlug: subscription.plan.slug,
+              monthlyPrice: subscription.plan.monthlyPrice.toString(),
+              quarterlyPrice: subscription.plan.quarterlyPrice.toString(),
+              halfYearlyPrice: subscription.plan.halfYearlyPrice.toString(),
+              annualPrice: subscription.plan.annualPrice.toString(),
+              regularMonthlyPrice: subscription.plan.regularMonthlyPrice?.toString() ?? null,
+              regularQuarterlyPrice: subscription.plan.regularQuarterlyPrice?.toString() ?? null,
+              regularHalfYearlyPrice: subscription.plan.regularHalfYearlyPrice?.toString() ?? null,
+              regularAnnualPrice: subscription.plan.regularAnnualPrice?.toString() ?? null,
+              offerEnabled: subscription.plan.offerEnabled,
+              offerStartsAt: subscription.plan.offerStartsAt?.toISOString() ?? null,
+              offerEndsAt: subscription.plan.offerEndsAt?.toISOString() ?? null,
+              status: effectiveSubscriptionStatus(subscription),
+              storedStatus: subscription.status,
+              paymentStatus: subscription.paymentStatus,
+              endDate: subscription.endDate,
+              graceEndsAt: subscription.graceEndsAt,
+            }
+          : null,
+      })),
+      pagination: {
+        page: query.page,
+        pageSize: query.pageSize,
+        total,
+        totalPages: Math.ceil(total / query.pageSize),
+      },
+    });
+  } catch (error) {
+    return errorResponse(error);
+  }
+}

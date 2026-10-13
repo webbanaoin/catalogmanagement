@@ -1,0 +1,215 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState, type FormEvent } from "react";
+
+import { Alert, Button, Field, Input } from "@/components/ui";
+import { RegistrationEmailOtp } from "@/components/auth/registration-email-otp";
+import {
+  AuthApiError,
+  registerReferralPartner,
+} from "@/lib/auth-api";
+import {
+  isValidEmail,
+  isValidEnglishPersonName,
+  isValidIndianMobile,
+} from "@/lib/validation";
+
+type FieldErrors = Record<string, string>;
+
+function value(formData: FormData, name: string) {
+  return String(formData.get(name) ?? "");
+}
+
+function optional(formData: FormData, name: string) {
+  const result = value(formData, name).trim();
+  return result || undefined;
+}
+
+function focusFirstInvalid(form: HTMLFormElement, errors: FieldErrors) {
+  const firstField = Object.keys(errors)[0];
+  const control = firstField ? form.elements.namedItem(firstField) : null;
+  if (control instanceof HTMLElement) control.focus();
+}
+
+export function PartnerRegisterForm() {
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [otpEmail, setOtpEmail] = useState("");
+  const [verifiedEmail, setVerifiedEmail] = useState("");
+  const [emailVerificationToken, setEmailVerificationToken] = useState("");
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const errors: FieldErrors = {};
+
+    const name = value(data, "name").trim();
+    const email = value(data, "email").trim();
+    const mobile = value(data, "mobile").trim();
+    const password = value(data, "password");
+    const confirmPassword = value(data, "confirmPassword");
+
+    if (name.length < 2) errors.name = "Name is required.";
+    else if (!isValidEnglishPersonName(name)) errors.name = "Use English letters and spaces only (first name and surname).";
+    if (!email) errors.email = "Email is required.";
+    else if (!isValidEmail(email)) errors.email = "Enter a valid email address.";
+    if (!emailVerificationToken || verifiedEmail !== email.toLowerCase()) errors.email = "Verify your email with the 6-digit OTP before registering.";
+    if (!mobile) errors.mobile = "Mobile number is required.";
+    else if (!isValidIndianMobile(mobile)) {
+      errors.mobile = "Enter a valid 10-digit Indian mobile number.";
+    }
+    if (password.length < 10) {
+      errors.password = "Password must contain at least 10 characters.";
+    }
+    if (confirmPassword !== password) {
+      errors.confirmPassword = "Passwords do not match.";
+    }
+
+    setFormError("");
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      focusFirstInvalid(form, errors);
+      return;
+    }
+
+    if (data.get("paymentCollectionPolicy") !== "accepted") {
+      setFormError("You must acknowledge the Webbanao payment-collection restriction before registering.");
+      return;
+    }
+
+    setSubmitting(true);
+    setFieldErrors({});
+
+    try {
+      await registerReferralPartner({
+        name,
+        email,
+        emailVerificationToken,
+        mobile,
+        password,
+        confirmPassword,
+        city: optional(data, "city"),
+        state: optional(data, "state"),
+        marketingArea: optional(data, "marketingArea"),
+      });
+      router.push("/partner/pending");
+    } catch (error) {
+      if (error instanceof AuthApiError) {
+        setFieldErrors(error.fields);
+        setFormError(error.message);
+        focusFirstInvalid(form, error.fields);
+      } else {
+        setFormError("Unable to submit partner registration. Please try again.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form className="space-y-5" onSubmit={submit} noValidate>
+      {formError ? <Alert variant="error">{formError}</Alert> : null}
+      <Alert title="Use your correct contact details">Please enter an active email address you can access and a valid Indian mobile number. Webbanao will use them for verification and important partner account updates.</Alert>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field label="Full name" htmlFor="name" hint="English letters and spaces only, e.g. Rahul Sharma." error={fieldErrors.name} required>
+          <Input id="name" name="name" autoComplete="name" maxLength={120} required />
+        </Field>
+        <Field label="Mobile" htmlFor="mobile" hint="10-digit Indian number starting with 6–9. +91 accepted." error={fieldErrors.mobile} required>
+          <Input
+            id="mobile"
+            name="mobile"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            maxLength={18}
+            required
+          />
+        </Field>
+      </div>
+
+      <Field label="Email" htmlFor="email" error={fieldErrors.email} required>
+        <Input id="email" name="email" type="email" autoComplete="email" onChange={event => { setOtpEmail(event.target.value); setVerifiedEmail(""); setEmailVerificationToken(""); }} required />
+      </Field>
+
+      <RegistrationEmailOtp key={otpEmail.trim().toLowerCase()} email={otpEmail.trim()} purpose="PARTNER"
+        onVerified={(token, email) => { setEmailVerificationToken(token); setVerifiedEmail(email); setFieldErrors(current => ({ ...current, email: "" })); }} />
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field
+          label="Password"
+          htmlFor="password"
+          hint="Use 10 to 128 characters."
+          error={fieldErrors.password}
+          required
+        >
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            minLength={10}
+            maxLength={128}
+            required
+          />
+        </Field>
+        <Field
+          label="Confirm password"
+          htmlFor="confirmPassword"
+          error={fieldErrors.confirmPassword}
+          required
+        >
+          <Input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            minLength={10}
+            maxLength={128}
+            required
+          />
+        </Field>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field label="City" htmlFor="city">
+          <Input id="city" name="city" maxLength={120} autoComplete="address-level2" />
+        </Field>
+        <Field label="State" htmlFor="state">
+          <Input id="state" name="state" maxLength={120} autoComplete="address-level1" />
+        </Field>
+      </div>
+
+      <Field
+        label="Marketing area"
+        htmlFor="marketingArea"
+        hint="Optional. Example: Jabalpur city, schools, jewellery market, local retailers."
+      >
+        <Input
+          id="marketingArea"
+          name="marketingArea"
+          maxLength={255}
+          placeholder="Where or which businesses do you plan to market?"
+        />
+      </Field>
+
+      <Alert title="How it works">
+        After registration, Webbanao admin will review your account. Once approved,
+        your unique referral code and referral link will appear in your partner dashboard.
+      </Alert>
+
+      <label className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold text-amber-950">
+        <input type="checkbox" name="paymentCollectionPolicy" value="accepted" className="mt-1" required />
+        I understand that Marketing Partners are NOT authorized to collect subscription payments in cash, via UPI, or by bank transfer. Customers must only pay Webbanao-approved recipients displayed on the official platform.
+      </label>
+
+      <Button type="submit" className="w-full" disabled={submitting}>
+        {submitting ? "Submitting…" : "Register as marketing partner"}
+      </Button>
+    </form>
+  );
+}

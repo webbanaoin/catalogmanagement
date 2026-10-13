@@ -1,0 +1,151 @@
+import { Prisma } from "@prisma/client";
+import { NextResponse } from "next/server";
+
+import { requirePlatformAdmin } from "@/server/auth/admin-access";
+import { toSlug } from "@/server/catalog/slug";
+import { prisma } from "@/server/database/prisma";
+import { newOfferWindow, validateOfferPrices } from "@/server/subscriptions/plan-offers";
+import { AppError } from "@/server/http/app-error";
+import { errorResponse } from "@/server/http/error-response";
+import { readJsonBody } from "@/server/http/json-body";
+import { adminPlanCreateSchema } from "@/validation/subscriptions";
+
+function serializePlan<
+  T extends {
+    monthlyPrice: { toString(): string };
+    quarterlyPrice: { toString(): string };
+    halfYearlyPrice: { toString(): string };
+    annualPrice: { toString(): string };
+    regularMonthlyPrice: { toString(): string } | null;
+    regularQuarterlyPrice: { toString(): string } | null;
+    regularHalfYearlyPrice: { toString(): string } | null;
+    regularAnnualPrice: { toString(): string } | null;
+  },
+>(plan: T) {
+  return {
+    ...plan,
+    monthlyPrice: plan.monthlyPrice.toString(),
+    quarterlyPrice: plan.quarterlyPrice.toString(),
+    halfYearlyPrice: plan.halfYearlyPrice.toString(),
+    annualPrice: plan.annualPrice.toString(),
+    regularMonthlyPrice: plan.regularMonthlyPrice?.toString() ?? null,
+    regularQuarterlyPrice: plan.regularQuarterlyPrice?.toString() ?? null,
+    regularHalfYearlyPrice: plan.regularHalfYearlyPrice?.toString() ?? null,
+    regularAnnualPrice: plan.regularAnnualPrice?.toString() ?? null,
+  };
+}
+
+export async function GET() {
+  try {
+    await requirePlatformAdmin();
+
+    const items = await prisma.plan.findMany({
+      orderBy: [{ status: "asc" }, { monthlyPrice: "asc" }, { name: "asc" }],
+    });
+
+    return NextResponse.json({ items: items.map(serializePlan) });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return errorResponse(
+        new AppError({
+          code: "PLAN_SLUG_CONFLICT",
+          message: "A plan with this slug already exists",
+          status: 409,
+        }),
+      );
+    }
+
+    return errorResponse(error);
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const admin = await requirePlatformAdmin();
+    const input = adminPlanCreateSchema.parse(await readJsonBody(request));
+    const slug = toSlug(input.slug ?? input.name);
+    validateOfferPrices(input, input.offerEnabled);
+    const offerWindow = input.offerEnabled ? newOfferWindow(input.offerDurationDays) : {};
+
+    if (input.isDefaultTrial && (input.status !== "ACTIVE" || input.trialDays <= 0)) {
+      throw new AppError({
+        code: "INVALID_DEFAULT_TRIAL_PLAN",
+        message: "The default trial plan must be ACTIVE and have at least one trial day",
+        status: 400,
+      });
+    }
+
+    const duplicate = await prisma.plan.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+    if (duplicate) {
+      throw new AppError({
+        code: "PLAN_SLUG_CONFLICT",
+        message: "A plan with this slug already exists",
+        status: 409,
+      });
+    }
+
+    const data = await prisma.$transaction(async (tx) => {
+      if (input.isDefaultTrial) {
+        await tx.plan.updateMany({
+          where: { isDefaultTrial: true },
+          data: { isDefaultTrial: false },
+        });
+      }
+
+      const plan = await tx.plan.create({
+        data: {
+          ...input,
+          ...offerWindow,
+          slug,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorUserId: admin.id,
+          action: "PLAN_CREATED",
+          entityType: "Plan",
+          entityId: plan.id,
+          metadata: {
+            slug: plan.slug,
+            status: plan.status,
+            isDefaultTrial: plan.isDefaultTrial,
+            offerEnabled: plan.offerEnabled,
+            offerEndsAt: plan.offerEndsAt?.toISOString() ?? null,
+            pricing: {
+              monthly: plan.monthlyPrice.toString(),
+              quarterly: plan.quarterlyPrice.toString(),
+              halfYearly: plan.halfYearlyPrice.toString(),
+              yearly: plan.annualPrice.toString(),
+            },
+          },
+        },
+      });
+
+      return plan;
+    });
+
+    return NextResponse.json({ data: serializePlan(data) }, { status: 201 });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return errorResponse(
+        new AppError({
+          code: "PLAN_SLUG_CONFLICT",
+          message: "A plan with this slug already exists",
+          status: 409,
+        }),
+      );
+    }
+
+    return errorResponse(error);
+  }
+}

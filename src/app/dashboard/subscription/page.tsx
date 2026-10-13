@@ -1,0 +1,283 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+import {
+  Alert,
+  Badge,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  EmptyState,
+  LoadingState,
+  PageHeader,
+  buttonClassName,
+} from "@/components/ui";
+import {
+  CatalogApiError,
+  getCurrentMerchantShop,
+  getShopSubscription,
+  getShopPayments,
+  type MerchantShop,
+  type MerchantSubscription,
+  type MerchantPaymentSubmissionStatus,
+} from "@/lib/catalog-api";
+import {
+  PAID_BILLING_CYCLES,
+  SUBSCRIPTION_CYCLE_CONFIG,
+  effectiveMonthlyPrice,
+  planPriceForCycle,
+  regularPriceForCycle,
+  offerIsActive,
+  savingsAgainstMonthly,
+} from "@/lib/subscription-cycles";
+
+function formatMoney(value: string | number) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(Number(value || 0));
+}
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(new Date(value));
+}
+
+function statusVariant(status: MerchantSubscription["status"]) {
+  if (status === "ACTIVE" || status === "TRIAL") return "success" as const;
+  if (status === "GRACE") return "warning" as const;
+  return "danger" as const;
+}
+
+export default function SubscriptionPage() {
+  const [shop, setShop] = useState<MerchantShop | null>(null);
+  const [subscription, setSubscription] = useState<MerchantSubscription | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [latestSubmission, setLatestSubmission] = useState<MerchantPaymentSubmissionStatus | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      try {
+        const currentShop = await getCurrentMerchantShop();
+        const [response, payments] = await Promise.all([getShopSubscription(currentShop.id), getShopPayments(currentShop.id, { paymentPage: 1, submissionPage: 1, pageSize: 10 })]);
+        setLatestSubmission(payments.data.submissions[0]?.status ?? null);
+        if (!active) return;
+        setShop(currentShop);
+        setSubscription(response.data);
+      } catch (error) {
+        if (!active) return;
+        setFeedback(
+          error instanceof CatalogApiError
+            ? error.message
+            : "Unable to load subscription details.",
+        );
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    void load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <LoadingState
+        title="Loading subscription"
+        description="Checking the current plan, limits and usage for your shop."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-6 sm:space-y-8">
+      <PageHeader
+        title="Subscription"
+        description="Review your current plan, validity, catalogue limits and enabled features."
+        actions={
+          subscription ? (
+            <Badge variant={statusVariant(subscription.status)}>{subscription.status}</Badge>
+          ) : null
+        }
+      />
+
+      {feedback ? <Alert variant="error">{feedback}</Alert> : null}
+      {subscription && subscription.status !== "CANCELLED" && (() => {
+        const expiry = new Date(subscription.endDate);
+        const today = new Date();
+        const daysLeft = Math.ceil((expiry.getTime() - today.getTime()) / 86400000);
+        if (daysLeft > 7 && subscription.status !== "EXPIRED" && subscription.status !== "GRACE") return null;
+        const expired = daysLeft <= 0 || subscription.status === "EXPIRED" || subscription.status === "GRACE";
+        const pending = latestSubmission === "PENDING";
+        const rejected = latestSubmission === "REJECTED";
+        return (
+          <Alert variant={expired ? "error" : "warning"} title={pending ? "Payment verification in progress" : rejected ? "Payment verification failed" : expired ? "Subscription renewal required" : "Your subscription is ending soon"}>
+            <div className="space-y-2">
+              <p>{pending ? "Your payment was submitted and awaits admin approval. Your subscription extends only after verification." : rejected ? "Your most recent payment submission was rejected. Check the payment details and submit corrected information." : expired ? "Your plan has reached its end date. Renew to avoid restrictions on catalogue management." : `Your current plan ends in ${daysLeft} day${daysLeft === 1 ? "" : "s"}. Renew now to keep your showroom active.`}</p>
+              <Link href="/dashboard/payments" className="inline-block font-semibold underline underline-offset-4">
+                View renewal and payment options
+              </Link>
+            </div>
+          </Alert>
+        );
+      })()}
+
+      {!subscription ? (
+        <EmptyState
+          title="No subscription assigned"
+          description="Your shop does not currently have a subscription. Contact the platform administrator to activate or assign a plan."
+        />
+      ) : (
+        <>
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <CardTitle>{subscription.plan.name}</CardTitle>
+                  <CardDescription>
+                    {subscription.plan.description ?? "Current Digital Showroom plan"}
+                  </CardDescription>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant={statusVariant(subscription.status)}>{subscription.status}</Badge>
+                  <Badge variant="info">Payment: {subscription.paymentStatus.replaceAll("_", " ")}</Badge>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <dt className="text-sm text-muted">Shop</dt>
+                  <dd className="mt-1 font-medium text-foreground">{shop?.name ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm text-muted">Start date</dt>
+                  <dd className="mt-1 font-medium text-foreground">{formatDate(subscription.startDate)}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm text-muted">Valid until</dt>
+                  <dd className="mt-1 font-medium text-foreground">{formatDate(subscription.endDate)}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm text-muted">Grace until</dt>
+                  <dd className="mt-1 font-medium text-foreground">{formatDate(subscription.graceEndsAt)}</dd>
+                </div>
+              </dl>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-xl border border-border bg-background p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted">Products used</p>
+                  <p className="mt-2 text-2xl font-semibold text-foreground">
+                    {subscription.usage.products ?? 0} / {subscription.plan.productLimit}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border bg-background p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted">Images / product</p>
+                  <p className="mt-2 text-2xl font-semibold text-foreground">{subscription.plan.imageLimitPerProduct}</p>
+                </div>
+              </div>
+
+              <Alert title="Important information about promotional pricing">
+                Promotional subscription prices are valid only during the published offer period.
+                Once an offer expires or is discontinued, future subscriptions and renewals
+                are charged at the regular price applicable at that time. The amount you have
+                already paid and your current verified subscription period will not be changed.
+                You can always review the applicable price before making your next payment.
+              </Alert>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {PAID_BILLING_CYCLES.map((cycle) => {
+                  const price = planPriceForCycle(subscription.plan, cycle);
+                  const effective = effectiveMonthlyPrice(subscription.plan, cycle);
+                  const saving = savingsAgainstMonthly(subscription.plan, cycle);
+                  const regular = regularPriceForCycle(subscription.plan, cycle);
+                  const hasOffer = offerIsActive(subscription.plan) && regular > price;
+                  return (
+                    <div
+                      key={cycle}
+                      className="rounded-xl border border-border bg-background p-4"
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                        {SUBSCRIPTION_CYCLE_CONFIG[cycle].label}
+                      </p>
+                      {hasOffer ? <p className="mt-2 text-xs text-muted">Regular <del>{formatMoney(regular)}</del></p> : null}
+                      <p className="mt-2 text-2xl font-semibold text-foreground">
+                        {price > 0 ? formatMoney(price) : "Not configured"}
+                      </p>
+                      {hasOffer ? <p className="mt-1 text-xs font-semibold text-success">Offer price · Save {formatMoney(regular - price)}</p> : null}
+                      {price > 0 ? (
+                        <p className="mt-1 text-xs text-muted">
+                          {cycle === "MONTHLY"
+                            ? "Flexible monthly billing"
+                            : `${formatMoney(effective)}/month effective${saving > 0 ? ` · Save ${formatMoney(saving)}` : ""}`}
+                        </p>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Included features</CardTitle>
+              <CardDescription>These feature flags are enforced by the server for this shop.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-border bg-background p-4">
+                <p className="font-medium text-foreground">Analytics</p>
+                <Badge className="mt-2" variant={subscription.plan.analyticsEnabled ? "success" : "neutral"}>
+                  {subscription.plan.analyticsEnabled ? "Included" : "Not included"}
+                </Badge>
+              </div>
+              <div className="rounded-xl border border-border bg-background p-4">
+                <p className="font-medium text-foreground">Excel import / export</p>
+                <Badge className="mt-2" variant={subscription.plan.excelImportEnabled ? "success" : "neutral"}>
+                  {subscription.plan.excelImportEnabled ? "Included" : "Not included"}
+                </Badge>
+              </div>
+              <div className="rounded-xl border border-border bg-background p-4">
+                <p className="font-medium text-foreground">Custom branding</p>
+                <Badge className="mt-2" variant={subscription.plan.customBrandingEnabled ? "success" : "neutral"}>
+                  {subscription.plan.customBrandingEnabled ? "Included" : "Not included"}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment history & verification</CardTitle>
+              <CardDescription>
+                Review payments Webbanao has verified, or report an offline/direct
+                payment for admin confirmation.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link
+                href="/dashboard/payments"
+                className={buttonClassName("secondary", "sm")}
+              >
+                View payments
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Alert title="Renewal management">
+            Plan changes and payment verification are controlled by the platform administrator. No online payment gateway is required for this workflow.
+          </Alert>
+        </>
+      )}
+    </div>
+  );
+}
