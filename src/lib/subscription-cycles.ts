@@ -12,6 +12,13 @@ export interface SubscriptionPriceSource {
   quarterlyPrice: string | number;
   halfYearlyPrice: string | number;
   annualPrice: string | number;
+  regularMonthlyPrice?: string | number | null;
+  regularQuarterlyPrice?: string | number | null;
+  regularHalfYearlyPrice?: string | number | null;
+  regularAnnualPrice?: string | number | null;
+  offerEnabled?: boolean;
+  offerStartsAt?: string | Date | null;
+  offerEndsAt?: string | Date | null;
 }
 
 export interface ReferralCommissionSource {
@@ -86,11 +93,39 @@ export function billingCycleExtensionDays(cycle: PaidBillingCycle) {
   return SUBSCRIPTION_CYCLE_CONFIG[cycle].extensionDays;
 }
 
+const REGULAR_PRICE_KEYS: Record<PaidBillingCycle, keyof SubscriptionPriceSource> = {
+  MONTHLY: "regularMonthlyPrice",
+  QUARTERLY: "regularQuarterlyPrice",
+  HALF_YEARLY: "regularHalfYearlyPrice",
+  YEARLY: "regularAnnualPrice",
+};
+
+export function offerIsActive(plan: SubscriptionPriceSource, now = new Date()): boolean {
+  if (!plan.offerEnabled || !plan.offerStartsAt || !plan.offerEndsAt) return false;
+  const start = new Date(plan.offerStartsAt).getTime();
+  const end = new Date(plan.offerEndsAt).getTime();
+  const timestamp = now.getTime();
+  return Number.isFinite(start) && Number.isFinite(end) && start <= timestamp && timestamp < end;
+}
+
+/** Configured discounted price. This is an offer only if the sale window is active. */
+export function offerPriceForCycle(plan: SubscriptionPriceSource, cycle: PaidBillingCycle): number {
+  return Number(plan[SUBSCRIPTION_CYCLE_CONFIG[cycle].priceKey] ?? 0);
+}
+
+export function regularPriceForCycle(plan: SubscriptionPriceSource, cycle: PaidBillingCycle): number {
+  const value = plan[REGULAR_PRICE_KEYS[cycle]];
+  return value === null || value === undefined ? offerPriceForCycle(plan, cycle) : Number(value);
+}
+
 export function planPriceForCycle(
   plan: SubscriptionPriceSource,
   cycle: PaidBillingCycle,
+  now = new Date(),
 ) {
-  return Number(plan[SUBSCRIPTION_CYCLE_CONFIG[cycle].priceKey] ?? 0);
+  const discounted = offerPriceForCycle(plan, cycle);
+  const regular = regularPriceForCycle(plan, cycle);
+  return offerIsActive(plan, now) && discounted < regular ? discounted : regular;
 }
 
 export function commissionForCycle(
@@ -112,7 +147,7 @@ export function savingsAgainstMonthly(
   plan: SubscriptionPriceSource,
   cycle: PaidBillingCycle,
 ) {
-  const monthly = Number(plan.monthlyPrice ?? 0);
+  const monthly = planPriceForCycle(plan, "MONTHLY");
   const expected = monthly * SUBSCRIPTION_CYCLE_CONFIG[cycle].months;
   return Math.max(0, expected - planPriceForCycle(plan, cycle));
 }
