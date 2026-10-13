@@ -614,6 +614,13 @@ export async function updateAdminPlan(planId: string, payload: Partial<AdminPlan
   );
 }
 
+export async function restartAdminPlanOffer(planId: string) {
+  return requestJson<{ data: Pick<AdminPlan, "id" | "offerEnabled" | "offerStartsAt" | "offerEndsAt" | "offerDurationDays"> }>(
+    "/api/admin/plans/" + encodeURIComponent(planId) + "/offer/restart",
+    { method: "POST" },
+  );
+}
+
 export async function getAdminSubscription(shopId: string) {
   return requestJson<{ data: AdminSubscription | null }>(
     "/api/admin/shops/" + encodeURIComponent(shopId) + "/subscription",
