@@ -21,7 +21,6 @@ import {
 } from "@/lib/catalog-api";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_BYTES = 8 * 1024 * 1024;
 
 function sourceLabel(
   kind: ShopBrandingKind,
@@ -81,14 +80,6 @@ export function ShopBrandingMedia({
       setFeedback({
         variant: "error",
         message: "Use a JPG, PNG or WebP image.",
-      });
-      return;
-    }
-
-    if (file.size > MAX_BYTES) {
-      setFeedback({
-        variant: "error",
-        message: "Shop branding images must be 8 MB or smaller.",
       });
       return;
     }
@@ -236,7 +227,7 @@ export function ShopBrandingMedia({
                 Storefront cover / hero image
               </p>
               <p className="mt-1 text-xs leading-5 text-muted">
-                {sourceLabel("cover", coverSource)}. A wide 16:6 image gives the
+                {sourceLabel("cover", coverSource)}. Photos are automatically resized before upload. A wide 16:6 image gives the
                 best result.
               </p>
             </div>
