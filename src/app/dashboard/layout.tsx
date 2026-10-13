@@ -6,6 +6,8 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
 import { requireCurrentUser } from "@/server/auth/current-user";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
 };
