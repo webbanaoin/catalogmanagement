@@ -397,7 +397,7 @@ export default function ProductsPage() {
       await refreshProducts(shop.id);
     } catch (error) {
       const message =
-        error instanceof CatalogApiError
+        error instanceof Error
           ? error.message
           : "Unable to upload product images.";
       setFeedback({
