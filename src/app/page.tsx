@@ -879,11 +879,13 @@ export default async function Home() {
 
               <div className="rounded-2xl border border-white/15 bg-white/[0.06] p-5 backdrop-blur">
                 <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Contact us</p>
-                <a href="tel:+919168720245" className="mt-2 block text-2xl font-black text-white transition hover:text-cyan-300">
-                  Prashant: +91 9168720245
+                <a href="tel:+919168720245" className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-base font-bold leading-6 text-white transition hover:text-cyan-300 sm:text-lg">
+                  <span>Prashant:</span>
+                  <span className="whitespace-nowrap tabular-nums">+91 9168720245</span>
                 </a>
-                <a href="tel:+919643819986" className="mt-2 block text-lg font-bold text-white transition hover:text-cyan-300">
-                  Parixit: +91 9643819986
+                <a href="tel:+919643819986" className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-base font-bold leading-6 text-white transition hover:text-cyan-300 sm:text-lg">
+                  <span>Parixit:</span>
+                  <span className="whitespace-nowrap tabular-nums">+91 9643819986</span>
                 </a>
 
                 <div className="mt-5 grid gap-3">
