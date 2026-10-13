@@ -1,3 +1,4 @@
+import { optimizeImageForUpload } from "@/lib/client-image-optimizer";
 export type CatalogFieldErrors = Record<string, string>;
 
 interface ErrorEnvelope {
@@ -267,6 +268,7 @@ export async function uploadShopBranding(
   kind: ShopBrandingKind,
   file: File,
 ) {
+  const optimized = (await optimizeImageForUpload(file, [kind]))[kind];
   const upload = await requestJson<{
     data: {
       url: string;
@@ -278,9 +280,9 @@ export async function uploadShopBranding(
     method: "POST",
     body: JSON.stringify({
       kind,
-      fileName: file.name,
-      mimeType: file.type,
-      fileSize: file.size,
+      fileName: optimized.name,
+      mimeType: optimized.type,
+      fileSize: optimized.size,
     }),
   });
 
@@ -289,7 +291,7 @@ export async function uploadShopBranding(
     put = await fetch(upload.data.url, {
       method: "PUT",
       headers: upload.data.headers,
-      body: file,
+      body: optimized,
     });
   } catch {
     const origin =
@@ -643,19 +645,13 @@ export async function duplicateShopProduct(shopId: string, productId: string) {
   );
 }
 
-export async function uploadProductImage(
+async function uploadProductMediaBlob(
   shopId: string,
   productId: string,
   file: File,
-  options?: { isPrimary?: boolean; displayOrder?: number },
-) {
+): Promise<string> {
   const upload = await requestJson<{
-    data: {
-      url: string;
-      key: string;
-      expiresInSeconds: number;
-      headers: Record<string, string>;
-    };
+    data: { url: string; key: string; headers: Record<string, string> };
   }>(
     `/api/shops/${encodeURIComponent(shopId)}/products/${encodeURIComponent(productId)}/images/upload-url`,
     {
@@ -667,7 +663,6 @@ export async function uploadProductImage(
       }),
     },
   );
-
   let put: Response;
   try {
     put = await fetch(upload.data.url, {
@@ -676,36 +671,52 @@ export async function uploadProductImage(
       body: file,
     });
   } catch {
-    const origin =
-      typeof window === "undefined" ? "the current app origin" : window.location.origin;
     throw new CatalogApiError({
       code: "IMAGE_UPLOAD_NETWORK_ERROR",
-      message:
-        `The browser could not upload the image to object storage. Check that the storage bucket CORS allows PUT requests from ${origin}.`,
+      message: "The browser could not upload the image to R2. Check the storage bucket CORS origin.",
       status: 0,
     });
   }
-
   if (!put.ok) {
     throw new CatalogApiError({
       code: "IMAGE_UPLOAD_FAILED",
-      message:
-        `Object storage rejected the image upload (HTTP ${put.status}). Check bucket CORS, endpoint, region and credentials.`,
+      message: `Object storage rejected the image upload (HTTP ${put.status}).`,
       status: put.status,
     });
   }
+  return upload.data.key;
+}
 
+export async function uploadProductImage(
+  shopId: string,
+  productId: string,
+  file: File,
+  options?: { isPrimary?: boolean; displayOrder?: number },
+) {
+  const processed = await optimizeImageForUpload(file, ["product", "thumbnail"]);
+  const main = processed.product;
+  const thumbnail = processed.thumbnail;
+  // Both are stored in the existing private R2 bucket using signed PUT URLs.
+  // No public bucket policy or new storage credentials are needed.
+  const storageKey = await uploadProductMediaBlob(shopId, productId, main);
+  let thumbnailKey: string | null = null;
+  try {
+    thumbnailKey = await uploadProductMediaBlob(shopId, productId, thumbnail);
+  } catch {
+    // Never make a successfully uploaded full image unusable solely because the
+    // thumbnail upload failed. Existing storefront code falls back to main.
+  }
   return requestJson<{ data: ProductImage }>(
     `/api/shops/${encodeURIComponent(shopId)}/products/${encodeURIComponent(productId)}/images`,
     {
       method: "POST",
       body: JSON.stringify({
-        storageKey: upload.data.key,
-        thumbnailKey: null,
+        storageKey,
+        thumbnailKey,
         displayOrder: options?.displayOrder ?? 0,
         isPrimary: options?.isPrimary ?? false,
-        fileSize: file.size,
-        mimeType: file.type,
+        fileSize: main.size,
+        mimeType: main.type,
       }),
     },
   );
