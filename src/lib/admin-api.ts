@@ -20,6 +20,13 @@ export interface AdminShopSubscriptionSummary {
   quarterlyPrice: string;
   halfYearlyPrice: string;
   annualPrice: string;
+  regularMonthlyPrice: string | null;
+  regularQuarterlyPrice: string | null;
+  regularHalfYearlyPrice: string | null;
+  regularAnnualPrice: string | null;
+  offerEnabled: boolean;
+  offerStartsAt: string | null;
+  offerEndsAt: string | null;
   status: "TRIAL" | "ACTIVE" | "GRACE" | "EXPIRED" | "CANCELLED";
   storedStatus: "TRIAL" | "ACTIVE" | "GRACE" | "EXPIRED" | "CANCELLED";
   paymentStatus: "NOT_REQUIRED" | "PENDING" | "PAID" | "WAIVED";
@@ -190,6 +197,14 @@ export interface AdminPlan {
   quarterlyPrice: string;
   halfYearlyPrice: string;
   annualPrice: string;
+  regularMonthlyPrice: string | null;
+  regularQuarterlyPrice: string | null;
+  regularHalfYearlyPrice: string | null;
+  regularAnnualPrice: string | null;
+  offerEnabled: boolean;
+  offerDurationDays: number;
+  offerStartsAt: string | null;
+  offerEndsAt: string | null;
   productLimit: number;
   imageLimitPerProduct: number;
   analyticsEnabled: boolean;
@@ -417,6 +432,12 @@ export interface AdminPlanPayload {
   quarterlyPrice: number;
   halfYearlyPrice: number;
   annualPrice: number;
+  regularMonthlyPrice: number | null;
+  regularQuarterlyPrice: number | null;
+  regularHalfYearlyPrice: number | null;
+  regularAnnualPrice: number | null;
+  offerEnabled: boolean;
+  offerDurationDays: number;
   productLimit: number;
   imageLimitPerProduct: number;
   analyticsEnabled: boolean;
@@ -597,6 +618,13 @@ export async function updateAdminPlan(planId: string, payload: Partial<AdminPlan
   return requestJson<{ data: AdminPlan }>(
     "/api/admin/plans/" + encodeURIComponent(planId),
     { method: "PATCH", body: JSON.stringify(payload) },
+  );
+}
+
+export async function restartAdminPlanOffer(planId: string) {
+  return requestJson<{ data: Pick<AdminPlan, "id" | "offerEnabled" | "offerStartsAt" | "offerEndsAt" | "offerDurationDays"> }>(
+    "/api/admin/plans/" + encodeURIComponent(planId) + "/offer/restart",
+    { method: "POST" },
   );
 }
 

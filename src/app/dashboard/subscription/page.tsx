@@ -30,6 +30,8 @@ import {
   SUBSCRIPTION_CYCLE_CONFIG,
   effectiveMonthlyPrice,
   planPriceForCycle,
+  regularPriceForCycle,
+  offerIsActive,
   savingsAgainstMonthly,
 } from "@/lib/subscription-cycles";
 
@@ -185,11 +187,20 @@ export default function SubscriptionPage() {
                 </div>
               </div>
 
+              <Alert title="Important information about promotional pricing">
+                Promotional subscription prices are valid only during the published offer period.
+                Once an offer expires or is discontinued, future subscriptions and renewals
+                are charged at the regular price applicable at that time. The amount you have
+                already paid and your current verified subscription period will not be changed.
+                You can always review the applicable price before making your next payment.
+              </Alert>
               <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {PAID_BILLING_CYCLES.map((cycle) => {
                   const price = planPriceForCycle(subscription.plan, cycle);
                   const effective = effectiveMonthlyPrice(subscription.plan, cycle);
                   const saving = savingsAgainstMonthly(subscription.plan, cycle);
+                  const regular = regularPriceForCycle(subscription.plan, cycle);
+                  const hasOffer = offerIsActive(subscription.plan) && regular > price;
                   return (
                     <div
                       key={cycle}
@@ -198,9 +209,11 @@ export default function SubscriptionPage() {
                       <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                         {SUBSCRIPTION_CYCLE_CONFIG[cycle].label}
                       </p>
+                      {hasOffer ? <p className="mt-2 text-xs text-muted">Regular <del>{formatMoney(regular)}</del></p> : null}
                       <p className="mt-2 text-2xl font-semibold text-foreground">
                         {price > 0 ? formatMoney(price) : "Not configured"}
                       </p>
+                      {hasOffer ? <p className="mt-1 text-xs font-semibold text-success">Offer price · Save {formatMoney(regular - price)}</p> : null}
                       {price > 0 ? (
                         <p className="mt-1 text-xs text-muted">
                           {cycle === "MONTHLY"

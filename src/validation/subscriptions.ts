@@ -5,6 +5,8 @@ const productLimitSchema = z.coerce.number().int().min(1).max(100000);
 const imageLimitSchema = z.coerce.number().int().min(1).max(50);
 const trialDaysSchema = z.coerce.number().int().min(0).max(365);
 const graceDaysSchema = z.coerce.number().int().min(0).max(90);
+const optionalRegularPriceSchema = moneySchema.positive().nullable();
+const offerDurationSchema = z.coerce.number().int().min(1).max(365);
 
 export const adminPlanCreateSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -14,6 +16,12 @@ export const adminPlanCreateSchema = z.object({
   quarterlyPrice: moneySchema.default(0),
   halfYearlyPrice: moneySchema.default(0),
   annualPrice: moneySchema.default(0),
+  regularMonthlyPrice: optionalRegularPriceSchema.default(null),
+  regularQuarterlyPrice: optionalRegularPriceSchema.default(null),
+  regularHalfYearlyPrice: optionalRegularPriceSchema.default(null),
+  regularAnnualPrice: optionalRegularPriceSchema.default(null),
+  offerEnabled: z.boolean().default(false),
+  offerDurationDays: offerDurationSchema.default(7),
   productLimit: productLimitSchema,
   imageLimitPerProduct: imageLimitSchema,
   analyticsEnabled: z.boolean().default(false),
@@ -34,6 +42,12 @@ export const adminPlanUpdateSchema = z
     quarterlyPrice: moneySchema.optional(),
     halfYearlyPrice: moneySchema.optional(),
     annualPrice: moneySchema.optional(),
+    regularMonthlyPrice: optionalRegularPriceSchema.optional(),
+    regularQuarterlyPrice: optionalRegularPriceSchema.optional(),
+    regularHalfYearlyPrice: optionalRegularPriceSchema.optional(),
+    regularAnnualPrice: optionalRegularPriceSchema.optional(),
+    offerEnabled: z.boolean().optional(),
+    offerDurationDays: offerDurationSchema.optional(),
     productLimit: productLimitSchema.optional(),
     imageLimitPerProduct: imageLimitSchema.optional(),
     analyticsEnabled: z.boolean().optional(),

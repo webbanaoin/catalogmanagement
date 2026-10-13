@@ -46,7 +46,8 @@ function ShopHero({
           <StorefrontMedia
             src={shop.coverUrl}
             alt={`${shop.name} cover`}
-            className="aspect-[4/3] w-full sm:aspect-[16/7] lg:aspect-[16/6]"
+            className="aspect-[16/9] w-full bg-[#102d28] sm:aspect-[16/7] lg:aspect-[16/6]"
+            fit="contain"
             eager
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/5 to-black/15" />

@@ -159,8 +159,8 @@ export function StorefrontFilters({
           <div className="self-end sm:col-span-2 lg:col-span-4">
             <Button
               type="submit"
-              variant="secondary"
-              className="w-full rounded-xl sm:w-auto"
+              variant="primary"
+              className="w-full rounded-xl font-semibold text-primary-foreground sm:w-auto"
             >
               Apply filters
             </Button>

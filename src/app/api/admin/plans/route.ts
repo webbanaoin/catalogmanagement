@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { requirePlatformAdmin } from "@/server/auth/admin-access";
 import { toSlug } from "@/server/catalog/slug";
 import { prisma } from "@/server/database/prisma";
+import { newOfferWindow, validateOfferPrices } from "@/server/subscriptions/plan-offers";
 import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
 import { readJsonBody } from "@/server/http/json-body";
@@ -15,6 +16,10 @@ function serializePlan<
     quarterlyPrice: { toString(): string };
     halfYearlyPrice: { toString(): string };
     annualPrice: { toString(): string };
+    regularMonthlyPrice: { toString(): string } | null;
+    regularQuarterlyPrice: { toString(): string } | null;
+    regularHalfYearlyPrice: { toString(): string } | null;
+    regularAnnualPrice: { toString(): string } | null;
   },
 >(plan: T) {
   return {
@@ -23,6 +28,10 @@ function serializePlan<
     quarterlyPrice: plan.quarterlyPrice.toString(),
     halfYearlyPrice: plan.halfYearlyPrice.toString(),
     annualPrice: plan.annualPrice.toString(),
+    regularMonthlyPrice: plan.regularMonthlyPrice?.toString() ?? null,
+    regularQuarterlyPrice: plan.regularQuarterlyPrice?.toString() ?? null,
+    regularHalfYearlyPrice: plan.regularHalfYearlyPrice?.toString() ?? null,
+    regularAnnualPrice: plan.regularAnnualPrice?.toString() ?? null,
   };
 }
 
@@ -58,6 +67,8 @@ export async function POST(request: Request) {
     const admin = await requirePlatformAdmin();
     const input = adminPlanCreateSchema.parse(await readJsonBody(request));
     const slug = toSlug(input.slug ?? input.name);
+    validateOfferPrices(input, input.offerEnabled);
+    const offerWindow = input.offerEnabled ? newOfferWindow(input.offerDurationDays) : {};
 
     if (input.isDefaultTrial && (input.status !== "ACTIVE" || input.trialDays <= 0)) {
       throw new AppError({
@@ -90,6 +101,7 @@ export async function POST(request: Request) {
       const plan = await tx.plan.create({
         data: {
           ...input,
+          ...offerWindow,
           slug,
         },
       });
@@ -104,6 +116,8 @@ export async function POST(request: Request) {
             slug: plan.slug,
             status: plan.status,
             isDefaultTrial: plan.isDefaultTrial,
+            offerEnabled: plan.offerEnabled,
+            offerEndsAt: plan.offerEndsAt?.toISOString() ?? null,
             pricing: {
               monthly: plan.monthlyPrice.toString(),
               quarterly: plan.quarterlyPrice.toString(),

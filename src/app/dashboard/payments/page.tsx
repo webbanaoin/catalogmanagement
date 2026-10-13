@@ -37,6 +37,8 @@ import {
   PAID_BILLING_CYCLES,
   SUBSCRIPTION_CYCLE_CONFIG,
   planPriceForCycle,
+  regularPriceForCycle,
+  offerIsActive,
   type PaidBillingCycle,
 } from "@/lib/subscription-cycles";
 
@@ -269,6 +271,9 @@ export default function MerchantPaymentsPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
                 {SUBSCRIPTION_CYCLE_CONFIG[cycle].label} plan
               </p>
+              {subscription && offerIsActive(subscription.plan) && regularPriceForCycle(subscription.plan, cycle) > planPriceForCycle(subscription.plan, cycle) ? (
+                <p className="mt-1 text-xs text-muted">Regular <del>{money(regularPriceForCycle(subscription.plan, cycle))}</del></p>
+              ) : null}
               <p className="mt-2 text-2xl font-bold text-foreground">
                 {subscription
                   ? money(planPriceForCycle(subscription.plan, cycle))
@@ -282,6 +287,13 @@ export default function MerchantPaymentsPage() {
         ))}
       </div>
 
+      <Alert title="Promotional pricing and future renewals">
+        Discounted prices apply only during an active limited-time offer. After the offer
+        ends or is discontinued, regular pricing applies to future subscription payments
+        and renewals. Previously verified payments and active subscription periods
+        remain unchanged. Please confirm the current amount before transferring money.
+      </Alert>
+
       <Card>
         <CardHeader>
           <CardTitle>I made a payment</CardTitle>
@@ -290,6 +302,9 @@ export default function MerchantPaymentsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {subscription?.plan.offerEnabled && subscription.plan.offerEndsAt ? (
+            <p className="mb-4 text-xs text-muted">Discounted prices apply only until the current offer deadline. Please refresh pricing before making payment if the offer has ended.</p>
+          ) : null}
           <form className="space-y-5" onSubmit={submit}>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <label className="text-sm font-medium text-foreground">
