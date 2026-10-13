@@ -17,6 +17,7 @@ const ZOOM_STEP = 0.5;
 type GalleryImage = {
   id: string;
   url: string;
+  thumbnailUrl?: string | null;
   isPrimary: boolean;
   displayOrder: number;
 };
@@ -390,7 +391,7 @@ export function ProductGallery({
                   aria-label={`Show image ${index + 1} of ${productName}`}
                 >
                   <StorefrontMedia
-                    src={image.url}
+                    src={image.thumbnailUrl ?? image.url}
                     alt=""
                     className="aspect-square w-full rounded-[0.6rem]"
                   />
