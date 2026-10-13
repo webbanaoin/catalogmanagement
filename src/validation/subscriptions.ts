@@ -5,7 +5,7 @@ const productLimitSchema = z.coerce.number().int().min(1).max(100000);
 const imageLimitSchema = z.coerce.number().int().min(1).max(50);
 const trialDaysSchema = z.coerce.number().int().min(0).max(365);
 const graceDaysSchema = z.coerce.number().int().min(0).max(90);
-const optionalRegularPriceSchema = moneySchema.nullable();
+const optionalRegularPriceSchema = moneySchema.positive().nullable();
 const offerDurationSchema = z.coerce.number().int().min(1).max(365);
 
 export const adminPlanCreateSchema = z.object({
