@@ -190,6 +190,14 @@ export interface AdminPlan {
   quarterlyPrice: string;
   halfYearlyPrice: string;
   annualPrice: string;
+  regularMonthlyPrice: string | null;
+  regularQuarterlyPrice: string | null;
+  regularHalfYearlyPrice: string | null;
+  regularAnnualPrice: string | null;
+  offerEnabled: boolean;
+  offerDurationDays: number;
+  offerStartsAt: string | null;
+  offerEndsAt: string | null;
   productLimit: number;
   imageLimitPerProduct: number;
   analyticsEnabled: boolean;
@@ -417,6 +425,12 @@ export interface AdminPlanPayload {
   quarterlyPrice: number;
   halfYearlyPrice: number;
   annualPrice: number;
+  regularMonthlyPrice: number | null;
+  regularQuarterlyPrice: number | null;
+  regularHalfYearlyPrice: number | null;
+  regularAnnualPrice: number | null;
+  offerEnabled: boolean;
+  offerDurationDays: number;
   productLimit: number;
   imageLimitPerProduct: number;
   analyticsEnabled: boolean;
