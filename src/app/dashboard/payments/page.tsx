@@ -302,7 +302,7 @@ export default function MerchantPaymentsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {subscription?.plan.offerEnabled && subscription.plan.offerEndsAt && new Date(subscription.plan.offerEndsAt).getTime() > Date.now() ? (
+          {subscription?.plan.offerEnabled && subscription.plan.offerEndsAt ? (
             <p className="mb-4 text-xs text-muted">Discounted prices apply only until the current offer deadline. Please refresh pricing before making payment if the offer has ended.</p>
           ) : null}
           <form className="space-y-5" onSubmit={submit}>
