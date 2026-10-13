@@ -374,15 +374,6 @@ export default function ProductsPage() {
       return;
     }
 
-    const oversized = files.find((file) => file.size > 8 * 1024 * 1024);
-    if (oversized) {
-      setFeedback({
-        variant: "error",
-        message: `${oversized.name}: each product image must be 8 MB or smaller.`,
-      });
-      return;
-    }
-
     setBusyId(product.id);
     setFeedback({
       variant: "info",
@@ -435,7 +426,7 @@ export default function ProductsPage() {
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="Products"
-        description="Create, edit, duplicate, hide or remove products and upload one or multiple product images from one merchant workspace."
+        description="Manage products and select original JPG, PNG or WebP photos. Uploads are automatically compressed, resized and given lightweight catalogue thumbnails before reaching cloud storage."
       />
 
       {feedback ? <Alert variant={feedback.variant}>{feedback.message}</Alert> : null}
