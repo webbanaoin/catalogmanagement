@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/server/database/prisma";
@@ -135,7 +137,10 @@ function storage(): S3StorageService | null {
   return storageService;
 }
 
-async function mediaUrl(storageKey: string | null | undefined): Promise<string | null> {
+// Request-scoped memoization: featured, recent and catalogue lists often share
+// the same image. React.cache never persists a 15-minute R2 signed URL across
+// HTTP requests, so this is safe for private storage and current data freshness.
+const mediaUrl = cache(async (storageKey: string | null | undefined): Promise<string | null> => {
   if (!storageKey) return null;
 
   try {
@@ -143,7 +148,7 @@ async function mediaUrl(storageKey: string | null | undefined): Promise<string |
   } catch {
     return null;
   }
-}
+});
 
 async function mapShop(shop: {
   name: string;
@@ -230,7 +235,9 @@ async function mapProduct(
   };
 }
 
-async function getActiveShopRecord(shopSlug: string) {
+// Also coalesces the shop lookup shared by Next.js metadata and page rendering
+// within the same request. No cross-request caching of shop activation status.
+const getActiveShopRecord = cache(async (shopSlug: string) => {
   return prisma.shop.findFirst({
     where: {
       slug: shopSlug,
@@ -270,7 +277,7 @@ async function getActiveShopRecord(shopSlug: string) {
       },
     },
   });
-}
+});
 
 function publicProductWhere(
   shopId: string,
@@ -567,10 +574,10 @@ export async function getPublicCategory(
   });
 }
 
-export async function getPublicProduct(
+export const getPublicProduct = cache(async (
   shopSlug: string,
   productSlug: string,
-): Promise<{ shop: PublicShop; product: PublicProductDetail } | null> {
+): Promise<{ shop: PublicShop; product: PublicProductDetail } | null> => {
   const shopRecord = await getActiveShopRecord(shopSlug);
   if (!shopRecord) return null;
 
@@ -648,4 +655,4 @@ export async function getPublicProduct(
       })),
     },
   };
-}
+});

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { prisma } from "@/server/database/prisma";
 import { S3StorageService } from "@/services/storage/s3-storage";
 
@@ -21,20 +23,21 @@ function storage(): S3StorageService | null {
   return storageService;
 }
 
-async function mediaUrl(storageKey: string | null | undefined) {
+// Reuse one signed media URL per object per render, never between visitors.
+const mediaUrl = cache(async (storageKey: string | null | undefined) => {
   if (!storageKey) return null;
   try {
     return (await storage()?.getMediaUrl(storageKey)) ?? null;
   } catch {
     return null;
   }
-}
+});
 
-export async function getPlatformBrandingRecord() {
+export const getPlatformBrandingRecord = cache(async () => {
   return prisma.platformBranding.findUnique({
     where: { id: "default" },
   });
-}
+});
 
 export async function resolveShopBranding(input: {
   logoStorageKey: string | null;
