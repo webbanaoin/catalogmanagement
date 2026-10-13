@@ -629,6 +629,19 @@ export default async function Home() {
               </article>
             ))}
           </div>
+          <div className="mx-auto mt-6 max-w-5xl rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm leading-6 text-slate-700">
+            <p className="font-bold text-slate-950">Important: promotional pricing and renewals</p>
+            <p className="mt-1">
+              Discounted prices are available only during the published offer period.
+              When the offer ends or is discontinued, the regular price applicable at that time
+              will apply to future payments and renewals. Your already-verified payment and
+              current subscription period will not be changed. Please review the current
+              price before your next payment.{" "}
+              <Link href="/terms" className="font-semibold text-emerald-800 underline underline-offset-2">
+                Read Terms of Service
+              </Link>.
+            </p>
+          </div>
         </Container>
 
         <Container className="mt-8">
