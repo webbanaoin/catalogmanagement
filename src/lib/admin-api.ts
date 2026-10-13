@@ -20,6 +20,13 @@ export interface AdminShopSubscriptionSummary {
   quarterlyPrice: string;
   halfYearlyPrice: string;
   annualPrice: string;
+  regularMonthlyPrice: string | null;
+  regularQuarterlyPrice: string | null;
+  regularHalfYearlyPrice: string | null;
+  regularAnnualPrice: string | null;
+  offerEnabled: boolean;
+  offerStartsAt: string | null;
+  offerEndsAt: string | null;
   status: "TRIAL" | "ACTIVE" | "GRACE" | "EXPIRED" | "CANCELLED";
   storedStatus: "TRIAL" | "ACTIVE" | "GRACE" | "EXPIRED" | "CANCELLED";
   paymentStatus: "NOT_REQUIRED" | "PENDING" | "PAID" | "WAIVED";
