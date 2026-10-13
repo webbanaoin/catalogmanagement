@@ -1,3 +1,4 @@
+import { optimizeImageForUpload } from "@/lib/client-image-optimizer";
 export type AdminShopStatus =
   | "PENDING"
   | "APPROVED"
@@ -745,6 +746,7 @@ export async function uploadAdminCategoryMedia(
   categorySlug: string,
   file: File,
 ) {
+  const optimized = (await optimizeImageForUpload(file, ["category"])).category;
   const upload = await requestJson<{
     data: {
       url: string;
@@ -762,9 +764,9 @@ export async function uploadAdminCategoryMedia(
       method: "POST",
       body: JSON.stringify({
         categorySlug,
-        fileName: file.name,
-        mimeType: file.type,
-        fileSize: file.size,
+        fileName: optimized.name,
+        mimeType: optimized.type,
+        fileSize: optimized.size,
       }),
     },
   );
@@ -774,7 +776,7 @@ export async function uploadAdminCategoryMedia(
     put = await fetch(upload.data.url, {
       method: "PUT",
       headers: upload.data.headers,
-      body: file,
+      body: optimized,
     });
   } catch {
     throw new AdminApiError(
@@ -828,6 +830,8 @@ async function uploadAdminBrandingFile<T>(
   payload: Record<string, unknown>,
   file: File,
 ): Promise<{ data: T }> {
+  const purpose = payload.kind === "logo" ? "logo" : "cover";
+  const optimized = (await optimizeImageForUpload(file, [purpose]))[purpose];
   const upload = await requestJson<{
     data: {
       url: string;
@@ -839,9 +843,9 @@ async function uploadAdminBrandingFile<T>(
     method: "POST",
     body: JSON.stringify({
       ...payload,
-      fileName: file.name,
-      mimeType: file.type,
-      fileSize: file.size,
+      fileName: optimized.name,
+      mimeType: optimized.type,
+      fileSize: optimized.size,
     }),
   });
 
@@ -850,7 +854,7 @@ async function uploadAdminBrandingFile<T>(
     put = await fetch(upload.data.url, {
       method: "PUT",
       headers: upload.data.headers,
-      body: file,
+      body: optimized,
     });
   } catch {
     throw new AdminApiError(
