@@ -146,8 +146,31 @@ function PlanForm({
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    setSaving(true);
     setMessage(null);
+    const pricing = [
+      { label: "Monthly", offer: form.monthlyPrice, regular: form.regularMonthlyPrice },
+      { label: "Quarterly", offer: form.quarterlyPrice, regular: form.regularQuarterlyPrice },
+      { label: "Half-Yearly", offer: form.halfYearlyPrice, regular: form.regularHalfYearlyPrice },
+      { label: "Yearly", offer: form.annualPrice, regular: form.regularAnnualPrice },
+    ];
+    if (form.offerEnabled) {
+      for (const { label, offer, regular } of pricing) {
+        if (!regular.trim() || !Number.isFinite(Number(regular)) || Number(regular) <= Number(offer) || Number(offer) <= 0) {
+          setMessage(`${label}: enter an actual regular price higher than the offer price. Example prices shown in grey placeholders are not saved values.`);
+          return;
+        }
+      }
+    }
+    if (form.isDefaultTrial && Number(form.trialDays) < 1) {
+      setMessage("A default trial plan requires at least 1 trial day. Set Trial days to 30, or uncheck Default trial.");
+      return;
+    }
+    if (!initial.isDefaultTrial && form.isDefaultTrial && !window.confirm(
+      "This plan will become the new default trial plan. New merchants and landing-page pricing may change, and the existing default plan will lose its default status. Continue?",
+    )) {
+      return;
+    }
+    setSaving(true);
     try {
       await onSubmit(toPayload(form));
       setMessage("Saved.");
@@ -183,17 +206,17 @@ function PlanForm({
         <label className="text-sm font-medium text-foreground">Yearly offer price (₹)
           <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="0" step="0.01" value={form.annualPrice} onChange={(event) => setForm({ ...form, annualPrice: event.target.value })} />
         </label>
-        <label className="text-sm font-medium text-foreground">Monthly regular price (₹)
-          <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="0" step="0.01" placeholder="499" value={form.regularMonthlyPrice} onChange={(event) => setForm({ ...form, regularMonthlyPrice: event.target.value })} />
+        <label className="text-sm font-medium text-foreground">Monthly regular price (₹) {form.offerEnabled ? "(required)" : "(optional)"}
+          <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="0" step="0.01" placeholder="Enter actual price" value={form.regularMonthlyPrice} onChange={(event) => setForm({ ...form, regularMonthlyPrice: event.target.value })} />
         </label>
-        <label className="text-sm font-medium text-foreground">Quarterly regular price (₹)
-          <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="0" step="0.01" placeholder="1299" value={form.regularQuarterlyPrice} onChange={(event) => setForm({ ...form, regularQuarterlyPrice: event.target.value })} />
+        <label className="text-sm font-medium text-foreground">Quarterly regular price (₹) {form.offerEnabled ? "(required)" : "(optional)"}
+          <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="0" step="0.01" placeholder="Enter actual price" value={form.regularQuarterlyPrice} onChange={(event) => setForm({ ...form, regularQuarterlyPrice: event.target.value })} />
         </label>
-        <label className="text-sm font-medium text-foreground">Half-yearly regular price (₹)
-          <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="0" step="0.01" placeholder="2499" value={form.regularHalfYearlyPrice} onChange={(event) => setForm({ ...form, regularHalfYearlyPrice: event.target.value })} />
+        <label className="text-sm font-medium text-foreground">Half-yearly regular price (₹) {form.offerEnabled ? "(required)" : "(optional)"}
+          <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="0" step="0.01" placeholder="Enter actual price" value={form.regularHalfYearlyPrice} onChange={(event) => setForm({ ...form, regularHalfYearlyPrice: event.target.value })} />
         </label>
-        <label className="text-sm font-medium text-foreground">Yearly regular price (₹)
-          <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="0" step="0.01" placeholder="4999" value={form.regularAnnualPrice} onChange={(event) => setForm({ ...form, regularAnnualPrice: event.target.value })} />
+        <label className="text-sm font-medium text-foreground">Yearly regular price (₹) {form.offerEnabled ? "(required)" : "(optional)"}
+          <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="0" step="0.01" placeholder="Enter actual price" value={form.regularAnnualPrice} onChange={(event) => setForm({ ...form, regularAnnualPrice: event.target.value })} />
         </label>
         <label className="text-sm font-medium text-foreground">Offer duration (days)
           <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="1" max="365" step="1" value={form.offerDurationDays} onChange={(event) => setForm({ ...form, offerDurationDays: event.target.value })} />
@@ -226,12 +249,16 @@ function PlanForm({
         <label className="flex items-center gap-2 rounded-lg border border-border bg-background p-3 text-sm text-foreground"><input type="checkbox" checked={form.isDefaultTrial} onChange={(event) => setForm({ ...form, isDefaultTrial: event.target.checked })} /> Default trial</label>
       </div>
 
-      <p className="text-xs leading-5 text-muted">Offer price fields are the amounts charged while an offer is active. Regular prices apply after expiry or when the offer is disabled. Enabling starts a real shared countdown; changing duration later requires Restart offer to reset the timer.</p>
+      <div className="space-y-2 rounded-lg border border-border bg-background p-3 text-sm text-muted">
+        <p><strong className="text-foreground">Pricing setup:</strong> Enter all four regular prices when limited-time offer is enabled. Empty fields and example placeholders are not saved. Regular prices apply after the offer expires or is disabled.</p>
+        <p><strong className="text-foreground">Default trial:</strong> Select this only if this plan should be used for new merchant trials and landing-page pricing. Trial days must be at least 1 (for example, 30); replacing the default affects new registrations, not existing paid subscriptions.</p>
+        <p>Enabling starts a shared countdown. To restart an active offer after changing its duration, use Restart offer.</p>
+      </div>
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={saving}>{saving ? "Saving…" : submitLabel}</Button>
         {onCancel ? <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button> : null}
       </div>
-      {message ? <p className="text-sm text-muted" role="status">{message}</p> : null}
+      {message ? <p className="rounded-lg border border-border bg-background p-3 text-sm font-medium text-foreground" role="status">{message}</p> : null}
     </form>
   );
 }
