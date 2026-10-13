@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { requirePlatformAdmin } from "@/server/auth/admin-access";
 import { toSlug } from "@/server/catalog/slug";
 import { prisma } from "@/server/database/prisma";
+import { newOfferWindow, validateOfferPrices } from "@/server/subscriptions/plan-offers";
 import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
 import { readJsonBody } from "@/server/http/json-body";
@@ -15,6 +16,10 @@ function serializePlan<
     quarterlyPrice: { toString(): string };
     halfYearlyPrice: { toString(): string };
     annualPrice: { toString(): string };
+    regularMonthlyPrice: { toString(): string } | null;
+    regularQuarterlyPrice: { toString(): string } | null;
+    regularHalfYearlyPrice: { toString(): string } | null;
+    regularAnnualPrice: { toString(): string } | null;
   },
 >(plan: T) {
   return {
@@ -23,6 +28,10 @@ function serializePlan<
     quarterlyPrice: plan.quarterlyPrice.toString(),
     halfYearlyPrice: plan.halfYearlyPrice.toString(),
     annualPrice: plan.annualPrice.toString(),
+    regularMonthlyPrice: plan.regularMonthlyPrice?.toString() ?? null,
+    regularQuarterlyPrice: plan.regularQuarterlyPrice?.toString() ?? null,
+    regularHalfYearlyPrice: plan.regularHalfYearlyPrice?.toString() ?? null,
+    regularAnnualPrice: plan.regularAnnualPrice?.toString() ?? null,
   };
 }
 
@@ -43,6 +52,13 @@ export async function PATCH(
         status: 404,
       });
     }
+
+    const offerEnabled = input.offerEnabled ?? current.offerEnabled;
+    validateOfferPrices({ ...current, ...input }, offerEnabled);
+    const startsOffer = offerEnabled && !current.offerEnabled;
+    const offerWindow = startsOffer
+      ? newOfferWindow(input.offerDurationDays ?? current.offerDurationDays)
+      : {};
 
     const nextSlug =
       input.slug !== undefined ? toSlug(input.slug) : current.slug;
@@ -84,6 +100,7 @@ export async function PATCH(
         where: { id: planId },
         data: {
           ...input,
+          ...offerWindow,
           ...(input.slug !== undefined ? { slug: nextSlug } : {}),
         },
       });
@@ -107,6 +124,8 @@ export async function PATCH(
               halfYearly: current.halfYearlyPrice.toString(),
               yearly: current.annualPrice.toString(),
             },
+            offerEnabled: plan.offerEnabled,
+            offerEndsAt: plan.offerEndsAt?.toISOString() ?? null,
             pricing: {
               monthly: plan.monthlyPrice.toString(),
               quarterly: plan.quarterlyPrice.toString(),
