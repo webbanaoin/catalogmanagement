@@ -108,7 +108,7 @@ export function ShopBrandingMedia({
       setFeedback({
         variant: "error",
         message:
-          error instanceof CatalogApiError
+          error instanceof Error
             ? error.message
             : `Unable to upload the shop ${kind}.`,
       });
