@@ -574,10 +574,10 @@ export async function getPublicCategory(
   });
 }
 
-export async function getPublicProduct(
+export const getPublicProduct = cache(async (
   shopSlug: string,
   productSlug: string,
-): Promise<{ shop: PublicShop; product: PublicProductDetail } | null> {
+): Promise<{ shop: PublicShop; product: PublicProductDetail } | null> => {
   const shopRecord = await getActiveShopRecord(shopSlug);
   if (!shopRecord) return null;
 
@@ -655,4 +655,4 @@ export async function getPublicProduct(
       })),
     },
   };
-}
+});
