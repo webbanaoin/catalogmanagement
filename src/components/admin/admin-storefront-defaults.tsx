@@ -96,7 +96,7 @@ export function AdminStorefrontDefaults() {
       );
     } catch (uploadError) {
       setError(
-        uploadError instanceof AdminApiError
+        uploadError instanceof Error
           ? uploadError.message
           : "Unable to upload the storefront default.",
       );
