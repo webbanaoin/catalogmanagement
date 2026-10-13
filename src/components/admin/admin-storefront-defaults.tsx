@@ -23,7 +23,6 @@ import {
 } from "@/lib/admin-api";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_BYTES = 8 * 1024 * 1024;
 
 export function AdminStorefrontDefaults() {
   const [branding, setBranding] =
@@ -69,10 +68,6 @@ export function AdminStorefrontDefaults() {
 
     if (!ALLOWED_TYPES.includes(file.type)) {
       setFeedback("Use a JPG, PNG or WebP image.");
-      return;
-    }
-    if (file.size > MAX_BYTES) {
-      setFeedback("Branding images must be 8 MB or smaller.");
       return;
     }
 
