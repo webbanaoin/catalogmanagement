@@ -187,6 +187,13 @@ export default function SubscriptionPage() {
                 </div>
               </div>
 
+              <Alert title="Important information about promotional pricing">
+                Promotional subscription prices are valid only during the published offer period.
+                Once an offer expires or is discontinued, future subscriptions and renewals
+                are charged at the regular price applicable at that time. The amount you have
+                already paid and your current verified subscription period will not be changed.
+                You can always review the applicable price before making your next payment.
+              </Alert>
               <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {PAID_BILLING_CYCLES.map((cycle) => {
                   const price = planPriceForCycle(subscription.plan, cycle);
