@@ -353,27 +353,44 @@ export default async function Home() {
 
       <section className="relative border-b border-slate-200/80 bg-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_8%_20%,rgba(56,189,248,.18),transparent_25%),radial-gradient(circle_at_90%_10%,rgba(99,102,241,.18),transparent_24%),linear-gradient(to_bottom,#ffffff,#f3f7ff)]" />
-        <Container className="relative grid items-center gap-9 py-12 lg:grid-cols-[.9fr_1.1fr] lg:gap-8 lg:py-14 xl:gap-10 xl:py-16">
-          <div>
-            <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.14em] text-sky-800">
+        <Container className="relative grid items-center gap-5 py-6 sm:gap-7 sm:py-10 lg:grid-cols-[.9fr_1.1fr] lg:gap-x-8 lg:gap-y-0 lg:py-14 xl:gap-x-10 xl:py-16">
+          <div className="lg:col-start-1 lg:row-start-1 lg:self-end">
+            <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.1em] sm:text-[11px] sm:tracking-[0.14em] text-sky-800">
               For local shops, boutiques and retailers
             </span>
 
-            <h1 className="mt-6 max-w-2xl text-[2.75rem] font-black tracking-[-0.055em] text-[#07152f] sm:text-5xl lg:text-[3.3rem] lg:leading-[1.02] xl:text-[3.55rem]">
+            <h1 className="mt-3 max-w-2xl text-[clamp(1.85rem,8.2vw,2.4rem)] font-black leading-[1.08] tracking-[-0.055em] text-[#07152f] sm:mt-6 sm:text-5xl lg:text-[3.3rem] lg:leading-[1.02] xl:text-[3.55rem]">
               Take your shop online with its own
-              <span className="mt-1 block bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">
+              <span className="mt-0.5 block bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">
                 Digital Showroom
               </span>
             </h1>
+          </div>
 
-            <p className="mt-6 max-w-xl text-lg font-semibold leading-8 text-slate-800">
+          <div className="relative mx-auto w-full max-w-[820px] lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:w-[106%] lg:-mr-[6%] lg:self-center">
+            <div className="absolute -inset-7 rounded-[2.8rem] bg-gradient-to-br from-cyan-200/55 via-indigo-200/50 to-violet-200/40 blur-3xl" />
+            <div className="relative overflow-hidden rounded-xl shadow-[0_24px_70px_rgba(15,23,42,.16)]">
+              <Image
+                src="/images/webbanao-digital-showroom-hero-premium.webp"
+                alt="A jewellery shop owner with a laptop and smartphone displaying a digital jewellery catalogue, QR sharing and WhatsApp enquiries"
+                width={880}
+                height={880}
+                priority
+                sizes="(max-width: 1024px) 100vw, 58vw"
+                className="block h-auto w-full object-contain"
+              />
+            </div>
+          </div>
+
+          <div className="lg:col-start-1 lg:row-start-2 lg:self-start">
+            <p className="mt-0 max-w-xl text-base font-semibold leading-6 text-slate-800 sm:mt-6 sm:text-lg sm:leading-8">
               Share products by link, QR and WhatsApp — without building a full e-commerce website.
             </p>
-            <p className="mt-3 max-w-xl text-base leading-7 text-slate-600">
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600 sm:mt-3 sm:text-base sm:leading-7">
               Give your physical shop a branded digital showroom where customers can browse products, enquire directly and explore your catalogue anytime.
             </p>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-5 flex flex-col gap-2.5 sm:mt-8 sm:flex-row sm:gap-3">
               <Link href="/register" className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 text-sm font-extrabold text-white shadow-[0_16px_35px_rgba(5,150,105,.20)] transition hover:-translate-y-0.5">
                 {commercialPlan?.trialDays
                   ? `Start your free ${commercialPlan.trialDays} days`
@@ -386,28 +403,13 @@ export default async function Home() {
               </a>
             </div>
 
-            <div className="mt-7 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-slate-600">
+            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-slate-600 sm:mt-7 sm:gap-x-6 sm:gap-y-3 sm:text-sm">
               {["Shop onboarding support", "Initial product onboarding", "No customer app required"].map((item) => (
                 <span key={item} className="flex items-center gap-2">
                   <CheckIcon />
                   {item}
                 </span>
               ))}
-            </div>
-          </div>
-
-          <div className="relative mx-auto w-full max-w-[820px] lg:w-[106%] lg:-mr-[6%]">
-            <div className="absolute -inset-7 rounded-[2.8rem] bg-gradient-to-br from-cyan-200/55 via-indigo-200/50 to-violet-200/40 blur-3xl" />
-            <div className="relative overflow-hidden rounded-xl shadow-[0_24px_70px_rgba(15,23,42,.16)]">
-              <Image
-                src="/images/webbanao-digital-showroom-hero-premium.webp"
-                alt="A jewellery shop owner with a laptop and smartphone displaying a digital jewellery catalogue, QR sharing and WhatsApp enquiries"
-                width={880}
-                height={880}
-                priority
-                sizes="(max-width: 1024px) 100vw, 58vw"
-                className="block h-auto w-full object-contain"
-              />
             </div>
           </div>
         </Container>
