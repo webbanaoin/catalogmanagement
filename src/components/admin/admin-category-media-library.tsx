@@ -110,7 +110,7 @@ export function AdminCategoryMediaLibrary({
       );
     } catch (uploadError) {
       setError(
-        uploadError instanceof AdminApiError
+        uploadError instanceof Error
           ? uploadError.message
           : "Unable to upload the business default cover.",
       );
@@ -196,7 +196,7 @@ export function AdminCategoryMediaLibrary({
       );
     } catch (uploadError) {
       setError(
-        uploadError instanceof AdminApiError
+        uploadError instanceof Error
           ? uploadError.message
           : "Unable to upload the category image.",
       );
