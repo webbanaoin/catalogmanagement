@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { WebbanaoLogo } from "@/components/brand/webbanao-logo";
+import { OfferCountdown } from "@/components/marketing/offer-countdown";
 import { Container } from "@/components/ui";
 import { prisma } from "@/server/database/prisma";
 import {
@@ -10,6 +11,8 @@ import {
   SUBSCRIPTION_CYCLE_CONFIG,
   effectiveMonthlyPrice,
   planPriceForCycle,
+  regularPriceForCycle,
+  offerIsActive,
   savingsAgainstMonthly,
   type PaidBillingCycle,
 } from "@/lib/subscription-cycles";
@@ -189,6 +192,13 @@ async function loadLandingCommerce() {
         quarterlyPrice: true,
         halfYearlyPrice: true,
         annualPrice: true,
+        regularMonthlyPrice: true,
+        regularQuarterlyPrice: true,
+        regularHalfYearlyPrice: true,
+        regularAnnualPrice: true,
+        offerEnabled: true,
+        offerStartsAt: true,
+        offerEndsAt: true,
       },
     });
 
@@ -207,6 +217,13 @@ async function loadLandingCommerce() {
           quarterlyPrice: true,
           halfYearlyPrice: true,
           annualPrice: true,
+        regularMonthlyPrice: true,
+        regularQuarterlyPrice: true,
+        regularHalfYearlyPrice: true,
+        regularAnnualPrice: true,
+        offerEnabled: true,
+        offerStartsAt: true,
+        offerEndsAt: true,
         },
       });
     }
@@ -229,6 +246,9 @@ export default async function Home() {
   const { referralSettings, plan: commercialPlan } =
     await loadLandingCommerce();
 
+  const pageNow = new Date();
+  const activeOffer = commercialPlan ? offerIsActive(commercialPlan, pageNow) : false;
+
   const pricingPlans = commercialPlan
     ? PAID_BILLING_CYCLES.map((cycle) => {
         const meta = pricingMeta[cycle];
@@ -237,8 +257,17 @@ export default async function Home() {
           quarterlyPrice: commercialPlan.quarterlyPrice.toString(),
           halfYearlyPrice: commercialPlan.halfYearlyPrice.toString(),
           annualPrice: commercialPlan.annualPrice.toString(),
+          regularMonthlyPrice: commercialPlan.regularMonthlyPrice?.toString() ?? null,
+          regularQuarterlyPrice: commercialPlan.regularQuarterlyPrice?.toString() ?? null,
+          regularHalfYearlyPrice: commercialPlan.regularHalfYearlyPrice?.toString() ?? null,
+          regularAnnualPrice: commercialPlan.regularAnnualPrice?.toString() ?? null,
+          offerEnabled: commercialPlan.offerEnabled,
+          offerStartsAt: commercialPlan.offerStartsAt,
+          offerEndsAt: commercialPlan.offerEndsAt,
         };
-        const price = planPriceForCycle(priceSource, cycle);
+        const price = planPriceForCycle(priceSource, cycle, pageNow);
+        const regularPrice = regularPriceForCycle(priceSource, cycle);
+        const hasOffer = activeOffer && regularPrice > price;
         const effective = effectiveMonthlyPrice(priceSource, cycle);
         const saving = savingsAgainstMonthly(priceSource, cycle);
 
@@ -247,6 +276,9 @@ export default async function Home() {
           ...meta,
           name: SUBSCRIPTION_CYCLE_CONFIG[cycle].label,
           price,
+          regularPrice,
+          hasOffer,
+          offerSaving: hasOffer ? regularPrice - price : 0,
           suffix:
             cycle === "MONTHLY"
               ? "per month"
@@ -374,7 +406,7 @@ export default async function Home() {
                 height={720}
                 priority
                 sizes="(max-width: 1024px) 100vw, 58vw"
-                className="h-auto w-full rounded-[1.5rem] object-cover"
+                className="h-auto w-full rounded-[1.5rem] object-contain"
               />
             </div>
           </div>
@@ -459,7 +491,7 @@ export default async function Home() {
               </p>
               <p className="mt-1 text-lg font-black text-slate-950 sm:text-xl">
                 {commercialPlan?.trialDays
-                  ? `${commercialPlan.trialDays}-day free trial + onboarding support`
+                  ? `${commercialPlan.trialDays} Days Free Trial + Onboarding Support`
                   : "Free onboarding support"}
               </p>
             </div>
@@ -468,6 +500,10 @@ export default async function Home() {
               cycle that matches your shop&apos;s comfort and budget.
             </p>
           </div>
+
+          {activeOffer && commercialPlan?.offerEndsAt ? (
+            <OfferCountdown endsAt={commercialPlan.offerEndsAt.toISOString()} serverNow={pageNow.getTime()} />
+          ) : null}
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {pricingPlans.map((plan) => (
@@ -489,9 +525,9 @@ export default async function Home() {
                   >
                     {plan.label}
                   </span>
-                  {plan.saving > 0 ? (
+                  {(plan.offerSaving > 0 || plan.saving > 0) ? (
                     <span className="whitespace-nowrap rounded-full bg-emerald-300 px-2.5 py-1.5 text-[9px] font-black text-emerald-950">
-                      Save {formatMoney(plan.saving)}
+                      Save {formatMoney(plan.offerSaving || plan.saving)}
                     </span>
                   ) : null}
                 </div>
@@ -501,6 +537,14 @@ export default async function Home() {
                 </h3>
 
                 <div className="mt-3">
+                  {plan.hasOffer ? (
+                    <p className={plan.featured ? "mb-1 text-sm text-slate-300" : "mb-1 text-sm text-slate-500"}>
+                      Regular price <del className="font-semibold">{formatMoney(plan.regularPrice)}</del>
+                    </p>
+                  ) : null}
+                  {plan.hasOffer ? (
+                    <p className={plan.featured ? "mb-1 text-xs font-black uppercase tracking-[0.12em] text-emerald-300" : "mb-1 text-xs font-black uppercase tracking-[0.12em] text-emerald-700"}>Offer price</p>
+                  ) : null}
                   <div className="flex flex-wrap items-end gap-x-1.5 gap-y-1">
                     <span className="text-3xl font-black tracking-[-0.04em] lg:text-[2rem]">
                       {plan.price > 0 ? formatMoney(plan.price) : "Contact us"}
