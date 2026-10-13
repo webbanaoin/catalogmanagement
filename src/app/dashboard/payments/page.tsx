@@ -287,6 +287,13 @@ export default function MerchantPaymentsPage() {
         ))}
       </div>
 
+      <Alert title="Promotional pricing and future renewals">
+        Discounted prices apply only during an active limited-time offer. After the offer
+        ends or is discontinued, regular pricing applies to future subscription payments
+        and renewals. Previously verified payments and active subscription periods
+        remain unchanged. Please confirm the current amount before transferring money.
+      </Alert>
+
       <Card>
         <CardHeader>
           <CardTitle>I made a payment</CardTitle>
