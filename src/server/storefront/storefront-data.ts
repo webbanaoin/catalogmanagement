@@ -115,7 +115,7 @@ const productSummarySelect = {
   images: {
     orderBy: [{ isPrimary: "desc" as const }, { displayOrder: "asc" as const }],
     take: 1,
-    select: { storageKey: true },
+    select: { storageKey: true, thumbnailKey: true },
   },
 } satisfies Prisma.ProductSelect;
 
@@ -226,7 +226,7 @@ async function mapProduct(
       row.category?.status === "ACTIVE"
         ? { slug: row.category.slug, name: row.category.name }
         : null,
-    imageUrl: await mediaUrl(row.images[0]?.storageKey),
+    imageUrl: await mediaUrl(row.images[0]?.thumbnailKey ?? row.images[0]?.storageKey),
   };
 }
 
@@ -632,7 +632,7 @@ export async function getPublicProduct(
 
   const summary: ProductSummaryRow = {
     ...product,
-    images: product.images.slice(0, 1).map((image) => ({ storageKey: image.storageKey })),
+    images: product.images.slice(0, 1).map((image) => ({ storageKey: image.storageKey, thumbnailKey: null })),
   };
 
   return {
