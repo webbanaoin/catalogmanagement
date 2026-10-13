@@ -7,11 +7,13 @@ export function StorefrontMedia({
   alt,
   className,
   eager = false,
+  fit = "cover",
 }: {
   src: string | null;
   alt: string;
   className?: string;
   eager?: boolean;
+  fit?: "cover" | "contain";
 }) {
   if (!src) {
     return (
@@ -41,7 +43,7 @@ export function StorefrontMedia({
     <img
       src={src}
       alt={alt}
-      className={cn("object-cover", className)}
+      className={cn(fit === "contain" ? "object-contain" : "object-cover", className)}
       loading={eager ? "eager" : "lazy"}
       decoding="async"
       referrerPolicy="no-referrer"
