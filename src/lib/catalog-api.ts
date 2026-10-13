@@ -574,6 +574,13 @@ export interface MerchantSubscription {
     quarterlyPrice: string;
     halfYearlyPrice: string;
     annualPrice: string;
+    regularMonthlyPrice: string | null;
+    regularQuarterlyPrice: string | null;
+    regularHalfYearlyPrice: string | null;
+    regularAnnualPrice: string | null;
+    offerEnabled: boolean;
+    offerStartsAt: string | null;
+    offerEndsAt: string | null;
     productLimit: number;
     imageLimitPerProduct: number;
     analyticsEnabled: boolean;
