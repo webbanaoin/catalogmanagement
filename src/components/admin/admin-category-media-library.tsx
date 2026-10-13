@@ -23,14 +23,10 @@ import {
 } from "@/lib/admin-api";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_BYTES = 8 * 1024 * 1024;
 
 function validateFile(file: File) {
   if (!ALLOWED_TYPES.includes(file.type)) {
     return "Use a JPG, PNG or WebP image.";
-  }
-  if (file.size > MAX_BYTES) {
-    return "Images must be 8 MB or smaller.";
   }
   return null;
 }
