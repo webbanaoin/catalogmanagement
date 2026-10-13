@@ -400,10 +400,10 @@ export default async function Home() {
             <div className="absolute -inset-7 rounded-[2.8rem] bg-gradient-to-br from-cyan-200/55 via-indigo-200/50 to-violet-200/40 blur-3xl" />
             <div className="relative overflow-hidden rounded-[2rem] border border-white bg-white p-2.5 shadow-[0_34px_90px_rgba(15,23,42,.20)] ring-1 ring-slate-200/70">
               <Image
-                src="/images/webbanao-showroom-hero.svg"
-                alt="Premium Webbanao digital showroom example on laptop and mobile with QR, catalogue browsing and WhatsApp enquiries"
-                width={1200}
-                height={720}
+                src="/images/webbanao-digital-showroom-hero-premium.webp"
+                alt="A jewellery shop owner with a laptop and smartphone displaying a digital jewellery catalogue, QR sharing and WhatsApp enquiries"
+                width={880}
+                height={880}
                 priority
                 sizes="(max-width: 1024px) 100vw, 58vw"
                 className="h-auto w-full rounded-[1.5rem] object-contain"
