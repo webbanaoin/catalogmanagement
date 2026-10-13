@@ -42,8 +42,13 @@ type SourceBitmap = { width: number; height: number; draw: CanvasImageSource; di
 
 async function decode(file: File): Promise<SourceBitmap> {
   if (typeof createImageBitmap === "function") {
-    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-    return { width: bitmap.width, height: bitmap.height, draw: bitmap, dispose: () => bitmap.close() };
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      return { width: bitmap.width, height: bitmap.height, draw: bitmap, dispose: () => bitmap.close() };
+    } catch {
+      // Some mobile browsers expose createImageBitmap but do not support all
+      // orientation options. Fall back to the standard HTMLImageElement path.
+    }
   }
   const objectUrl = URL.createObjectURL(file);
   const image = new Image();
