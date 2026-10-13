@@ -100,7 +100,10 @@ const REGULAR_PRICE_KEYS: Record<PaidBillingCycle, keyof SubscriptionPriceSource
   YEARLY: "regularAnnualPrice",
 };
 
-export function offerIsActive(plan: SubscriptionPriceSource, now = new Date()): boolean {
+export function offerIsActive(
+  plan: Pick<SubscriptionPriceSource, "offerEnabled" | "offerStartsAt" | "offerEndsAt">,
+  now = new Date(),
+): boolean {
   if (!plan.offerEnabled || !plan.offerStartsAt || !plan.offerEndsAt) return false;
   const start = new Date(plan.offerStartsAt).getTime();
   const end = new Date(plan.offerEndsAt).getTime();
