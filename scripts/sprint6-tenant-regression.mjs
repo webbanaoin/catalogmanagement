@@ -510,6 +510,64 @@ async function main() {
     );
   }
 
+  const otherShopCookie = await login(fixture.userB.email, passwordB);
+
+  // Image-manager regression: full gallery is available on demand, primary
+  // image can be changed, and other shops cannot mutate this shop's media.
+  const imageManagerDetail = await request(
+    `/api/shops/${fixture.shopA.id}/products/${fixture.visibleProductA.id}`,
+    {},
+    cookieA,
+  );
+  await expectStatus("merchant full image gallery", imageManagerDetail, 200);
+  const imageManagerProduct = (await imageManagerDetail.json()).data;
+  if (imageManagerProduct?.images?.length !== 2) {
+    throw new Error("Manage images must fetch the complete gallery, not just the primary image");
+  }
+  const [firstImage, secondImage] = imageManagerProduct.images;
+  await expectStatus(
+    "merchant sets product primary image",
+    await jsonRequest(
+      `/api/shops/${fixture.shopA.id}/products/${fixture.visibleProductA.id}/images/${secondImage.id}`,
+      "PATCH",
+      { isPrimary: true },
+      cookieA,
+    ),
+    200,
+  );
+  const updatedGallery = await request(
+    `/api/shops/${fixture.shopA.id}/products/${fixture.visibleProductA.id}`,
+    {},
+    cookieA,
+  );
+  await expectStatus("primary image persisted", updatedGallery, 200);
+  const updatedGalleryData = (await updatedGallery.json()).data;
+  if (
+    updatedGalleryData.images.find((image) => image.id === secondImage.id)?.isPrimary !== true ||
+    updatedGalleryData.images.find((image) => image.id === firstImage.id)?.isPrimary !== false
+  ) {
+    throw new Error("Selecting primary image did not clear the previous primary image");
+  }
+  await expectStatus(
+    "cross-tenant image primary update denied",
+    await jsonRequest(
+      `/api/shops/${fixture.shopA.id}/products/${fixture.visibleProductA.id}/images/${firstImage.id}`,
+      "PATCH",
+      { isPrimary: true },
+      otherShopCookie,
+    ),
+    403,
+  );
+  await expectStatus(
+    "cross-tenant image delete denied",
+    await request(
+      `/api/shops/${fixture.shopA.id}/products/${fixture.visibleProductA.id}/images/${firstImage.id}`,
+      { method: "DELETE" },
+      otherShopCookie,
+    ),
+    403,
+  );
+
   // Quota regression: 2 existing images, 1 remaining shop slot.
   const initialSubscription = await request(
     `/api/shops/${fixture.shopA.id}/subscription`,
