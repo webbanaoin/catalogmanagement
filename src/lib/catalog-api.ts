@@ -585,6 +585,7 @@ export interface MerchantSubscription {
     offerEndsAt: string | null;
     productLimit: number;
     imageLimitPerProduct: number;
+    totalImageLimit: number;
     analyticsEnabled: boolean;
     excelImportEnabled: boolean;
     customBrandingEnabled: boolean;
@@ -594,6 +595,7 @@ export interface MerchantSubscription {
   };
   usage: {
     products?: number;
+    totalImages?: number;
   };
 }
 

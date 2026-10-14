@@ -85,7 +85,8 @@ export async function DELETE(
       roles: ["OWNER", "MANAGER"],
       shopStatuses: ["APPROVED", "ACTIVE"],
     });
-    await requireProductInShop(shopId, productId);
+    // Allow cleanup of stored images even after the parent product is soft-deleted.
+    await requireProductInShop(shopId, productId, true);
 
     const image = await prisma.productImage.findFirst({
       where: { id: imageId, productId },

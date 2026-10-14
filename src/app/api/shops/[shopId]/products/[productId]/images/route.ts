@@ -8,7 +8,7 @@ import { AppError } from "@/server/http/app-error";
 import { productImageSchema } from "@/validation/catalog";
 import { withProductImageUrls } from "@/server/media/media-response";
 import { S3StorageService } from "@/services/storage/s3-storage";
-import { requireImageCapacity } from "@/server/subscriptions/access";
+import { requireImageCapacity, requireImageCapacityInTransaction } from "@/server/subscriptions/access";
 
 export async function POST(
   r: Request,
@@ -43,6 +43,8 @@ export async function POST(
     }
 
     const data = await prisma.$transaction(async (tx) => {
+      // Quota recheck and image insert share a transaction: parallel uploads cannot exceed the limit.
+      await requireImageCapacityInTransaction(tx, shopId, productId);
       const [existingCount, lastImage] = await Promise.all([
         tx.productImage.count({ where: { productId } }),
         tx.productImage.findFirst({
