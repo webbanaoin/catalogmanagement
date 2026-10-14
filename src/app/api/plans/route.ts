@@ -26,6 +26,7 @@ export async function GET() {
         offerEndsAt: true,
         productLimit: true,
         imageLimitPerProduct: true,
+        totalImageLimit: true,
         analyticsEnabled: true,
         excelImportEnabled: true,
         customBrandingEnabled: true,
