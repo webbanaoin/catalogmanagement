@@ -329,10 +329,30 @@ export async function confirmStoredProductImport(options: {
       products: imported,
     };
   } catch (error) {
-    await prisma.importJob.update({
-      where: { id: job.id },
-      data: { status: "FAILED" },
+    // Do not log personal details, SKU values, passwords or raw DB errors.
+    console.error("[product-import/confirm] Unexpected failure", {
+      stage: diagnosticStage,
+      errorType: error instanceof Error ? error.name : typeof error,
+      errorCode:
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        typeof error.code === "string"
+          ? error.code
+          : null,
+      attemptedRows: importable.length,
     });
+
+    // A failed interactive transaction rolls back inserted products and job
+    // completion. Do not mask the original exception if the status update fails.
+    try {
+      await prisma.importJob.updateMany({
+        where: { id: job.id, shopId, status: "PREVIEW_READY" },
+        data: { status: "FAILED" },
+      });
+    } catch {
+      console.error("[product-import/confirm] Could not mark import job failed");
+    }
 
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
