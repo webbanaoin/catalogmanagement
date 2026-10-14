@@ -386,7 +386,12 @@ async function main() {
     where: { shopId: registeredShopId },
     select: { name: true },
   });
-  for (const categoryName of ["Ring", "Earring", "Necklace", "Chain"]) {
+  if (registrationCategories.length !== 18) {
+    throw new Error(
+      `Expected all 18 jewellery default categories in the new shop, got ${registrationCategories.length}`,
+    );
+  }
+  for (const categoryName of ["Ring", "Earring", "Necklace", "Chain", "Gift Articles", "Toe Ring"]) {
     if (!registrationCategories.some((category) => category.name === categoryName)) {
       throw new Error(
         `Registration did not seed recommended Jewellery category: ${categoryName}`,
