@@ -244,7 +244,7 @@ export interface AdminSubscription {
     graceDays: number;
     status: "ACTIVE" | "INACTIVE";
   };
-  usage: { products?: number };
+  usage: { products?: number; totalImages?: number };
 }
 
 export type AdminPaymentMethod = "CASH" | "UPI" | "BANK_TRANSFER" | "OTHER";
