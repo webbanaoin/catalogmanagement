@@ -135,7 +135,8 @@ async function createFixture() {
       monthlyPrice: "0.00",
       annualPrice: "0.00",
       productLimit: 100,
-      imageLimitPerProduct: 10,
+      imageLimitPerProduct: 2,
+      totalImageLimit: 3,
       analyticsEnabled: true,
       excelImportEnabled: true,
       customBrandingEnabled: true,
@@ -502,6 +503,74 @@ async function main() {
     throw new Error(
       `Merchant product list expected imageCount=0, got ${hiddenProductWithoutImages?.imageCount}`,
     );
+  }
+
+  // Quota regression: 2 existing images, 1 remaining shop slot.
+  const initialSubscription = await request(
+    `/api/shops/${fixture.shopA.id}/subscription`,
+    {},
+    cookieA,
+  );
+  await expectStatus("shop quota in subscription", initialSubscription, 200);
+  const initialSubscriptionData = (await initialSubscription.json()).data;
+  if (
+    initialSubscriptionData?.plan?.totalImageLimit !== 3 ||
+    initialSubscriptionData?.plan?.imageLimitPerProduct !== 2 ||
+    initialSubscriptionData?.usage?.totalImages !== 2
+  ) {
+    throw new Error("Shop image quota or image usage was not returned correctly");
+  }
+
+  function imagePayload(productId, suffixValue) {
+    return {
+      storageKey: `shops/${fixture.shopA.id}/products/${productId}/regression-${suffixValue}.jpg`,
+      fileSize: 100,
+      mimeType: "image/jpeg",
+      displayOrder: 0,
+      isPrimary: false,
+    };
+  }
+
+  await expectStatus(
+    "per-product image quota",
+    await jsonRequest(
+      `/api/shops/${fixture.shopA.id}/products/${fixture.visibleProductA.id}/images`,
+      "POST",
+      imagePayload(fixture.visibleProductA.id, "over-product-limit"),
+      cookieA,
+    ),
+    409,
+  );
+
+  // Both requests can pass the preliminary check; only one may attach after
+  // taking the shop row lock. The other must fail with 409.
+  const concurrentUploads = await Promise.all([
+    jsonRequest(
+      `/api/shops/${fixture.shopA.id}/products/${fixture.hiddenProductA.id}/images`,
+      "POST",
+      imagePayload(fixture.hiddenProductA.id, "concurrent-a"),
+      cookieA,
+    ),
+    jsonRequest(
+      `/api/shops/${fixture.shopA.id}/products/${fixture.hiddenProductA.id}/images`,
+      "POST",
+      imagePayload(fixture.hiddenProductA.id, "concurrent-b"),
+      cookieA,
+    ),
+  ]);
+  const statuses = concurrentUploads.map((response) => response.status).sort();
+  if (statuses[0] !== 201 || statuses[1] !== 409) {
+    throw new Error(`Concurrent image attachments bypassed the shop quota: ${statuses.join(", ")}`);
+  }
+  const updatedSubscription = await request(
+    `/api/shops/${fixture.shopA.id}/subscription`,
+    {},
+    cookieA,
+  );
+  await expectStatus("updated shop quota in subscription", updatedSubscription, 200);
+  const updatedSubscriptionData = (await updatedSubscription.json()).data;
+  if (updatedSubscriptionData?.usage?.totalImages !== 3) {
+    throw new Error("Shop image quota did not stop concurrent inserts at the configured limit");
   }
 
   const pendingLogin = await jsonRequest(
