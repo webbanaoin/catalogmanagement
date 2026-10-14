@@ -208,6 +208,7 @@ export interface AdminPlan {
   offerEndsAt: string | null;
   productLimit: number;
   imageLimitPerProduct: number;
+  totalImageLimit: number;
   analyticsEnabled: boolean;
   excelImportEnabled: boolean;
   customBrandingEnabled: boolean;
@@ -235,6 +236,7 @@ export interface AdminSubscription {
     annualPrice: string;
     productLimit: number;
     imageLimitPerProduct: number;
+  totalImageLimit: number;
     analyticsEnabled: boolean;
     excelImportEnabled: boolean;
     customBrandingEnabled: boolean;
@@ -441,6 +443,7 @@ export interface AdminPlanPayload {
   offerDurationDays: number;
   productLimit: number;
   imageLimitPerProduct: number;
+  totalImageLimit: number;
   analyticsEnabled: boolean;
   excelImportEnabled: boolean;
   customBrandingEnabled: boolean;
