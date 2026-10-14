@@ -510,6 +510,8 @@ async function main() {
     );
   }
 
+  const otherShopCookie = await login(fixture.userB.email, passwordB);
+
   // Image-manager regression: full gallery is available on demand, primary
   // image can be changed, and other shops cannot mutate this shop's media.
   const imageManagerDetail = await request(
@@ -552,7 +554,7 @@ async function main() {
       `/api/shops/${fixture.shopA.id}/products/${fixture.visibleProductA.id}/images/${firstImage.id}`,
       "PATCH",
       { isPrimary: true },
-      cookieB,
+      otherShopCookie,
     ),
     403,
   );
@@ -561,7 +563,7 @@ async function main() {
     await request(
       `/api/shops/${fixture.shopA.id}/products/${fixture.visibleProductA.id}/images/${firstImage.id}`,
       { method: "DELETE" },
-      cookieB,
+      otherShopCookie,
     ),
     403,
   );
