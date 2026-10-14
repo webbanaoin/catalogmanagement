@@ -193,6 +193,7 @@ export function subscriptionResponse(
   usage?: {
     products?: number;
     imagesForProduct?: number;
+    totalImages?: number;
   },
 ) {
   const { subscription, effectiveStatus } = access;
@@ -224,6 +225,7 @@ export function subscriptionResponse(
       offerEndsAt: plan.offerEndsAt?.toISOString() ?? null,
       productLimit: plan.productLimit,
       imageLimitPerProduct: plan.imageLimitPerProduct,
+      totalImageLimit: plan.totalImageLimit,
       analyticsEnabled: plan.analyticsEnabled,
       excelImportEnabled: plan.excelImportEnabled,
       customBrandingEnabled: plan.customBrandingEnabled,
