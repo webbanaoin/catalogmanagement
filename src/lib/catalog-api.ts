@@ -630,6 +630,26 @@ export async function updateShopProduct(
   );
 }
 
+export async function getShopProduct(shopId: string, productId: string) {
+  return requestJson<{ data: ShopProduct }>(
+    `/api/shops/${encodeURIComponent(shopId)}/products/${encodeURIComponent(productId)}`,
+  );
+}
+
+export async function setPrimaryProductImage(shopId: string, productId: string, imageId: string) {
+  return requestJson<{ data: ProductImage }>(
+    `/api/shops/${encodeURIComponent(shopId)}/products/${encodeURIComponent(productId)}/images/${encodeURIComponent(imageId)}`,
+    { method: "PATCH", body: JSON.stringify({ isPrimary: true }) },
+  );
+}
+
+export async function deleteProductImage(shopId: string, productId: string, imageId: string) {
+  return requestJson<{ data: { deleted: boolean } }>(
+    `/api/shops/${encodeURIComponent(shopId)}/products/${encodeURIComponent(productId)}/images/${encodeURIComponent(imageId)}`,
+    { method: "DELETE" },
+  );
+}
+
 export async function deleteShopProduct(shopId: string, productId: string) {
   return requestJson<{ data: { deleted: boolean } }>(
     `/api/shops/${encodeURIComponent(shopId)}/products/${encodeURIComponent(productId)}`,
