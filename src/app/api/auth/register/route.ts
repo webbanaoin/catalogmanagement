@@ -156,11 +156,17 @@ export async function POST(request: Request) {
           shopId: shop.id,
           businessCategory,
           actorUserId: user.id,
+          newlyCreatedShop: true,
         });
       }
 
       diagnosticStage = "commit-registration-transaction";
       return { user, shop, membership };
+    }, {
+      // Keep shop creation, email grant and category preset atomic. The default
+      // Prisma 5-second interactive transaction limit is too low on Railway.
+      maxWait: 10_000,
+      timeout: 20_000,
     });
 
     return NextResponse.json({ data: result }, { status: 201 });
