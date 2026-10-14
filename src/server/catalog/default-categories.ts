@@ -20,6 +20,8 @@ export async function ensureDefaultShopCategories(
     shopId: string;
     businessCategory?: BusinessCategoryInput | null;
     actorUserId?: string | null;
+    /** True only when the shop was inserted in this same transaction. */
+    newlyCreatedShop?: boolean;
   },
 ): Promise<{
   presetKey: string | null;
@@ -38,29 +40,35 @@ export async function ensureDefaultShopCategories(
     };
   }
 
-  const priorSeed = await tx.auditLog.findFirst({
-    where: {
-      shopId: options.shopId,
-      action: ACTION,
-      entityType: ENTITY_TYPE,
-      entityId: preset.key,
-    },
-    select: { id: true },
-  });
+  // New shops created earlier in this transaction cannot yet have category
+  // records or preset-seeding audits. Skip two round trips in registration.
+  if (!options.newlyCreatedShop) {
+    const priorSeed = await tx.auditLog.findFirst({
+      where: {
+        shopId: options.shopId,
+        action: ACTION,
+        entityType: ENTITY_TYPE,
+        entityId: preset.key,
+      },
+      select: { id: true },
+    });
 
-  if (priorSeed) {
-    return {
-      presetKey: preset.key,
-      seeded: false,
-      createdCount: 0,
-      createdCategories: [],
-    };
+    if (priorSeed) {
+      return {
+        presetKey: preset.key,
+        seeded: false,
+        createdCount: 0,
+        createdCategories: [],
+      };
+    }
   }
 
-  const existing = await tx.shopCategory.findMany({
-    where: { shopId: options.shopId },
-    select: { name: true, slug: true },
-  });
+  const existing: Array<{ name: string; slug: string }> = options.newlyCreatedShop
+    ? []
+    : await tx.shopCategory.findMany({
+        where: { shopId: options.shopId },
+        select: { name: true, slug: true },
+      });
 
   const existingNames = new Set(existing.map((item) => normalizeCategoryName(item.name)));
   const existingSlugs = new Set(existing.map((item) => item.slug.toLowerCase()));
