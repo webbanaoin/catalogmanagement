@@ -81,7 +81,7 @@ export async function GET(
       });
     }
 
-    const [subscriptionAccess, activeProducts, visibleProducts] =
+    const [subscriptionAccess, activeProducts, visibleProducts, totalImages] =
       await Promise.all([
         getShopSubscriptionAccess(shopId),
         prisma.product.count({
@@ -90,6 +90,7 @@ export async function GET(
         prisma.product.count({
           where: { shopId, deletedAt: null, isVisible: true },
         }),
+        prisma.productImage.count({ where: { product: { is: { shopId } } } }),
       ]);
 
     const { shopUsers, _count, ...profile } = shop;
@@ -111,6 +112,7 @@ export async function GET(
         subscription: subscriptionAccess
           ? subscriptionResponse(subscriptionAccess, {
               products: activeProducts,
+              totalImages,
             })
           : null,
       },
