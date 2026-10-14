@@ -595,6 +595,7 @@ export interface MerchantSubscription {
   };
   usage: {
     products?: number;
+    totalImages?: number;
   };
 }
 
