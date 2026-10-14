@@ -1032,6 +1032,86 @@ async function main() {
   if (!adminImportAudit) {
     throw new Error("Admin Smart Excel preview audit row was not created");
   }
+  // 21-product import exercises the real confirmation write path, not just
+  // workbook preview. Every product has a nested attribute, as with jewellery
+  // Smart Excel imports on managed MySQL.
+  const adminBulkJob = await prisma.importJob.create({
+    data: {
+      shopId: fixture.pendingShop.id,
+      fileName: "railway-admin-bulk-21-regression.xlsx",
+      totalRows: 21,
+      successfulRows: 21,
+      failedRows: 0,
+      status: "PREVIEW_READY",
+      previewData: {
+        version: 4,
+        products: Array.from({ length: 21 }, (_, index) => ({
+          rowNumber: index + 2,
+          name: `Admin Bulk Product ${index + 1} ${suffix}`,
+          sku: null,
+          categoryId: null,
+          categoryName: null,
+          catalogGroup: null,
+          price: "125.00",
+          discountPrice: null,
+          priceType: "FIXED",
+          description: "Bulk import regression product",
+          availabilityStatus: "IN_STOCK",
+          showPrice: true,
+          isVisible: true,
+          isFeatured: false,
+          isNewArrival: false,
+          isOffer: false,
+          attributes: [{
+            attributeName: "Material",
+            attributeValue: "Gold",
+            displayOrder: 0,
+          }],
+        })),
+      },
+    },
+  });
+  const bulkConfirm = await request(
+    `/api/admin/shops/${fixture.pendingShop.id}/imports/products/${adminBulkJob.id}/confirm`,
+    { method: "POST" },
+    adminCookie,
+  );
+  await expectStatus("admin confirm 21 products with attributes", bulkConfirm, 200);
+  const bulkConfirmData = (await bulkConfirm.json()).data;
+  if (bulkConfirmData?.importedCount !== 21 || bulkConfirmData?.skippedCount !== 0) {
+    throw new Error("Admin bulk confirmation did not import all 21 ready products");
+  }
+  const [bulkCreated, bulkAttributes, completedJob, completedAudit] = await Promise.all([
+    prisma.product.count({
+      where: { shopId: fixture.pendingShop.id, name: { startsWith: "Admin Bulk Product " } },
+    }),
+    prisma.productAttribute.count({
+      where: { product: { is: { shopId: fixture.pendingShop.id, name: { startsWith: "Admin Bulk Product " } } } },
+    }),
+    prisma.importJob.findUnique({ where: { id: adminBulkJob.id }, select: { status: true, successfulRows: true } }),
+    prisma.auditLog.findFirst({
+      where: { shopId: fixture.pendingShop.id, action: "ADMIN_PRODUCT_IMPORT_COMPLETED", entityId: adminBulkJob.id },
+    }),
+  ]);
+  if (
+    bulkCreated !== 21 ||
+    bulkAttributes !== 21 ||
+    completedJob?.status !== "COMPLETED" ||
+    completedJob.successfulRows !== 21 ||
+    !completedAudit
+  ) {
+    throw new Error("Admin bulk products, attributes, job completion and audit did not commit atomically");
+  }
+  await expectStatus(
+    "admin completed import rejects duplicate confirmation",
+    await request(
+      `/api/admin/shops/${fixture.pendingShop.id}/imports/products/${adminBulkJob.id}/confirm`,
+      { method: "POST" },
+      adminCookie,
+    ),
+    409,
+  );
+
   await expectStatus(
     "admin platform analytics",
     await request("/api/admin/analytics", {}, adminCookie),
