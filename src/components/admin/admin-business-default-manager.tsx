@@ -109,7 +109,7 @@ export function AdminBusinessDefaultManager({
         <p className="text-sm font-semibold text-foreground">Default shop subcategories</p>
         <p className="mt-1 text-xs leading-5 text-muted">
           Add or edit category suggestions for this business type without code changes.
-          They become independent categories in each merchant's catalog.
+          They become independent categories in each merchant&apos;s catalog.
         </p>
       </div>
 
