@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { requirePlatformAdmin } from "@/server/auth/admin-access";
-import { getDefaultCategoryPreset } from "@/lib/default-category-presets";
+import { listBusinessCategoryDefaults } from "@/server/catalog/business-category-defaults";
 import { toSlug } from "@/server/catalog/slug";
 import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
@@ -14,38 +14,35 @@ export async function GET() {
   try {
     await requirePlatformAdmin();
 
+    // One-time import of legacy presets; later edits are fully database-driven.
+    const businessTypes = await prisma.businessCategory.findMany({
+      select: { id: true, name: true, slug: true },
+    });
+    for (const businessType of businessTypes) {
+      await prisma.$transaction((tx) => listBusinessCategoryDefaults(tx, businessType));
+    }
+
     const items = await prisma.businessCategory.findMany({
       orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
       include: {
-        _count: {
-          select: {
-            shops: true,
-          },
-        },
-        categoryMedia: {
-          select: {
-            categorySlug: true,
-          },
+        _count: { select: { shops: true } },
+        categoryMedia: { select: { categorySlug: true } },
+        defaultCategories: {
+          where: { status: "ACTIVE" },
+          select: { slug: true },
         },
       },
     });
 
     return NextResponse.json({
-      items: items.map(({ _count, categoryMedia, ...category }) => {
-        const preset = getDefaultCategoryPreset(category);
-        const presetSlugs = new Set(
-          (preset?.categories ?? []).map((name) => toSlug(name)),
-        );
-        const configuredPresetImages = categoryMedia.filter((item) =>
-          presetSlugs.has(item.categorySlug),
-        ).length;
-
+      items: items.map(({ _count, categoryMedia, defaultCategories, ...category }) => {
+        const activeSlugs = new Set(defaultCategories.map((item) => item.slug));
         return {
           ...category,
           shopCount: _count.shops,
           defaultCoverConfigured: Boolean(category.defaultCoverStorageKey),
-          sharedCategoryImageCount: configuredPresetImages,
-          presetCategoryCount: preset?.categories.length ?? 0,
+          sharedCategoryImageCount: categoryMedia.filter((item) => activeSlugs.has(item.categorySlug)).length,
+          presetCategoryCount: defaultCategories.length,
         };
       }),
     });
