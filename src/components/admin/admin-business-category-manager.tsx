@@ -3,6 +3,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 
 import { AdminCategoryMediaLibrary } from "@/components/admin/admin-category-media-library";
+import { AdminBusinessDefaultManager } from "@/components/admin/admin-business-default-manager";
 
 import {
   AdminApiError,
@@ -193,6 +194,7 @@ export function AdminBusinessCategoryManager() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [mediaCategory, setMediaCategory] = useState<string | null>(null);
+  const [defaultsCategory, setDefaultsCategory] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -290,7 +292,7 @@ export function AdminBusinessCategoryManager() {
           {categories.map((category) => (
             <Card
               key={category.id}
-              className={mediaCategory === category.id ? "lg:col-span-2" : undefined}
+              className={mediaCategory === category.id || defaultsCategory === category.id ? "lg:col-span-2" : undefined}
             >
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
@@ -349,7 +351,7 @@ export function AdminBusinessCategoryManager() {
                         <dd className="mt-1 font-medium text-foreground">
                           {category.presetCategoryCount > 0
                             ? `${category.sharedCategoryImageCount} / ${category.presetCategoryCount}`
-                            : "No preset"}
+                            : "No defaults"}
                         </dd>
                       </div>
                     </dl>
@@ -362,6 +364,20 @@ export function AdminBusinessCategoryManager() {
                         onClick={() => setEditing(category.id)}
                       >
                         Edit category
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={defaultsCategory === category.id ? "primary" : "secondary"}
+                        size="sm"
+                        onClick={() =>
+                          setDefaultsCategory((current) =>
+                            current === category.id ? null : category.id,
+                          )
+                        }
+                      >
+                        {defaultsCategory === category.id
+                          ? "Hide subcategories"
+                          : "Manage subcategories"}
                       </Button>
                       <Button
                         type="button"
@@ -378,6 +394,16 @@ export function AdminBusinessCategoryManager() {
                           : "Manage storefront defaults"}
                       </Button>
                     </div>
+
+                    {defaultsCategory === category.id ? (
+                      <AdminBusinessDefaultManager
+                        businessCategoryId={category.id}
+                        onChanged={() => {
+                          setMediaCategory(null);
+                          refresh();
+                        }}
+                      />
+                    ) : null}
 
                     {mediaCategory === category.id ? (
                       <div className="border-t border-border pt-4">
