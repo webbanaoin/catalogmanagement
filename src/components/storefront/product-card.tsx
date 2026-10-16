@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { StorefrontMedia } from "@/components/storefront/storefront-media";
+import { WishlistToggle } from "@/components/storefront/storefront-wishlist";
 import { availabilityLabel, formatInr } from "@/lib/storefront";
 import type { PublicProductSummary } from "@/server/storefront/storefront-data";
 
@@ -129,6 +130,7 @@ export function ProductCard({
           </div>
         </div>
       </Link>
+      <WishlistToggle product={product} />
     </article>
   );
 }
