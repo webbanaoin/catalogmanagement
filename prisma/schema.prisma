@@ -276,7 +276,7 @@ model BusinessCategoryDefault {
   updatedAt DateTime @updatedAt @map("updated_at")
   businessCategory BusinessCategory @relation(fields: [businessCategoryId], references: [id], onDelete: Cascade)
   @@unique([businessCategoryId, slug])
-  @@index([businessCategoryId, status, displayOrder])
+  @@index([businessCategoryId, status, displayOrder], map: "bc_defaults_category_status_order_idx")
   @@map("business_category_defaults")
 }
 
