@@ -132,6 +132,8 @@ export interface ShopProfile {
   instagramUrl?: string | null;
   facebookUrl?: string | null;
   showProductPrices: boolean;
+  wishlistAllowedByAdmin: boolean;
+  wishlistEnabledByMerchant: boolean;
   logoUrl?: string | null;
   coverUrl?: string | null;
   customLogoUrl?: string | null;
@@ -157,6 +159,7 @@ export interface ShopProfilePayload {
   instagramUrl?: string | null;
   facebookUrl?: string | null;
   showProductPrices?: boolean;
+  wishlistEnabledByMerchant?: boolean;
 }
 
 export interface ShopCategory {
