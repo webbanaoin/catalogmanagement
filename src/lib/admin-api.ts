@@ -472,6 +472,22 @@ export interface AdminBusinessCategoryPayload {
 }
 
 
+export interface AdminBusinessDefaultCategory {
+  id: string;
+  businessCategoryId: string;
+  name: string;
+  slug: string;
+  displayOrder: number;
+  status: "ACTIVE" | "INACTIVE";
+  isPreset: boolean;
+}
+
+export type AdminBusinessDefaultCategoryPayload = {
+  name: string;
+  displayOrder: number;
+  status: "ACTIVE" | "INACTIVE";
+};
+
 export interface AdminCategoryMediaItem {
   categoryName: string;
   categorySlug: string;
@@ -732,6 +748,35 @@ export async function updateAdminBusinessCategory(
   );
 }
 
+
+export async function getAdminBusinessDefaults(categoryId: string) {
+  return requestJson<{
+    businessCategory: { id: string; name: string; slug: string };
+    items: AdminBusinessDefaultCategory[];
+  }>("/api/admin/business-categories/" + encodeURIComponent(categoryId) + "/defaults");
+}
+
+export async function createAdminBusinessDefault(
+  categoryId: string,
+  payload: AdminBusinessDefaultCategoryPayload,
+) {
+  return requestJson<{ data: AdminBusinessDefaultCategory }>(
+    "/api/admin/business-categories/" + encodeURIComponent(categoryId) + "/defaults",
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+}
+
+export async function updateAdminBusinessDefault(
+  categoryId: string,
+  defaultId: string,
+  payload: Partial<AdminBusinessDefaultCategoryPayload>,
+) {
+  return requestJson<{ data: AdminBusinessDefaultCategory }>(
+    "/api/admin/business-categories/" + encodeURIComponent(categoryId) +
+      "/defaults/" + encodeURIComponent(defaultId),
+    { method: "PATCH", body: JSON.stringify(payload) },
+  );
+}
 
 export async function getAdminCategoryMediaLibrary(categoryId: string) {
   return requestJson<AdminCategoryMediaLibrary>(
