@@ -156,7 +156,9 @@ export function WishlistProvider({
         throw new Error(body.error?.message || "Could not verify the selected products. Please retry.");
       }
       if (body.data.unavailableSlugs.length) {
-        setError("Some products are no longer visible in this shop. Remove them from the wishlist and try again.");
+        setError(`No longer available: ${body.data.unavailableSlugs.map((slug) =>
+          items.find((item) => item.slug === slug)?.name ?? slug
+        ).join(", ")}. Remove these products and retry.`);
         return;
       }
       const map = new Map(body.data.products.map((product) => [product.slug, product]));
@@ -242,6 +244,10 @@ export function WishlistProvider({
             </div>
             <div className="border-t border-border p-4 sm:p-5">
               {error ? <p role="alert" className="mb-3 text-sm text-danger">{error}</p> : null}
+              <button type="button" onClick={() => setOpen(false)}
+                className="mb-3 min-h-10 w-full rounded-xl border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground">
+                Continue browsing products
+              </button>
               <button type="button" disabled={!ready || !items.length || sending}
                 className="min-h-11 w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
                 onClick={() => void submit()}>
