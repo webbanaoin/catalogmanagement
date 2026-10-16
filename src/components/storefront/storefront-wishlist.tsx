@@ -77,16 +77,24 @@ export function WishlistProvider({
   const key = wishlistKey(shopSlug);
 
   useEffect(() => {
-    try { setItems(validSavedItems(JSON.parse(localStorage.getItem(key) || "[]"))); }
-    catch { setItems([]); }
-    setReady(true);
-    const onStorage = (event: StorageEvent) => {
-      if (event.key !== key) return;
-      try { setItems(validSavedItems(JSON.parse(event.newValue || "[]"))); }
+    let active = true;
+    const read = (value: string | null) => {
+      if (!active) return;
+      try { setItems(validSavedItems(JSON.parse(value || "[]"))); }
       catch { setItems([]); }
+      setReady(true);
+    };
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === key) read(event.newValue);
     };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    // Defer initial storage hydration to the subscription callback,
+    // instead of synchronously setting React state within the effect.
+    queueMicrotask(() => read(localStorage.getItem(key)));
+    return () => {
+      active = false;
+      window.removeEventListener("storage", onStorage);
+    };
   }, [key]);
 
   const update = useCallback((fn: (previous: WishlistItem[]) => WishlistItem[]) => {
