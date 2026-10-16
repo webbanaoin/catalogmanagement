@@ -189,9 +189,10 @@ function optionalXmlEntry(
   return entry ? readZipEntry(buffer, entry).toString("utf8") : null;
 }
 
+// Office documents may use unqualified or namespace-prefixed OOXML tags.
 function workbookSheetPath(buffer: Buffer, entries: Map<string, ZipEntry>): string {
   const workbookXml = xmlEntry(buffer, entries, "xl/workbook.xml");
-  const sheetsMatch = workbookXml.match(/<sheet\b([^>]*)\/?\s*>/i);
+  const sheetsMatch = workbookXml.match(/<(?:[A-Za-z_][\w.-]*:)?sheet\b([^>]*)\/?\s*>/i);
   if (!sheetsMatch) workbookError("Excel workbook does not contain a worksheet");
 
   const relationshipId = attribute(sheetsMatch[1] ?? "", "r:id");
@@ -218,9 +219,9 @@ function sharedStrings(buffer: Buffer, entries: Map<string, ZipEntry>): string[]
   if (!xml) return [];
 
   const result: string[] = [];
-  for (const match of xml.matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>/gi)) {
+  for (const match of xml.matchAll(/<(?:[A-Za-z_][\w.-]*:)?si\b[^>]*>([\s\S]*?)<\/(?:[A-Za-z_][\w.-]*:)?si>/gi)) {
     const body = match[1] ?? "";
-    const text = [...body.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/gi)]
+    const text = [...body.matchAll(/<(?:[A-Za-z_][\w.-]*:)?t\b[^>]*>([\s\S]*?)<\/(?:[A-Za-z_][\w.-]*:)?t>/gi)]
       .map((part) => decodeXml(part[1] ?? ""))
       .join("");
     result.push(text);
@@ -245,12 +246,12 @@ function cellValue(attributes: string, body: string, strings: string[]): string 
   const type = attribute(attributes, "t");
 
   if (type === "inlineStr") {
-    return [...body.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/gi)]
+    return [...body.matchAll(/<(?:[A-Za-z_][\w.-]*:)?t\b[^>]*>([\s\S]*?)<\/(?:[A-Za-z_][\w.-]*:)?t>/gi)]
       .map((match) => decodeXml(match[1] ?? ""))
       .join("");
   }
 
-  const raw = body.match(/<v\b[^>]*>([\s\S]*?)<\/v>/i)?.[1] ?? "";
+  const raw = body.match(/<(?:[A-Za-z_][\w.-]*:)?v\b[^>]*>([\s\S]*?)<\/(?:[A-Za-z_][\w.-]*:)?v>/i)?.[1] ?? "";
   const decoded = decodeXml(raw);
 
   if (type === "s") {
@@ -269,7 +270,7 @@ export function parseFirstWorksheet(buffer: Buffer): WorkbookRow[] {
   const strings = sharedStrings(buffer, entries);
   const rows: WorkbookRow[] = [];
 
-  for (const rowMatch of worksheetXml.matchAll(/<row\b([^>]*)>([\s\S]*?)<\/row>/gi)) {
+  for (const rowMatch of worksheetXml.matchAll(/<(?:[A-Za-z_][\w.-]*:)?row\b([^>]*)>([\s\S]*?)<\/(?:[A-Za-z_][\w.-]*:)?row>/gi)) {
     const rowAttributes = rowMatch[1] ?? "";
     const rowBody = rowMatch[2] ?? "";
     const explicitRowNumber = Number.parseInt(attribute(rowAttributes, "r") ?? "", 10);
@@ -277,7 +278,7 @@ export function parseFirstWorksheet(buffer: Buffer): WorkbookRow[] {
     let inferredColumn = 0;
 
     for (const cellMatch of rowBody.matchAll(
-      /<c\b([^>]*?)\s*\/>|<c\b([^>]*)>([\s\S]*?)<\/c>/gi,
+      /<(?:[A-Za-z_][\w.-]*:)?c\b([^>]*?)\s*\/>|<(?:[A-Za-z_][\w.-]*:)?c\b([^>]*)>([\s\S]*?)<\/(?:[A-Za-z_][\w.-]*:)?c>/gi,
     )) {
       const cellAttributes = cellMatch[1] ?? cellMatch[2] ?? "";
       const cellBody = cellMatch[3] ?? "";
