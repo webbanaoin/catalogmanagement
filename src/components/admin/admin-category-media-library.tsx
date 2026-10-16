@@ -326,8 +326,7 @@ export function AdminCategoryMediaLibrary({
               Shared default category images
             </p>
             <p className="mt-1 max-w-3xl text-xs leading-5 text-muted">
-              Upload each image once for {businessCategoryName}. Ring, Earring,
-              Necklace and the other preset categories will automatically use the
+              Upload each image once for {businessCategoryName}. The active default subcategories of this business type will automatically use the
               same admin image across every existing and future matching shop.
               A shop-specific category image always takes priority.
             </p>
