@@ -116,6 +116,9 @@ jobs:
       - name: Merchant payment verification regression
         run: npm run test:merchant:payments
 
+      - name: Catalog defaults regression
+        run: npm run test:catalog:defaults
+
       - name: Application log on failure
         if: failure()
         run: cat /tmp/sprint6-app.log || true
