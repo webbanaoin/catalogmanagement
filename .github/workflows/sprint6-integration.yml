@@ -122,6 +122,9 @@ jobs:
       - name: Category ZIP and Excel regression
         run: npm run test:media:zip-excel
 
+      - name: Wishlist feature regression
+        run: npm run test:wishlist
+
       - name: Application log on failure
         if: failure()
         run: cat /tmp/sprint6-app.log || true
