@@ -31,7 +31,7 @@ const whatsappUrl =
 const shopTypes = [
   { icon: "💍", label: "Jewellery" },
   { icon: "👕", label: "Garments" },
-  { icon: "🧸", label: "Toys & Gifts" },
+  { icon: "🧸", label: "Gift, Toys & Stationery" },
   { icon: "🖥️", label: "Electronics" },
   { icon: "🛒", label: "Grocery" },
   { icon: "👟", label: "Footwear" },
