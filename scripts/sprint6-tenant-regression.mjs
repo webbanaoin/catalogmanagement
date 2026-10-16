@@ -135,7 +135,8 @@ async function createFixture() {
       monthlyPrice: "0.00",
       annualPrice: "0.00",
       productLimit: 100,
-      imageLimitPerProduct: 10,
+      imageLimitPerProduct: 2,
+      totalImageLimit: 3,
       analyticsEnabled: true,
       excelImportEnabled: true,
       customBrandingEnabled: true,
@@ -385,7 +386,12 @@ async function main() {
     where: { shopId: registeredShopId },
     select: { name: true },
   });
-  for (const categoryName of ["Ring", "Earring", "Necklace", "Chain"]) {
+  if (registrationCategories.length !== 18) {
+    throw new Error(
+      `Expected all 18 jewellery default categories in the new shop, got ${registrationCategories.length}`,
+    );
+  }
+  for (const categoryName of ["Ring", "Earring", "Necklace", "Chain", "Gift Articles", "Toe Ring"]) {
     if (!registrationCategories.some((category) => category.name === categoryName)) {
       throw new Error(
         `Registration did not seed recommended Jewellery category: ${categoryName}`,
@@ -502,6 +508,132 @@ async function main() {
     throw new Error(
       `Merchant product list expected imageCount=0, got ${hiddenProductWithoutImages?.imageCount}`,
     );
+  }
+
+  const otherShopCookie = await login(fixture.userB.email, passwordB);
+
+  // Image-manager regression: full gallery is available on demand, primary
+  // image can be changed, and other shops cannot mutate this shop's media.
+  const imageManagerDetail = await request(
+    `/api/shops/${fixture.shopA.id}/products/${fixture.visibleProductA.id}`,
+    {},
+    cookieA,
+  );
+  await expectStatus("merchant full image gallery", imageManagerDetail, 200);
+  const imageManagerProduct = (await imageManagerDetail.json()).data;
+  if (imageManagerProduct?.images?.length !== 2) {
+    throw new Error("Manage images must fetch the complete gallery, not just the primary image");
+  }
+  const [firstImage, secondImage] = imageManagerProduct.images;
+  await expectStatus(
+    "merchant sets product primary image",
+    await jsonRequest(
+      `/api/shops/${fixture.shopA.id}/products/${fixture.visibleProductA.id}/images/${secondImage.id}`,
+      "PATCH",
+      { isPrimary: true },
+      cookieA,
+    ),
+    200,
+  );
+  const updatedGallery = await request(
+    `/api/shops/${fixture.shopA.id}/products/${fixture.visibleProductA.id}`,
+    {},
+    cookieA,
+  );
+  await expectStatus("primary image persisted", updatedGallery, 200);
+  const updatedGalleryData = (await updatedGallery.json()).data;
+  if (
+    updatedGalleryData.images.find((image) => image.id === secondImage.id)?.isPrimary !== true ||
+    updatedGalleryData.images.find((image) => image.id === firstImage.id)?.isPrimary !== false
+  ) {
+    throw new Error("Selecting primary image did not clear the previous primary image");
+  }
+  await expectStatus(
+    "cross-tenant image primary update denied",
+    await jsonRequest(
+      `/api/shops/${fixture.shopA.id}/products/${fixture.visibleProductA.id}/images/${firstImage.id}`,
+      "PATCH",
+      { isPrimary: true },
+      otherShopCookie,
+    ),
+    403,
+  );
+  await expectStatus(
+    "cross-tenant image delete denied",
+    await request(
+      `/api/shops/${fixture.shopA.id}/products/${fixture.visibleProductA.id}/images/${firstImage.id}`,
+      { method: "DELETE" },
+      otherShopCookie,
+    ),
+    403,
+  );
+
+  // Quota regression: 2 existing images, 1 remaining shop slot.
+  const initialSubscription = await request(
+    `/api/shops/${fixture.shopA.id}/subscription`,
+    {},
+    cookieA,
+  );
+  await expectStatus("shop quota in subscription", initialSubscription, 200);
+  const initialSubscriptionData = (await initialSubscription.json()).data;
+  if (
+    initialSubscriptionData?.plan?.totalImageLimit !== 3 ||
+    initialSubscriptionData?.plan?.imageLimitPerProduct !== 2 ||
+    initialSubscriptionData?.usage?.totalImages !== 2
+  ) {
+    throw new Error("Shop image quota or image usage was not returned correctly");
+  }
+
+  function imagePayload(productId, suffixValue) {
+    return {
+      storageKey: `shops/${fixture.shopA.id}/products/${productId}/regression-${suffixValue}.jpg`,
+      fileSize: 100,
+      mimeType: "image/jpeg",
+      displayOrder: 0,
+      isPrimary: false,
+    };
+  }
+
+  await expectStatus(
+    "per-product image quota",
+    await jsonRequest(
+      `/api/shops/${fixture.shopA.id}/products/${fixture.visibleProductA.id}/images`,
+      "POST",
+      imagePayload(fixture.visibleProductA.id, "over-product-limit"),
+      cookieA,
+    ),
+    409,
+  );
+
+  // Both requests can pass the preliminary check; only one may attach after
+  // taking the shop row lock. The other must fail with 409.
+  const concurrentUploads = await Promise.all([
+    jsonRequest(
+      `/api/shops/${fixture.shopA.id}/products/${fixture.hiddenProductA.id}/images`,
+      "POST",
+      imagePayload(fixture.hiddenProductA.id, "concurrent-a"),
+      cookieA,
+    ),
+    jsonRequest(
+      `/api/shops/${fixture.shopA.id}/products/${fixture.hiddenProductA.id}/images`,
+      "POST",
+      imagePayload(fixture.hiddenProductA.id, "concurrent-b"),
+      cookieA,
+    ),
+  ]);
+  const statuses = concurrentUploads.map((response) => response.status).sort();
+  if (statuses[0] !== 201 || statuses[1] !== 409) {
+    throw new Error(`Concurrent image attachments bypassed the shop quota: ${statuses.join(", ")}`);
+  }
+  const updatedSubscription = await request(
+    `/api/shops/${fixture.shopA.id}/subscription`,
+    {},
+    cookieA,
+  );
+  await expectStatus("updated shop quota in subscription", updatedSubscription, 200);
+  const updatedSubscriptionData = (await updatedSubscription.json()).data;
+  if (updatedSubscriptionData?.usage?.totalImages !== 3) {
+    throw new Error("Shop image quota did not stop concurrent inserts at the configured limit");
   }
 
   const pendingLogin = await jsonRequest(
@@ -958,6 +1090,86 @@ async function main() {
   if (!adminImportAudit) {
     throw new Error("Admin Smart Excel preview audit row was not created");
   }
+  // 21-product import exercises the real confirmation write path, not just
+  // workbook preview. Every product has a nested attribute, as with jewellery
+  // Smart Excel imports on managed MySQL.
+  const adminBulkJob = await prisma.importJob.create({
+    data: {
+      shopId: fixture.pendingShop.id,
+      fileName: "railway-admin-bulk-21-regression.xlsx",
+      totalRows: 21,
+      successfulRows: 21,
+      failedRows: 0,
+      status: "PREVIEW_READY",
+      previewData: {
+        version: 4,
+        products: Array.from({ length: 21 }, (_, index) => ({
+          rowNumber: index + 2,
+          name: `Admin Bulk Product ${index + 1} ${suffix}`,
+          sku: null,
+          categoryId: null,
+          categoryName: null,
+          catalogGroup: null,
+          price: "125.00",
+          discountPrice: null,
+          priceType: "FIXED",
+          description: "Bulk import regression product",
+          availabilityStatus: "IN_STOCK",
+          showPrice: true,
+          isVisible: true,
+          isFeatured: false,
+          isNewArrival: false,
+          isOffer: false,
+          attributes: [{
+            attributeName: "Material",
+            attributeValue: "Gold",
+            displayOrder: 0,
+          }],
+        })),
+      },
+    },
+  });
+  const bulkConfirm = await request(
+    `/api/admin/shops/${fixture.pendingShop.id}/imports/products/${adminBulkJob.id}/confirm`,
+    { method: "POST" },
+    adminCookie,
+  );
+  await expectStatus("admin confirm 21 products with attributes", bulkConfirm, 200);
+  const bulkConfirmData = (await bulkConfirm.json()).data;
+  if (bulkConfirmData?.importedCount !== 21 || bulkConfirmData?.skippedCount !== 0) {
+    throw new Error("Admin bulk confirmation did not import all 21 ready products");
+  }
+  const [bulkCreated, bulkAttributes, completedJob, completedAudit] = await Promise.all([
+    prisma.product.count({
+      where: { shopId: fixture.pendingShop.id, name: { startsWith: "Admin Bulk Product " } },
+    }),
+    prisma.productAttribute.count({
+      where: { product: { is: { shopId: fixture.pendingShop.id, name: { startsWith: "Admin Bulk Product " } } } },
+    }),
+    prisma.importJob.findUnique({ where: { id: adminBulkJob.id }, select: { status: true, successfulRows: true } }),
+    prisma.auditLog.findFirst({
+      where: { shopId: fixture.pendingShop.id, action: "ADMIN_PRODUCT_IMPORT_COMPLETED", entityId: adminBulkJob.id },
+    }),
+  ]);
+  if (
+    bulkCreated !== 21 ||
+    bulkAttributes !== 21 ||
+    completedJob?.status !== "COMPLETED" ||
+    completedJob.successfulRows !== 21 ||
+    !completedAudit
+  ) {
+    throw new Error("Admin bulk products, attributes, job completion and audit did not commit atomically");
+  }
+  await expectStatus(
+    "admin completed import rejects duplicate confirmation",
+    await request(
+      `/api/admin/shops/${fixture.pendingShop.id}/imports/products/${adminBulkJob.id}/confirm`,
+      { method: "POST" },
+      adminCookie,
+    ),
+    409,
+  );
+
   await expectStatus(
     "admin platform analytics",
     await request("/api/admin/analytics", {}, adminCookie),

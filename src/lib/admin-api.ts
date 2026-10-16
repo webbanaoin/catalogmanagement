@@ -208,6 +208,7 @@ export interface AdminPlan {
   offerEndsAt: string | null;
   productLimit: number;
   imageLimitPerProduct: number;
+  totalImageLimit: number;
   analyticsEnabled: boolean;
   excelImportEnabled: boolean;
   customBrandingEnabled: boolean;
@@ -235,6 +236,7 @@ export interface AdminSubscription {
     annualPrice: string;
     productLimit: number;
     imageLimitPerProduct: number;
+    totalImageLimit: number;
     analyticsEnabled: boolean;
     excelImportEnabled: boolean;
     customBrandingEnabled: boolean;
@@ -242,7 +244,7 @@ export interface AdminSubscription {
     graceDays: number;
     status: "ACTIVE" | "INACTIVE";
   };
-  usage: { products?: number };
+  usage: { products?: number; totalImages?: number };
 }
 
 export type AdminPaymentMethod = "CASH" | "UPI" | "BANK_TRANSFER" | "OTHER";
@@ -441,6 +443,7 @@ export interface AdminPlanPayload {
   offerDurationDays: number;
   productLimit: number;
   imageLimitPerProduct: number;
+  totalImageLimit: number;
   analyticsEnabled: boolean;
   excelImportEnabled: boolean;
   customBrandingEnabled: boolean;

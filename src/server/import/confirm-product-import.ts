@@ -37,8 +37,14 @@ export async function confirmStoredProductImport(options: {
   shopId: string;
   jobId: string;
   productLimit: number;
+  adminAudit?: {
+    actorUserId: string;
+    onboardingPlanName: string;
+    capacitySource: "SUBSCRIPTION" | "DEFAULT_TRIAL";
+  };
 }) {
   const { shopId, jobId, productLimit } = options;
+  let diagnosticStage = "validate-import-preview";
 
   const job = await prisma.importJob.findFirst({
     where: { id: jobId, shopId },
@@ -216,6 +222,7 @@ export async function confirmStoredProductImport(options: {
   }
 
   try {
+    diagnosticStage = "save-import-products";
     const imported = await prisma.$transaction(async (tx) => {
       const created: Array<{
         id: string;
@@ -271,6 +278,7 @@ export async function confirmStoredProductImport(options: {
         ...(skipped.length > 0 ? { skippedDuringConfirm: skipped } : {}),
       };
 
+      diagnosticStage = "complete-import-job";
       await tx.importJob.update({
         where: { id: job.id },
         data: {
@@ -284,7 +292,32 @@ export async function confirmStoredProductImport(options: {
         },
       });
 
+      if (options.adminAudit) {
+        diagnosticStage = "audit-admin-import";
+        await tx.auditLog.create({
+          data: {
+            actorUserId: options.adminAudit.actorUserId,
+            shopId,
+            action: "ADMIN_PRODUCT_IMPORT_COMPLETED",
+            entityType: "ImportJob",
+            entityId: jobId,
+            metadata: {
+              importedCount: created.length,
+              skippedCount: Math.max(0, job.totalRows - created.length),
+              onboardingPlanName: options.adminAudit.onboardingPlanName,
+              productLimit,
+              capacitySource: options.adminAudit.capacitySource,
+            },
+          },
+        });
+      }
+      diagnosticStage = "commit-import";
       return created;
+    }, {
+      // Bulk Excel creates nested attribute records; managed MySQL latency
+      // can exceed Prisma's 5-second interactive transaction default.
+      maxWait: 10_000,
+      timeout: 120_000,
     });
 
     return {
@@ -296,10 +329,30 @@ export async function confirmStoredProductImport(options: {
       products: imported,
     };
   } catch (error) {
-    await prisma.importJob.update({
-      where: { id: job.id },
-      data: { status: "FAILED" },
+    // Do not log personal details, SKU values, passwords or raw DB errors.
+    console.error("[product-import/confirm] Unexpected failure", {
+      stage: diagnosticStage,
+      errorType: error instanceof Error ? error.name : typeof error,
+      errorCode:
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        typeof error.code === "string"
+          ? error.code
+          : null,
+      attemptedRows: importable.length,
     });
+
+    // A failed interactive transaction rolls back inserted products and job
+    // completion. Do not mask the original exception if the status update fails.
+    try {
+      await prisma.importJob.updateMany({
+        where: { id: job.id, shopId, status: "PREVIEW_READY" },
+        data: { status: "FAILED" },
+      });
+    } catch {
+      console.error("[product-import/confirm] Could not mark import job failed");
+    }
 
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&

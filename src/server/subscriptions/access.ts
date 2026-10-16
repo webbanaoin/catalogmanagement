@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { PaymentStatus, SubscriptionStatus } from "@prisma/client";
+import type { PaymentStatus, SubscriptionStatus, Prisma } from "@prisma/client";
 
 import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
@@ -141,6 +141,48 @@ export async function requireProductCapacity(
   return capacity;
 }
 
+async function countProductImages(
+  db: Prisma.TransactionClient | typeof prisma,
+  shopId: string,
+  productId: string,
+) {
+  const [currentImages, shopImages] = await Promise.all([
+    db.productImage.count({ where: { productId } }),
+    // Stored images count, including those on soft-deleted products, until
+    // their metadata and R2 objects are explicitly removed.
+    db.productImage.count({ where: { product: { is: { shopId } } } }),
+  ]);
+  return { currentImages, shopImages };
+}
+
+function assertImageCapacity(
+  capacity: {
+    currentImages: number;
+    shopImages: number;
+    limit: number;
+    totalImageLimit: number;
+  },
+  additionalImages: number,
+) {
+  if (!Number.isInteger(additionalImages) || additionalImages < 0) {
+    throw new Error("additionalImages must be a non-negative integer");
+  }
+  if (capacity.currentImages + additionalImages > capacity.limit) {
+    throw new AppError({
+      code: "IMAGE_LIMIT_REACHED",
+      message: `This plan allows up to ${capacity.limit} images per product.`,
+      status: 409,
+    });
+  }
+  if (capacity.shopImages + additionalImages > capacity.totalImageLimit) {
+    throw new AppError({
+      code: "SHOP_IMAGE_LIMIT_REACHED",
+      message: `This shop allows up to ${capacity.totalImageLimit} total product images. Delete existing images or ask the administrator to change the plan.`,
+      status: 409,
+    });
+  }
+}
+
 export async function getImageCapacity(shopId: string, productId: string) {
   const access = await requireUsableSubscription(shopId);
   const product = await prisma.product.findFirst({
@@ -155,14 +197,16 @@ export async function getImageCapacity(shopId: string, productId: string) {
     });
   }
 
-  const currentImages = await prisma.productImage.count({ where: { productId } });
+  const counts = await countProductImages(prisma, shopId, productId);
   const limit = access.subscription.plan.imageLimitPerProduct;
-
+  const totalImageLimit = access.subscription.plan.totalImageLimit;
   return {
     access,
-    currentImages,
+    ...counts,
     limit,
-    remaining: Math.max(0, limit - currentImages),
+    totalImageLimit,
+    remaining: Math.max(0, limit - counts.currentImages),
+    shopRemaining: Math.max(0, totalImageLimit - counts.shopImages),
   };
 }
 
@@ -172,19 +216,57 @@ export async function requireImageCapacity(
   additionalImages = 1,
 ) {
   const capacity = await getImageCapacity(shopId, productId);
+  assertImageCapacity(capacity, additionalImages);
+  return capacity;
+}
 
-  if (additionalImages < 0) {
-    throw new Error("additionalImages cannot be negative");
+// This check MUST run in the same transaction as productImage.create.
+// A shop row lock serializes concurrent attachments across different products.
+export async function requireImageCapacityInTransaction(
+  tx: Prisma.TransactionClient,
+  shopId: string,
+  productId: string,
+  additionalImages = 1,
+) {
+  const locked = await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT id FROM shops WHERE id = ${shopId} FOR UPDATE
+  `;
+  if (locked.length !== 1) {
+    throw new AppError({ code: "SHOP_NOT_FOUND", message: "Shop not found", status: 404 });
   }
-
-  if (capacity.currentImages + additionalImages > capacity.limit) {
+  const subscription = await tx.subscription.findUnique({
+    where: { shopId },
+    include: { plan: true },
+  });
+  if (!subscription) {
     throw new AppError({
-      code: "IMAGE_LIMIT_REACHED",
-      message: `This plan allows up to ${capacity.limit} images per product.`,
-      status: 409,
+      code: "SUBSCRIPTION_REQUIRED",
+      message: "An active shop subscription is required for this action",
+      status: 403,
     });
   }
-
+  const effectiveStatus = effectiveSubscriptionStatus(subscription);
+  if (effectiveStatus === "EXPIRED" || effectiveStatus === "CANCELLED") {
+    throw new AppError({
+      code: "SUBSCRIPTION_EXPIRED",
+      message: "This shop subscription is not active.",
+      status: 403,
+    });
+  }
+  const product = await tx.product.findFirst({
+    where: { id: productId, shopId, deletedAt: null },
+    select: { id: true },
+  });
+  if (!product) {
+    throw new AppError({ code: "PRODUCT_NOT_FOUND", message: "Product was not found in this shop", status: 404 });
+  }
+  const counts = await countProductImages(tx, shopId, productId);
+  const capacity = {
+    ...counts,
+    limit: subscription.plan.imageLimitPerProduct,
+    totalImageLimit: subscription.plan.totalImageLimit,
+  };
+  assertImageCapacity(capacity, additionalImages);
   return capacity;
 }
 
@@ -193,6 +275,7 @@ export function subscriptionResponse(
   usage?: {
     products?: number;
     imagesForProduct?: number;
+    totalImages?: number;
   },
 ) {
   const { subscription, effectiveStatus } = access;
@@ -224,6 +307,7 @@ export function subscriptionResponse(
       offerEndsAt: plan.offerEndsAt?.toISOString() ?? null,
       productLimit: plan.productLimit,
       imageLimitPerProduct: plan.imageLimitPerProduct,
+      totalImageLimit: plan.totalImageLimit,
       analyticsEnabled: plan.analyticsEnabled,
       excelImportEnabled: plan.excelImportEnabled,
       customBrandingEnabled: plan.customBrandingEnabled,

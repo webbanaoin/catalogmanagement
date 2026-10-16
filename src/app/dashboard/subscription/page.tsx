@@ -182,6 +182,11 @@ export default function SubscriptionPage() {
                   </p>
                 </div>
                 <div className="rounded-xl border border-border bg-background p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted">Shop images used</p>
+                  <p className="mt-2 text-2xl font-semibold text-foreground">{subscription.usage.totalImages ?? 0} / {subscription.plan.totalImageLimit}</p>
+                  <p className="mt-1 text-xs text-muted">Includes images on soft-deleted products until removed.</p>
+                </div>
+                <div className="rounded-xl border border-border bg-background p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted">Images / product</p>
                   <p className="mt-2 text-2xl font-semibold text-foreground">{subscription.plan.imageLimitPerProduct}</p>
                 </div>

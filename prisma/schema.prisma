@@ -411,6 +411,7 @@ model Plan {
   offerEndsAt DateTime? @map("offer_ends_at")
   productLimit Int @map("product_limit")
   imageLimitPerProduct Int @map("image_limit_per_product")
+  totalImageLimit Int @default(250) @map("total_image_limit")
   analyticsEnabled Boolean @default(false) @map("analytics_enabled")
   excelImportEnabled Boolean @default(false) @map("excel_import_enabled")
   customBrandingEnabled Boolean @default(false) @map("custom_branding_enabled")

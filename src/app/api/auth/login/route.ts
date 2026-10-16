@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
 
 import { verifyPassword } from "@/server/auth/password";
 import { clearSessionCookie, setSessionCookie } from "@/server/auth/session";
@@ -10,11 +11,14 @@ import { enforceRateLimit, getClientIp } from "@/server/security/rate-limit";
 import { loginSchema } from "@/validation/auth";
 
 export async function POST(request: Request) {
+  let diagnosticStage = "rate-limit";
   try {
     enforceRateLimit("auth:login:" + getClientIp(request), 20, 15 * 60 * 1000);
+    diagnosticStage = "parse-login-request";
     const input = loginSchema.parse(await readJsonBody(request));
     enforceRateLimit("auth:login-account:" + input.email, 10, 15 * 60 * 1000);
 
+    diagnosticStage = "lookup-user";
     const user = await prisma.user.findUnique({
       where: { email: input.email },
       include: {
@@ -27,6 +31,7 @@ export async function POST(request: Request) {
       },
     });
 
+    diagnosticStage = "verify-credentials";
     if (!user || !(await verifyPassword(input.password, user.passwordHash)) || user.status !== "ACTIVE") {
       throw new AppError({ code: "INVALID_CREDENTIALS", message: "Invalid email or password", status: 401 });
     }
@@ -60,6 +65,7 @@ export async function POST(request: Request) {
         });
       }
 
+      diagnosticStage = "set-session-cookie";
       await setSessionCookie(user.id, user.sessionVersion);
       return NextResponse.json({
         data: {
@@ -94,7 +100,9 @@ export async function POST(request: Request) {
       throw new AppError({ code: "SHOP_ACCESS_UNAVAILABLE", message: "Your shop is not currently available for merchant access", status: 403 });
     }
 
+    diagnosticStage = "set-session-cookie";
     await setSessionCookie(user.id, user.sessionVersion);
+    diagnosticStage = "send-login-response";
     return NextResponse.json({
       data: {
         id: user.id,
@@ -108,6 +116,22 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    // Unexpected production failures are otherwise hidden behind a generic 500 response.
+    // Log only the failure stage, error type and structured code — never credentials,
+    // request bodies, session tokens or raw driver error messages.
+    if (!(error instanceof AppError) && !(error instanceof ZodError)) {
+      console.error("[auth/login] Unexpected failure", {
+        stage: diagnosticStage,
+        errorType: error instanceof Error ? error.name : typeof error,
+        errorCode:
+          typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          typeof error.code === "string"
+            ? error.code
+            : null,
+      });
+    }
     return errorResponse(error);
   }
 }

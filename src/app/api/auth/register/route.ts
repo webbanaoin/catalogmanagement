@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
 
 import { hashPassword } from "@/server/auth/password";
 import { consumeRegistrationEmailGrant } from "@/server/auth/registration-email-otp";
@@ -29,19 +30,26 @@ async function createUniqueShopSlug(tx: Prisma.TransactionClient, shopName: stri
 }
 
 export async function POST(request: Request) {
+  let diagnosticStage = "rate-limit";
   try {
     enforceRateLimit("auth:register:" + getClientIp(request), 10, 15 * 60 * 1000);
+      diagnosticStage = "validate-registration";
     const input = registerSchema.parse(await readJsonBody(request));
+      diagnosticStage = "hash-password";
     const passwordHash = await hashPassword(input.password);
 
+      diagnosticStage = "begin-registration-transaction";
     const result = await prisma.$transaction(async (tx) => {
+      diagnosticStage = "check-duplicate-email";
       if (await tx.user.findUnique({ where: { email: input.email }, select: { id: true } })) {
         throw new AppError({ code: "EMAIL_IN_USE", message: "An account with this email already exists", status: 409 });
       }
 
+      diagnosticStage = "consume-email-verification";
       await consumeRegistrationEmailGrant(tx, input.email, "MERCHANT", input.emailVerificationToken);
 
       let referralPartner: { id: string; referralCode: string | null } | null = null;
+      diagnosticStage = "lookup-referral";
       if (input.referralCode?.trim()) {
         const referralCode = normalizeReferralCode(input.referralCode);
         referralPartner = await tx.referralPartner.findFirst({
@@ -59,6 +67,7 @@ export async function POST(request: Request) {
       }
 
       let businessCategory: { id: string; name: string; slug: string } | null = null;
+      diagnosticStage = "lookup-business-category";
       if (input.businessCategoryId) {
         businessCategory = await tx.businessCategory.findFirst({
           where: { id: input.businessCategoryId, status: "ACTIVE" },
@@ -74,11 +83,13 @@ export async function POST(request: Request) {
         }
       }
 
+      diagnosticStage = "create-user";
       const user = await tx.user.create({
         data: { name: input.name, email: input.email, mobile: input.mobile || null, passwordHash },
         select: { id: true, name: true, email: true, mobile: true, status: true, createdAt: true },
       });
 
+      diagnosticStage = "create-shop";
       const shop = await tx.shop.create({
         data: {
           name: input.shopName,
@@ -99,11 +110,13 @@ export async function POST(request: Request) {
         select: { id: true, name: true, slug: true, status: true, businessCategoryId: true, requestedBusinessType: true, phone: true, whatsapp: true, city: true, state: true, pincode: true, createdAt: true },
       });
 
+      diagnosticStage = "create-shop-owner-membership";
       const membership = await tx.shopUser.create({
         data: { userId: user.id, shopId: shop.id, role: "OWNER" },
         select: { id: true, role: true, shopId: true, createdAt: true },
       });
 
+      diagnosticStage = "audit-referral";
       if (referralPartner) {
         await tx.auditLog.create({
           data: {
@@ -121,6 +134,7 @@ export async function POST(request: Request) {
         });
       }
 
+      diagnosticStage = "audit-requested-business-type";
       if (input.requestedBusinessType) {
         await tx.auditLog.create({
           data: {
@@ -136,15 +150,23 @@ export async function POST(request: Request) {
         });
       }
 
+      diagnosticStage = "seed-default-categories";
       if (businessCategory) {
         await ensureDefaultShopCategories(tx, {
           shopId: shop.id,
           businessCategory,
           actorUserId: user.id,
+          newlyCreatedShop: true,
         });
       }
 
+      diagnosticStage = "commit-registration-transaction";
       return { user, shop, membership };
+    }, {
+      // Keep shop creation, email grant and category preset atomic. The default
+      // Prisma 5-second interactive transaction limit is too low on Railway.
+      maxWait: 10_000,
+      timeout: 20_000,
     });
 
     return NextResponse.json({ data: result }, { status: 201 });
@@ -153,6 +175,20 @@ export async function POST(request: Request) {
       const target = Array.isArray(error.meta?.target) ? error.meta.target.join(",") : String(error.meta?.target ?? "");
       if (target.includes("email")) return errorResponse(new AppError({ code: "EMAIL_IN_USE", message: "An account with this email already exists", status: 409 }));
       return errorResponse(new AppError({ code: "REGISTRATION_CONFLICT", message: "Registration conflicted with an existing record. Please try again.", status: 409 }));
+    }
+    // Do not log email addresses, request bodies, verification tokens or passwords.
+    if (!(error instanceof AppError) && !(error instanceof ZodError)) {
+      console.error("[auth/register] Unexpected failure", {
+        stage: diagnosticStage,
+        errorType: error instanceof Error ? error.name : typeof error,
+        errorCode:
+          typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          typeof error.code === "string"
+            ? error.code
+            : null,
+      });
     }
     return errorResponse(error);
   }
