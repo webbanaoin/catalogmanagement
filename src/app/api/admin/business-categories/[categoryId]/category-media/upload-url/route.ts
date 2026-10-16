@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requirePlatformAdmin } from "@/server/auth/admin-access";
-import { getDefaultCategoryPreset } from "@/lib/default-category-presets";
+import { listBusinessCategoryDefaults } from "@/server/catalog/business-category-defaults";
 import { toSlug } from "@/server/catalog/slug";
 import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
@@ -35,15 +35,17 @@ export async function POST(
       });
     }
 
-    const preset = getDefaultCategoryPreset(category);
-    const categorySlug = toSlug(input.categorySlug);
-    const categoryName = preset?.categories.find(
-      (item) => toSlug(item) === categorySlug,
+    const defaults = await prisma.$transaction((tx) =>
+      listBusinessCategoryDefaults(tx, category),
     );
+    const categorySlug = toSlug(input.categorySlug);
+    const categoryName = defaults.find(
+      (item) => item.slug === categorySlug && item.status === "ACTIVE",
+    )?.name;
     if (!categoryName) {
       throw new AppError({
         code: "CATEGORY_PRESET_NOT_FOUND",
-        message: "This category is not part of the configured preset for this business type",
+        message: "This subcategory is not active for this business type",
         status: 404,
       });
     }
