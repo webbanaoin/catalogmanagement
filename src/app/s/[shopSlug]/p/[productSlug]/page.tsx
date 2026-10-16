@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ProductGallery } from "@/components/storefront/product-gallery";
+import { WishlistToggle } from "@/components/storefront/storefront-wishlist";
 import { StorefrontAnalytics } from "@/components/storefront/storefront-analytics";
 import { StorefrontActions } from "@/components/storefront/storefront-actions";
 import { StorefrontShell } from "@/components/storefront/storefront-shell";
@@ -173,6 +174,8 @@ export default async function ProductPage({
       label={shop.name}
       logoUrl={shop.logoUrl}
       shopSlug={shopSlug}
+      wishlistEnabled={shop.wishlistEnabled}
+      whatsapp={shop.whatsapp}
     >
       <StorefrontAnalytics
         shopSlug={shopSlug}
@@ -277,6 +280,8 @@ export default async function ProductPage({
                   }
                 />
               </div>
+
+              <div className="mt-4"><WishlistToggle product={product} wide /></div>
 
               <div className="mt-5 rounded-xl bg-primary-soft p-3.5 text-xs leading-5 text-primary sm:p-4">
                 <p className="font-bold">Interested in this product?</p>

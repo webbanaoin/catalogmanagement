@@ -19,6 +19,7 @@ export const shopProfileSchema = z.object({
   pincode: optionalValidated(20,isValidIndianPincode,"Enter a valid 6-digit Indian PIN"),
   googleMapsUrl: httpUrl, instagramUrl: httpUrl, facebookUrl: httpUrl,
   showProductPrices: z.boolean().optional(),
+  wishlistEnabledByMerchant: z.boolean().optional(),
 });
 
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);

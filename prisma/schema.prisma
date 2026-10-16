@@ -179,6 +179,8 @@ model Shop {
   instagramUrl String? @map("instagram_url") @db.VarChar(1024)
   facebookUrl String? @map("facebook_url") @db.VarChar(1024)
   showProductPrices Boolean @default(true) @map("show_product_prices")
+  wishlistAllowedByAdmin Boolean @default(false) @map("wishlist_allowed_by_admin")
+  wishlistEnabledByMerchant Boolean @default(false) @map("wishlist_enabled_by_merchant")
   referralPartnerId String? @map("referral_partner_id")
   referralAssignedAt DateTime? @map("referral_assigned_at")
   status ShopStatus @default(PENDING)

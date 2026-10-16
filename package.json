@@ -34,7 +34,8 @@
     "test:merchant:payments": "node scripts/merchant-payment-submission-regression.mjs",
     "test:auth:password-reset": "node scripts/password-reset-regression.mjs",
     "test:catalog:defaults": "node scripts/catalog-defaults-regression.mjs",
-    "test:media:zip-excel": "node scripts/category-zip-excel-compat-regression.mjs"
+    "test:media:zip-excel": "node scripts/category-zip-excel-compat-regression.mjs",
+    "test:wishlist": "node scripts/wishlist-regression.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.922.0",

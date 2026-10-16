@@ -1,5 +1,7 @@
 "use client";
 
+import { AdminWishlistGate } from "@/components/admin/admin-wishlist-gate";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -467,6 +469,9 @@ function ShopCard({
             </div>
           </div>
         </div>
+
+        <AdminWishlistGate shopId={shop.id} allowed={shop.wishlistAllowedByAdmin}
+          merchantEnabled={shop.wishlistEnabledByMerchant} onChanged={onChanged} />
 
         <div className="rounded-xl border border-border bg-surface-muted/40 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

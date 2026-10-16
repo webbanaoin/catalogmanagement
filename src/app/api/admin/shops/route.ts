@@ -33,6 +33,8 @@ export async function GET(request: Request) {
           city: true,
           state: true,
           requestedBusinessType: true,
+          wishlistAllowedByAdmin: true,
+          wishlistEnabledByMerchant: true,
           referralAssignedAt: true,
           referralPartner: {
             select: {

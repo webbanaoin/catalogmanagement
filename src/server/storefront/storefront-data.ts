@@ -28,6 +28,7 @@ export interface PublicShop {
   state: string | null;
   googleMapsUrl: string | null;
   showProductPrices: boolean;
+  wishlistEnabled: boolean;
   businessCategoryName: string | null;
   businessCategorySlug: string | null;
   catalogGroupLabel: string;
@@ -162,6 +163,8 @@ async function mapShop(shop: {
   state: string | null;
   googleMapsUrl: string | null;
   showProductPrices: boolean;
+  wishlistAllowedByAdmin: boolean;
+  wishlistEnabledByMerchant: boolean;
   logoStorageKey: string | null;
   coverStorageKey: string | null;
   businessCategory:
@@ -193,6 +196,7 @@ async function mapShop(shop: {
     state: shop.state,
     googleMapsUrl: shop.googleMapsUrl,
     showProductPrices: shop.showProductPrices,
+    wishlistEnabled: shop.wishlistAllowedByAdmin && shop.wishlistEnabledByMerchant && Boolean(shop.whatsapp),
     businessCategoryName: shop.businessCategory?.name ?? null,
     businessCategorySlug: shop.businessCategory?.slug ?? null,
     catalogGroupLabel: preset.groupLabel,
@@ -256,6 +260,8 @@ const getActiveShopRecord = cache(async (shopSlug: string) => {
       state: true,
       googleMapsUrl: true,
       showProductPrices: true,
+      wishlistAllowedByAdmin: true,
+      wishlistEnabledByMerchant: true,
       logoStorageKey: true,
       coverStorageKey: true,
       businessCategory: {
