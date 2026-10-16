@@ -13,7 +13,7 @@ CREATE TABLE `business_category_defaults` (
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `updated_at` DATETIME(3) NOT NULL,
   UNIQUE INDEX `business_category_defaults_business_category_id_slug_key` (`business_category_id`, `slug`),
-  INDEX `business_category_defaults_business_category_id_status_display_order_idx` (`business_category_id`, `status`, `display_order`),
+  INDEX `bc_defaults_category_status_order_idx` (`business_category_id`, `status`, `display_order`),
   PRIMARY KEY (`id`),
   CONSTRAINT `business_category_defaults_business_category_id_fkey`
     FOREIGN KEY (`business_category_id`) REFERENCES `business_categories`(`id`)
