@@ -2,6 +2,7 @@
 
 import { type ChangeEvent, useEffect, useState } from "react";
 
+import { AdminBulkCategoryZipUploader } from "@/components/admin/admin-bulk-category-zip-uploader";
 import { StorefrontMedia } from "@/components/storefront/storefront-media";
 import {
   Alert,
@@ -343,6 +344,26 @@ export function AdminCategoryMediaLibrary({
           ) : null}
         </div>
       </div>
+
+      {items.length > 0 ? (
+        <AdminBulkCategoryZipUploader
+          categoryId={businessCategoryId}
+          items={items}
+          onUploaded={(updated) => {
+            setItems((current) =>
+              current.map((item) =>
+                item.categorySlug === updated.categorySlug
+                  ? { ...item, ...updated }
+                  : item,
+              ),
+            );
+            const configuredCount = items.filter((item) =>
+              Boolean(item.imageStorageKey) || item.categorySlug === updated.categorySlug,
+            ).length;
+            onSetupChange?.({ sharedCategoryImageCount: configuredCount });
+          }}
+        />
+      ) : null}
 
       {!presetKey || items.length === 0 ? (
         <EmptyState
