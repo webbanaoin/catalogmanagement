@@ -84,6 +84,30 @@ export async function PATCH(
       }
     }
 
+    const currentShop = await prisma.shop.findUnique({
+      where: { id: shopId },
+      select: { wishlistAllowedByAdmin: true, whatsapp: true },
+    });
+    if (!currentShop) {
+      throw new AppError({ code: "SHOP_NOT_FOUND", message: "Shop not found", status: 404 });
+    }
+    if (input.wishlistEnabledByMerchant === true) {
+      if (!currentShop.wishlistAllowedByAdmin) {
+        throw new AppError({
+          code: "WISHLIST_NOT_ALLOWED",
+          message: "The platform admin has not enabled wishlists for this shop.",
+          status: 403,
+        });
+      }
+      if (!(input.whatsapp ?? currentShop.whatsapp)) {
+        throw new AppError({
+          code: "WISHLIST_WHATSAPP_REQUIRED",
+          message: "Set a shop WhatsApp number before enabling the enquiry wishlist.",
+          status: 400,
+        });
+      }
+    }
+
     await prisma.$transaction(async (tx) => {
       await tx.shop.update({
         where: { id: shopId },
