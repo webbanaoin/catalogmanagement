@@ -40,6 +40,8 @@ export interface AdminShop {
   name: string;
   slug: string;
   status: AdminShopStatus;
+  wishlistAllowedByAdmin: boolean;
+  wishlistEnabledByMerchant: boolean;
   email?: string | null;
   phone?: string | null;
   city?: string | null;
@@ -589,6 +591,13 @@ export async function getAdminShops(
       totalPages: number;
     };
   }>("/api/admin/shops?" + params.toString());
+}
+
+export async function updateAdminWishlistPermission(shopId: string, allowed: boolean) {
+  return requestJson<{ data: { wishlistAllowedByAdmin: boolean; wishlistEnabledByMerchant: boolean } }>(
+    "/api/admin/shops/" + encodeURIComponent(shopId) + "/wishlist",
+    { method: "PATCH", body: JSON.stringify({ allowed }) },
+  );
 }
 
 export async function updateAdminShopStatus(shopId: string, status: AdminShopStatus) {
