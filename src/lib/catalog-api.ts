@@ -685,28 +685,42 @@ async function uploadProductMediaBlob(
       }),
     },
   );
-  let put: Response;
-  try {
-    put = await fetch(upload.data.url, {
-      method: "PUT",
-      headers: upload.data.headers,
-      body: file,
-    });
-  } catch {
-    throw new CatalogApiError({
-      code: "IMAGE_UPLOAD_NETWORK_ERROR",
-      message: "The browser could not upload the image to R2. Check the storage bucket CORS origin.",
-      status: 0,
-    });
-  }
-  if (!put.ok) {
+  // Retry the same signed object key for transient mobile network errors.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    let put: Response;
+    try {
+      put = await fetch(upload.data.url, {
+        method: "PUT",
+        headers: upload.data.headers,
+        body: file,
+      });
+    } catch {
+      if (attempt === 2) {
+        throw new CatalogApiError({
+          code: "IMAGE_UPLOAD_NETWORK_ERROR",
+          message: "The browser could not upload the image to R2. Check your connection and the storage bucket CORS origin.",
+          status: 0,
+        });
+      }
+      await new Promise<void>((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+      continue;
+    }
+    if (put.ok) return upload.data.key;
+    if ((put.status === 429 || put.status >= 500) && attempt < 2) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+      continue;
+    }
     throw new CatalogApiError({
       code: "IMAGE_UPLOAD_FAILED",
       message: `Object storage rejected the image upload (HTTP ${put.status}).`,
       status: put.status,
     });
   }
-  return upload.data.key;
+  throw new CatalogApiError({
+    code: "IMAGE_UPLOAD_FAILED",
+    message: "Image upload retries were exhausted.",
+    status: 0,
+  });
 }
 
 export async function uploadProductImage(
