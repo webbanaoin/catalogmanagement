@@ -215,7 +215,7 @@ export function ShopProfileForm() {
           instagramUrl: optional(rawValue(formData, "instagramUrl")),
           facebookUrl: optional(rawValue(formData, "facebookUrl")),
           showProductPrices: formData.get("showProductPrices") === "on",
-          ...(profile.wishlistAllowedByAdmin
+          ...(profile?.wishlistAllowedByAdmin
             ? { wishlistEnabledByMerchant: formData.get("wishlistEnabledByMerchant") === "on" }
             : {}),
         }),
