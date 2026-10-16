@@ -32,7 +32,8 @@
     "test:admin:payments": "node scripts/admin-payment-regression.mjs",
     "test:referrals": "node scripts/referral-platform-regression.mjs",
     "test:merchant:payments": "node scripts/merchant-payment-submission-regression.mjs",
-    "test:auth:password-reset": "node scripts/password-reset-regression.mjs"
+    "test:auth:password-reset": "node scripts/password-reset-regression.mjs",
+    "test:catalog:defaults": "node scripts/catalog-defaults-regression.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.922.0",
