@@ -26,7 +26,7 @@ export async function GET(
           name: true,
           showProductPrices: true,
           businessCategory: {
-            select: { name: true, slug: true },
+            select: { id: true, name: true, slug: true },
           },
         },
       });

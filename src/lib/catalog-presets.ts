@@ -68,16 +68,18 @@ const PRESETS: Array<{
     preset: {
       key: "toys-gifts",
       groupLabel: "Department",
-      groups: ["Toys", "Gifts", "Return Gifts", "Party", "Home Decor"],
+      groups: ["Toys", "Gifts", "Stationery", "Return Gifts", "Party", "Home Decor"],
       primaryFilterAttribute: "Age Group",
       attributes: [
         {
           name: "Age Group",
           label: "Age Group",
+          visibleForGroups: ["Toys"],
           options: ["0-2 Years", "3-5 Years", "6-8 Years", "9-12 Years", "13+ Years", "All Ages"],
         },
         { name: "Brand", label: "Brand", placeholder: "Optional brand" },
         { name: "Material", label: "Material", placeholder: "e.g. Plastic, Wood, Plush" },
+        { name: "Class / Grade", label: "Class / Grade", placeholder: "For school stationery (optional)", visibleForGroups: ["Stationery"] },
       ],
     },
   },

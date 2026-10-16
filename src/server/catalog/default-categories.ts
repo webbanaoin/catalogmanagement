@@ -3,22 +3,18 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 
 import { getDefaultCategoryPreset } from "@/lib/default-category-presets";
+import { listBusinessCategoryDefaults, type BusinessCategoryIdentity } from "@/server/catalog/business-category-defaults";
 import { normalizeCategoryName } from "@/server/catalog/category-name";
-import { toSlug } from "@/server/catalog/slug";
 
-const ACTION = "DEFAULT_CATEGORIES_SEEDED";
-const ENTITY_TYPE = "CATEGORY_PRESET";
-
-type BusinessCategoryInput = {
-  name?: string | null;
-  slug?: string | null;
-};
+const LEGACY_ACTION = "DEFAULT_CATEGORIES_SEEDED";
+const TEMPLATE_ACTION = "DEFAULT_CATEGORY_TEMPLATE_APPLIED";
+const TEMPLATE_ENTITY = "BusinessCategoryDefault";
 
 export async function ensureDefaultShopCategories(
   tx: Prisma.TransactionClient,
   options: {
     shopId: string;
-    businessCategory?: BusinessCategoryInput | null;
+    businessCategory?: BusinessCategoryIdentity | null;
     actorUserId?: string | null;
   },
 ): Promise<{
@@ -27,92 +23,96 @@ export async function ensureDefaultShopCategories(
   createdCount: number;
   createdCategories: string[];
 }> {
-  const preset = getDefaultCategoryPreset(options.businessCategory);
-
-  if (!preset || preset.categories.length === 0) {
-    return {
-      presetKey: null,
-      seeded: false,
-      createdCount: 0,
-      createdCategories: [],
-    };
+  if (!options.businessCategory) {
+    return { presetKey: null, seeded: false, createdCount: 0, createdCategories: [] };
   }
 
-  const priorSeed = await tx.auditLog.findFirst({
+  const category = options.businessCategory;
+  const preset = getDefaultCategoryPreset(category);
+  const defaults = await listBusinessCategoryDefaults(tx, category);
+  const activeDefaults = defaults.filter((item) => item.status === "ACTIVE");
+
+  if (!activeDefaults.length) {
+    return { presetKey: preset?.key ?? null, seeded: false, createdCount: 0, createdCategories: [] };
+  }
+
+  // Existing shops could have deleted a preset category before this feature.
+  // The old seed marker means those deletions must remain deleted.
+  const legacySeed = preset ? await tx.auditLog.findFirst({
     where: {
       shopId: options.shopId,
-      action: ACTION,
-      entityType: ENTITY_TYPE,
+      action: LEGACY_ACTION,
+      entityType: "CATEGORY_PRESET",
       entityId: preset.key,
     },
     select: { id: true },
-  });
+  }) : null;
 
-  if (priorSeed) {
-    return {
-      presetKey: preset.key,
-      seeded: false,
-      createdCount: 0,
-      createdCategories: [],
-    };
+  const applied = await tx.auditLog.findMany({
+    where: {
+      shopId: options.shopId,
+      action: TEMPLATE_ACTION,
+      entityType: TEMPLATE_ENTITY,
+      entityId: { in: activeDefaults.map((item) => item.id) },
+    },
+    select: { entityId: true },
+  });
+  const appliedIds = new Set(applied.map((item) => item.entityId));
+  const pending = activeDefaults.filter((item) => !appliedIds.has(item.id));
+  if (!pending.length) {
+    return { presetKey: preset?.key ?? category.slug, seeded: false, createdCount: 0, createdCategories: [] };
   }
 
   const existing = await tx.shopCategory.findMany({
     where: { shopId: options.shopId },
     select: { name: true, slug: true },
   });
+  const names = new Set(existing.map((item) => normalizeCategoryName(item.name)));
+  const slugs = new Set(existing.map((item) => item.slug.toLowerCase()));
 
-  const existingNames = new Set(existing.map((item) => normalizeCategoryName(item.name)));
-  const existingSlugs = new Set(existing.map((item) => item.slug.toLowerCase()));
+  const toCreate = pending.filter((item) => {
+    if (legacySeed && item.isPreset) return false;
+    if (names.has(normalizeCategoryName(item.name)) || slugs.has(item.slug.toLowerCase())) return false;
+    names.add(normalizeCategoryName(item.name));
+    slugs.add(item.slug.toLowerCase());
+    return true;
+  });
 
-  const rows = preset.categories
-    .map((name, index) => ({
-      name,
-      slug: toSlug(name),
-      displayOrder: (index + 1) * 10,
-    }))
-    .filter(
-      (item) =>
-        !existingNames.has(normalizeCategoryName(item.name)) &&
-        !existingSlugs.has(item.slug.toLowerCase()),
-    )
-    .map((item) => ({
-      shopId: options.shopId,
-      name: item.name,
-      slug: item.slug,
-      displayOrder: item.displayOrder,
-      status: "ACTIVE" as const,
-    }));
-
-  if (rows.length > 0) {
+  if (toCreate.length) {
     await tx.shopCategory.createMany({
-      data: rows,
+      data: toCreate.map((item) => ({
+        shopId: options.shopId,
+        name: item.name,
+        slug: item.slug,
+        displayOrder: item.displayOrder,
+        status: "ACTIVE" as const,
+      })),
       skipDuplicates: true,
     });
   }
 
-  const createdCategories = rows.map((item) => item.name);
-
-  await tx.auditLog.create({
-    data: {
+  // A category is considered handled even when the merchant already has one,
+  // or it is an initial preset deliberately removed from a legacy shop.
+  // This prevents future GETs from recreating a merchant's deleted categories.
+  await tx.auditLog.createMany({
+    data: pending.map((item) => ({
       actorUserId: options.actorUserId ?? null,
       shopId: options.shopId,
-      action: ACTION,
-      entityType: ENTITY_TYPE,
-      entityId: preset.key,
+      action: TEMPLATE_ACTION,
+      entityType: TEMPLATE_ENTITY,
+      entityId: item.id,
       metadata: {
-        businessCategoryName: options.businessCategory?.name ?? null,
-        businessCategorySlug: options.businessCategory?.slug ?? null,
-        presetKey: preset.key,
-        createdCount: createdCategories.length,
-        createdCategories,
+        businessCategoryId: category.id,
+        defaultName: item.name,
+        inserted: toCreate.some((row) => row.id === item.id),
       },
-    },
+    })),
   });
 
+  const createdCategories = toCreate.map((item) => item.name);
   return {
-    presetKey: preset.key,
-    seeded: true,
+    presetKey: preset?.key ?? category.slug,
+    seeded: createdCategories.length > 0,
     createdCount: createdCategories.length,
     createdCategories,
   };
