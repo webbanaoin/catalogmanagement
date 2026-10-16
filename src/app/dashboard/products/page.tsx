@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 
 import {
@@ -25,17 +26,21 @@ import {
   CatalogApiError,
   createShopProduct,
   deleteShopProduct,
+  deleteProductImage,
   duplicateShopProduct,
   getCurrentMerchantShop,
   getShopCategories,
+  getShopProduct,
   getShopProducts,
   getShopProfile,
   updateShopProduct,
+  setPrimaryProductImage,
   uploadProductImage,
   type MerchantShop,
   type ProductAvailability,
   type ProductPriceType,
   type ShopCategory,
+  type ProductImage,
   type ShopProduct,
 } from "@/lib/catalog-api";
 import {
@@ -130,6 +135,10 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [managingImagesFor, setManagingImagesFor] = useState<string | null>(null);
+  const [managedImages, setManagedImages] = useState<ProductImage[]>([]);
+  const [loadingImages, setLoadingImages] = useState(false);
+  const [imageBusyId, setImageBusyId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{
     variant: "success" | "error" | "warning" | "info";
     message: string;
@@ -358,6 +367,85 @@ export default function ProductsPage() {
     }
   }
 
+  async function toggleImageManager(product: ShopProduct) {
+    if (!shop || busyId) return;
+    if (managingImagesFor === product.id) {
+      setManagingImagesFor(null);
+      setManagedImages([]);
+      return;
+    }
+    setManagingImagesFor(product.id);
+    setManagedImages([]);
+    setLoadingImages(true);
+    setFeedback(null);
+    try {
+      const response = await getShopProduct(shop.id, product.id);
+      setManagedImages(response.data.images);
+    } catch (error) {
+      setManagingImagesFor(null);
+      setFeedback({
+        variant: "error",
+        message: error instanceof Error ? error.message : "Unable to load product images.",
+      });
+    } finally {
+      setLoadingImages(false);
+    }
+  }
+
+  async function selectPrimaryImage(product: ShopProduct, image: ProductImage) {
+    if (!shop || busyId || image.isPrimary) return;
+    setBusyId(product.id);
+    setImageBusyId(image.id);
+    setFeedback(null);
+    try {
+      await setPrimaryProductImage(shop.id, product.id, image.id);
+      const [detail] = await Promise.all([
+        getShopProduct(shop.id, product.id),
+        refreshProducts(shop.id),
+      ]);
+      setManagedImages(detail.data.images);
+      setFeedback({ variant: "success", message: `Primary image updated for ${product.name}.` });
+    } catch (error) {
+      setFeedback({
+        variant: "error",
+        message: error instanceof Error ? error.message : "Unable to set the primary image.",
+      });
+    } finally {
+      setBusyId(null);
+      setImageBusyId(null);
+    }
+  }
+
+  async function removeProductImage(product: ShopProduct, image: ProductImage) {
+    if (!shop || busyId) return;
+    const description = image.isPrimary
+      ? " The next available image will automatically become primary."
+      : "";
+    if (!window.confirm(`Permanently delete this image from "${product.name}"? It will also be removed from cloud storage and cannot be restored.${description}`)) {
+      return;
+    }
+    setBusyId(product.id);
+    setImageBusyId(image.id);
+    setFeedback(null);
+    try {
+      await deleteProductImage(shop.id, product.id, image.id);
+      const [detail] = await Promise.all([
+        getShopProduct(shop.id, product.id),
+        refreshProducts(shop.id),
+      ]);
+      setManagedImages(detail.data.images);
+      setFeedback({ variant: "success", message: "Image permanently deleted. Image quota is available again." });
+    } catch (error) {
+      setFeedback({
+        variant: "error",
+        message: error instanceof Error ? error.message : "Unable to delete this image.",
+      });
+    } finally {
+      setBusyId(null);
+      setImageBusyId(null);
+    }
+  }
+
   async function uploadImages(product: ShopProduct, event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
     event.target.value = "";
@@ -395,6 +483,10 @@ export default function ProductsPage() {
         message: `${uploaded} image${uploaded === 1 ? "" : "s"} uploaded for ${product.name}. The existing primary image is preserved; the first image becomes primary automatically when the product had no images.`,
       });
       await refreshProducts(shop.id);
+      if (managingImagesFor === product.id) {
+        const detail = await getShopProduct(shop.id, product.id);
+        setManagedImages(detail.data.images);
+      }
     } catch (error) {
       const message =
         error instanceof Error
@@ -698,7 +790,7 @@ export default function ProductsPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {products.map((product) => {
-              const primaryImage = product.images?.[0];
+              const primaryImage = product.images?.find((image) => image.isPrimary) ?? product.images?.[0];
               return (
                 <div
                   key={product.id}
@@ -761,7 +853,7 @@ export default function ProductsPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="secondary" onClick={() => startEdit(product)}>
+                      <Button size="sm" variant="secondary" disabled={busyId === product.id} onClick={() => startEdit(product)}>
                         Edit
                       </Button>
                       <Button
@@ -771,6 +863,15 @@ export default function ProductsPage() {
                         onClick={() => void duplicate(product)}
                       >
                         Duplicate
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={busyId !== null || loadingImages}
+                        onClick={() => void toggleImageManager(product)}
+                        aria-expanded={managingImagesFor === product.id}
+                      >
+                        {managingImagesFor === product.id ? "Close images" : "Manage images"}
                       </Button>
                       {shop && product.isVisible ? (
                         <Link
@@ -802,6 +903,65 @@ export default function ProductsPage() {
                       </Button>
                     </div>
                   </div>
+                  {managingImagesFor === product.id ? (
+                    <section className="mt-4 border-t border-border pt-4" aria-label={`Manage images for ${product.name}`}>
+                      <p className="text-sm font-semibold text-foreground">Product image gallery</p>
+                      <p className="mt-1 text-xs text-muted">
+                        Choose the main image shown on product cards, or delete unwanted images.
+                        Deleting also removes the cloud object and frees image quota.
+                      </p>
+                      {loadingImages ? (
+                        <p className="mt-3 text-sm text-muted">Loading gallery…</p>
+                      ) : managedImages.length === 0 ? (
+                        <p className="mt-3 text-sm text-muted">No images yet. Use Upload images to add one.</p>
+                      ) : (
+                        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                          {managedImages.map((image, index) => (
+                            <div key={image.id} className="min-w-0 rounded-lg border border-border bg-surface p-2">
+                              {image.thumbnailUrl ?? image.url ? (
+                                <a href={image.url ?? image.thumbnailUrl ?? "#"} target="_blank" rel="noreferrer" title="View full image">
+                                  <Image
+                                    src={image.thumbnailUrl ?? image.url ?? ""}
+                                    alt={`${product.name} image ${index + 1}`}
+                                    width={160}
+                                    height={160}
+                                    unoptimized
+                                    className="aspect-square w-full rounded-md bg-background object-contain"
+                                  />
+                                </a>
+                              ) : (
+                                <div className="flex aspect-square items-center justify-center rounded-md bg-background text-xs text-muted">Image preview unavailable</div>
+                              )}
+                              <div className="mt-2 flex items-center justify-between gap-1">
+                                <span className="text-xs text-muted">Image {index + 1}</span>
+                                {image.isPrimary ? <Badge variant="success">Primary</Badge> : null}
+                              </div>
+                              <div className="mt-2 flex flex-col gap-2">
+                                {!image.isPrimary ? (
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    disabled={busyId !== null}
+                                    onClick={() => void selectPrimaryImage(product, image)}
+                                  >
+                                    {imageBusyId === image.id ? "Saving…" : "Set as primary"}
+                                  </Button>
+                                ) : null}
+                                <Button
+                                  size="sm"
+                                  variant="danger"
+                                  disabled={busyId !== null}
+                                  onClick={() => void removeProductImage(product, image)}
+                                >
+                                  {imageBusyId === image.id ? "Working…" : "Delete image"}
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  ) : null}
                 </div>
               );
             })}

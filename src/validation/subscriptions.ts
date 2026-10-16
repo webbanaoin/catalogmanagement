@@ -3,6 +3,7 @@ import { z } from "zod";
 const moneySchema = z.coerce.number().finite().min(0).max(100000000);
 const productLimitSchema = z.coerce.number().int().min(1).max(100000);
 const imageLimitSchema = z.coerce.number().int().min(1).max(50);
+const totalImageLimitSchema = z.coerce.number().int().min(1).max(1000000);
 const trialDaysSchema = z.coerce.number().int().min(0).max(365);
 const graceDaysSchema = z.coerce.number().int().min(0).max(90);
 const optionalRegularPriceSchema = moneySchema.positive().nullable();
@@ -24,6 +25,7 @@ export const adminPlanCreateSchema = z.object({
   offerDurationDays: offerDurationSchema.default(7),
   productLimit: productLimitSchema,
   imageLimitPerProduct: imageLimitSchema,
+  totalImageLimit: totalImageLimitSchema.default(250),
   analyticsEnabled: z.boolean().default(false),
   excelImportEnabled: z.boolean().default(false),
   customBrandingEnabled: z.boolean().default(false),
@@ -50,6 +52,7 @@ export const adminPlanUpdateSchema = z
     offerDurationDays: offerDurationSchema.optional(),
     productLimit: productLimitSchema.optional(),
     imageLimitPerProduct: imageLimitSchema.optional(),
+    totalImageLimit: totalImageLimitSchema.optional(),
     analyticsEnabled: z.boolean().optional(),
     excelImportEnabled: z.boolean().optional(),
     customBrandingEnabled: z.boolean().optional(),

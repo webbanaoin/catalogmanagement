@@ -41,6 +41,7 @@ interface FormState {
   offerDurationDays: string;
   productLimit: string;
   imageLimitPerProduct: string;
+  totalImageLimit: string;
   trialDays: string;
   graceDays: string;
   analyticsEnabled: boolean;
@@ -66,6 +67,7 @@ const emptyForm: FormState = {
   offerDurationDays: "7",
   productLimit: "100",
   imageLimitPerProduct: "5",
+  totalImageLimit: "250",
   trialDays: "0",
   graceDays: "0",
   analyticsEnabled: false,
@@ -92,6 +94,7 @@ function fromPlan(plan: AdminPlan): FormState {
     offerDurationDays: String(plan.offerDurationDays),
     productLimit: String(plan.productLimit),
     imageLimitPerProduct: String(plan.imageLimitPerProduct),
+    totalImageLimit: String(plan.totalImageLimit),
     trialDays: String(plan.trialDays),
     graceDays: String(plan.graceDays),
     analyticsEnabled: plan.analyticsEnabled,
@@ -119,6 +122,7 @@ function toPayload(form: FormState): AdminPlanPayload {
     offerDurationDays: Number(form.offerDurationDays),
     productLimit: Number(form.productLimit),
     imageLimitPerProduct: Number(form.imageLimitPerProduct),
+    totalImageLimit: Number(form.totalImageLimit),
     trialDays: Number(form.trialDays),
     graceDays: Number(form.graceDays),
     analyticsEnabled: form.analyticsEnabled,
@@ -160,6 +164,10 @@ function PlanForm({
           return;
         }
       }
+    }
+    if (!Number.isInteger(Number(form.totalImageLimit)) || Number(form.totalImageLimit) < 1) {
+      setMessage("Total images per shop must be a positive whole number.");
+      return;
     }
     if (form.isDefaultTrial && Number(form.trialDays) < 1) {
       setMessage("A default trial plan requires at least 1 trial day. Set Trial days to 30, or uncheck Default trial.");
@@ -227,6 +235,9 @@ function PlanForm({
         <label className="text-sm font-medium text-foreground">Images per product
           <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="1" value={form.imageLimitPerProduct} onChange={(event) => setForm({ ...form, imageLimitPerProduct: event.target.value })} required />
         </label>
+        <label className="text-sm font-medium text-foreground">Total images per shop
+          <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="1" max="1000000" step="1" value={form.totalImageLimit} onChange={(event) => setForm({ ...form, totalImageLimit: event.target.value })} required />
+        </label>
         <label className="text-sm font-medium text-foreground">Trial days
           <input className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3" type="number" min="0" value={form.trialDays} onChange={(event) => setForm({ ...form, trialDays: event.target.value })} />
         </label>
@@ -251,6 +262,7 @@ function PlanForm({
 
       <div className="space-y-2 rounded-lg border border-border bg-background p-3 text-sm text-muted">
         <p><strong className="text-foreground">Pricing setup:</strong> Enter all four regular prices when limited-time offer is enabled. Empty fields and example placeholders are not saved. Regular prices apply after the offer expires or is disabled.</p>
+        <p><strong className="text-foreground">Image quota:</strong> A shop can upload at most the total images configured here, and at most the configured number per product. Existing stored images count towards the total, including images on soft-deleted products.</p>
         <p><strong className="text-foreground">Default trial:</strong> Select this only if this plan should be used for new merchant trials and landing-page pricing. Trial days must be at least 1 (for example, 30); replacing the default affects new registrations, not existing paid subscriptions.</p>
         <p>Enabling starts a shared countdown. To restart an active offer after changing its duration, use Restart offer.</p>
       </div>
@@ -362,6 +374,7 @@ export function AdminPlanManager() {
                       <div><dt className="text-muted">Yearly list</dt><dd className="mt-1 font-medium text-foreground">{plan.regularAnnualPrice ? `₹${plan.regularAnnualPrice}` : "—"}</dd></div>
                       <div className="sm:col-span-2"><dt className="text-muted">Limited-time offer</dt><dd className="mt-1 font-medium text-foreground">{plan.offerEnabled ? `Enabled · ${plan.offerDurationDays} days` : "Disabled"}{plan.offerEndsAt ? ` · Ends ${new Date(plan.offerEndsAt).toLocaleString("en-IN")}` : ""}</dd></div>
                       <div><dt className="text-muted">Products</dt><dd className="mt-1 font-medium text-foreground">{plan.productLimit}</dd></div>
+                      <div><dt className="text-muted">Total images / shop</dt><dd className="mt-1 font-medium text-foreground">{plan.totalImageLimit}</dd></div>
                       <div><dt className="text-muted">Images/product</dt><dd className="mt-1 font-medium text-foreground">{plan.imageLimitPerProduct}</dd></div>
                       <div><dt className="text-muted">Trial / grace</dt><dd className="mt-1 font-medium text-foreground">{plan.trialDays} / {plan.graceDays} days</dd></div>
                     </dl>

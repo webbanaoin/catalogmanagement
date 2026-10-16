@@ -16,6 +16,8 @@ export async function ensureDefaultShopCategories(
     shopId: string;
     businessCategory?: BusinessCategoryIdentity | null;
     actorUserId?: string | null;
+    /** Skip queries for a shop created in this same transaction. */
+    newlyCreatedShop?: boolean;
   },
 ): Promise<{
   presetKey: string | null;
@@ -38,7 +40,7 @@ export async function ensureDefaultShopCategories(
 
   // Existing shops could have deleted a preset category before this feature.
   // The old seed marker means those deletions must remain deleted.
-  const legacySeed = preset ? await tx.auditLog.findFirst({
+  const legacySeed = preset && !options.newlyCreatedShop ? await tx.auditLog.findFirst({
     where: {
       shopId: options.shopId,
       action: LEGACY_ACTION,
@@ -48,7 +50,7 @@ export async function ensureDefaultShopCategories(
     select: { id: true },
   }) : null;
 
-  const applied = await tx.auditLog.findMany({
+  const applied = options.newlyCreatedShop ? [] : await tx.auditLog.findMany({
     where: {
       shopId: options.shopId,
       action: TEMPLATE_ACTION,
@@ -63,7 +65,7 @@ export async function ensureDefaultShopCategories(
     return { presetKey: preset?.key ?? category.slug, seeded: false, createdCount: 0, createdCategories: [] };
   }
 
-  const existing = await tx.shopCategory.findMany({
+  const existing = options.newlyCreatedShop ? [] : await tx.shopCategory.findMany({
     where: { shopId: options.shopId },
     select: { name: true, slug: true },
   });

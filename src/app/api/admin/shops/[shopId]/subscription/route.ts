@@ -59,13 +59,14 @@ export async function GET(
     const { shopId } = await context.params;
     await requireShop(shopId);
 
-    const [access, products] = await Promise.all([
+    const [access, products, totalImages] = await Promise.all([
       getShopSubscriptionAccess(shopId),
       prisma.product.count({ where: { shopId, deletedAt: null } }),
+      prisma.productImage.count({ where: { product: { is: { shopId } } } }),
     ]);
 
     return NextResponse.json({
-      data: access ? subscriptionResponse(access, { products }) : null,
+      data: access ? subscriptionResponse(access, { products, totalImages }) : null,
     });
   } catch (error) {
     return errorResponse(error);

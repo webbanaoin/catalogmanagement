@@ -288,6 +288,11 @@ export async function POST(
         });
 
         return created;
+      }, {
+        // A bulk import writes multiple products and nested attributes.
+        // Avoid Prisma's 5-second interactive-transaction default on Railway.
+        maxWait: 10_000,
+        timeout: 120_000,
       });
 
       return NextResponse.json({
@@ -301,10 +306,25 @@ export async function POST(
         },
       });
     } catch (error) {
-      await prisma.importJob.update({
-        where: { id: job.id },
-        data: { status: "FAILED" },
+      console.error("[merchant/product-import] Unexpected failure", {
+        errorType: error instanceof Error ? error.name : typeof error,
+        errorCode:
+          typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          typeof error.code === "string"
+            ? error.code
+            : null,
+        attemptedRows: importable.length,
       });
+      try {
+        await prisma.importJob.updateMany({
+          where: { id: job.id, shopId, status: "PREVIEW_READY" },
+          data: { status: "FAILED" },
+        });
+      } catch {
+        console.error("[merchant/product-import] Could not mark import job failed");
+      }
 
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         throw new AppError({
