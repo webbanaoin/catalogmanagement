@@ -1,5 +1,6 @@
-import { AdminWishlistGate } from "@/components/admin/admin-wishlist-gate";
 "use client";
+
+import { AdminWishlistGate } from "@/components/admin/admin-wishlist-gate";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
