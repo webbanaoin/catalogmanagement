@@ -255,9 +255,29 @@ model BusinessCategory {
   status CatalogStatus @default(ACTIVE)
   displayOrder Int @default(0) @map("display_order")
   shops Shop[]
+  defaultsInitialized Boolean @default(false) @map("defaults_initialized")
+  defaultCategories BusinessCategoryDefault[]
   categoryMedia BusinessCategoryMedia[]
   @@index([status, displayOrder])
   @@map("business_categories")
+}
+
+// Platform-managed shop category defaults for each business type.
+// Merchants receive independent ShopCategory rows, never a mutable shared category.
+model BusinessCategoryDefault {
+  id String @id @default(cuid())
+  businessCategoryId String @map("business_category_id")
+  name String @db.VarChar(120)
+  slug String @db.VarChar(160)
+  displayOrder Int @default(0) @map("display_order")
+  status CatalogStatus @default(ACTIVE)
+  isPreset Boolean @default(false) @map("is_preset")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  businessCategory BusinessCategory @relation(fields: [businessCategoryId], references: [id], onDelete: Cascade)
+  @@unique([businessCategoryId, slug])
+  @@index([businessCategoryId, status, displayOrder])
+  @@map("business_category_defaults")
 }
 
 model BusinessCategoryMedia {
