@@ -30,6 +30,14 @@ export async function PATCH(
       if (!current) throw new AppError({
         code: "DEFAULT_CATEGORY_NOT_FOUND", message: "Subcategory not found", status: 404,
       });
+      if (input.status === "INACTIVE" &&
+        defaults.some((item) => item.parentId === defaultId && item.status === "ACTIVE")) {
+        throw new AppError({
+          code: "DEFAULT_CATEGORY_HAS_ACTIVE_CHILDREN",
+          message: "Deactivate its child categories first before disabling a parent category.",
+          status: 409,
+        });
+      }
       if (input.parentId !== undefined) {
         const parentError = validateDefaultCategoryParent(defaults, defaultId, input.parentId);
         if (parentError) throw new AppError({
