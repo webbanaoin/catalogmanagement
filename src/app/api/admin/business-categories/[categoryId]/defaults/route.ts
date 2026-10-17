@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { requirePlatformAdmin } from "@/server/auth/admin-access";
 import { listBusinessCategoryDefaults } from "@/server/catalog/business-category-defaults";
 import { normalizeCategoryName } from "@/server/catalog/category-name";
+import { validateDefaultCategoryParent } from "@/server/catalog/default-category-tree";
 import { toSlug } from "@/server/catalog/slug";
 import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
@@ -46,6 +47,10 @@ export async function POST(request: Request, context: { params: Promise<{ catego
     const data = await prisma.$transaction(async (tx) => {
       const category = await requireBusinessType(tx, categoryId);
       const current = await listBusinessCategoryDefaults(tx, category);
+      const parentError = validateDefaultCategoryParent(current, null, input.parentId ?? null);
+      if (parentError) throw new AppError({
+        code: "INVALID_DEFAULT_CATEGORY_PARENT", message: parentError, status: 400,
+      });
       if (current.some((item) =>
         item.slug === slug ||
         normalizeCategoryName(item.name) === normalizeCategoryName(input.name)
