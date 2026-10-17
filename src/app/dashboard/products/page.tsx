@@ -164,6 +164,9 @@ export default function ProductsPage() {
         setShop(currentShop);
         setCategories(categoryResponse.items);
         setProducts(productResponse.items);
+        if (profileResponse.data.businessCategory?.slug === "event-planners-decorators") {
+          setDraft({ ...emptyDraft, priceType: "ASK_PRICE", availabilityStatus: "ON_REQUEST", catalogGroup: "Decoration" });
+        }
         setBusinessCategory(
           profileResponse.data.businessCategory
             ? {
@@ -194,7 +197,9 @@ export default function ProductsPage() {
 
   function resetForm() {
     setEditingId(null);
-    setDraft(emptyDraft);
+    setDraft(businessCategory?.slug === "event-planners-decorators"
+      ? { ...emptyDraft, priceType: "ASK_PRICE", availabilityStatus: "ON_REQUEST", catalogGroup: "Decoration" }
+      : emptyDraft);
   }
 
   function startEdit(product: ShopProduct) {
@@ -525,14 +530,16 @@ export default function ProductsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{editingId ? "Edit product" : "Add product"}</CardTitle>
+          <CardTitle>{businessCategory?.slug === "event-planners-decorators"
+            ? (editingId ? "Edit event service" : "Add event service / package")
+            : (editingId ? "Edit product" : "Add product")}</CardTitle>
           <CardDescription>
             Product code is optional. Leave it blank and the platform will generate one automatically.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form className="grid gap-5 md:grid-cols-2" onSubmit={submit}>
-            <Field label="Product name" htmlFor="product-name" required>
+            <Field label={businessCategory?.slug === "event-planners-decorators" ? "Service / package name" : "Product name"} htmlFor="product-name" required>
               <Input
                 id="product-name"
                 value={draft.name}
@@ -553,7 +560,9 @@ export default function ProductsPage() {
                   .filter((category) => category.status === "ACTIVE")
                   .map((category) => (
                     <option key={category.id} value={category.id}>
-                      {category.name}
+                      {businessCategory?.slug === "event-planners-decorators" && category.parentId
+                        ? `${categories.find((p) => p.id === category.parentId)?.parentId ? "　　↳ " : "　↳ "}${category.name}`
+                        : category.name}
                     </option>
                   ))}
               </Select>

@@ -479,6 +479,7 @@ export interface AdminBusinessCategoryPayload {
 
 export interface AdminBusinessDefaultCategory {
   id: string;
+  parentId: string | null;
   businessCategoryId: string;
   name: string;
   slug: string;
@@ -489,6 +490,7 @@ export interface AdminBusinessDefaultCategory {
 
 export type AdminBusinessDefaultCategoryPayload = {
   name: string;
+  parentId?: string | null;
   displayOrder: number;
   status: "ACTIVE" | "INACTIVE";
 };

@@ -125,6 +125,9 @@ jobs:
       - name: Wishlist feature regression
         run: npm run test:wishlist
 
+      - name: Event category tree regression
+        run: npm run test:event:categories
+
       - name: Application log on failure
         if: failure()
         run: cat /tmp/sprint6-app.log || true

@@ -1,3 +1,5 @@
+import { EVENT_CATEGORY_TREE } from "@/lib/event-category-tree";
+
 export interface DefaultCategoryPreset {
   key: string;
   categories: string[];
@@ -7,6 +9,13 @@ const PRESETS: Array<{
   matches: string[];
   preset: DefaultCategoryPreset;
 }> = [
+  {
+    matches: ["event-planners-decorators", "event planner", "event decorator", "event organiser", "event organizer"],
+    preset: {
+      key: "event-planners-decorators",
+      categories: EVENT_CATEGORY_TREE.map((item) => item.name),
+    },
+  },
   {
     matches: ["jewellery", "jewelry", "jeweller", "jeweler"],
     preset: {
