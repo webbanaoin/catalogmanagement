@@ -269,6 +269,7 @@ model BusinessCategory {
 model BusinessCategoryDefault {
   id String @id @default(cuid())
   businessCategoryId String @map("business_category_id")
+  parentId String? @map("parent_id")
   name String @db.VarChar(120)
   slug String @db.VarChar(160)
   displayOrder Int @default(0) @map("display_order")
@@ -277,6 +278,9 @@ model BusinessCategoryDefault {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   businessCategory BusinessCategory @relation(fields: [businessCategoryId], references: [id], onDelete: Cascade)
+  parent BusinessCategoryDefault? @relation("BusinessDefaultTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children BusinessCategoryDefault[] @relation("BusinessDefaultTree")
+  @@index([parentId], map: "bc_defaults_parent_idx")
   @@unique([businessCategoryId, slug])
   @@index([businessCategoryId, status, displayOrder], map: "bc_defaults_category_status_order_idx")
   @@map("business_category_defaults")
