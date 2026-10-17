@@ -49,6 +49,7 @@ export const adminBusinessCategoryUpdateSchema =
 
 export const adminDefaultCategoryCreateSchema = z.object({
   name: z.string().trim().min(2).max(120),
+  parentId: z.string().trim().min(1).nullable().optional(),
   displayOrder: z.coerce.number().int().min(0).max(100000).default(0),
   status: z.enum(["ACTIVE", "INACTIVE"]).default("ACTIVE"),
 });
