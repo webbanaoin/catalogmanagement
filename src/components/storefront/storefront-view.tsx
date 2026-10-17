@@ -280,9 +280,11 @@ function CategoryShowcase({
   activeCategory,
   catalogGroup,
   attributeValue,
+  allCategories,
 }: {
   shopSlug: string;
   categories: PublicStorefrontResult["categories"];
+  allCategories?: PublicStorefrontResult["categories"];
   activeCategory?: string;
   catalogGroup?: string;
   attributeValue?: string;
@@ -294,7 +296,8 @@ function CategoryShowcase({
     if (catalogGroup) params.set("group", catalogGroup);
     if (attributeValue) params.set("spec", attributeValue);
     params.set("category", category);
-    return `/s/${shopSlug}?${params.toString()}#storefront-products`;
+    const hasChildren = allCategories?.some((item) => item.parentSlug === category) ?? false;
+    return `/s/${shopSlug}?${params.toString()}#${hasChildren ? "storefront-categories" : "storefront-products"}`;
   }
 
   return (
@@ -512,6 +515,7 @@ export function StorefrontView({
           <CategoryShowcase
             shopSlug={data.shop.slug}
             categories={shownCategories}
+            allCategories={eventServices ? data.categories : undefined}
             activeCategory={categorySlug}
             catalogGroup={catalogGroup}
             attributeValue={attributeValue}
