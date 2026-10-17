@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ProductCard } from "@/components/storefront/product-card";
+import { ShopDescription } from "@/components/storefront/shop-description";
 import { StorefrontActions } from "@/components/storefront/storefront-actions";
 import { StorefrontFilters } from "@/components/storefront/storefront-filters";
 import { StorefrontMedia } from "@/components/storefront/storefront-media";
@@ -87,9 +88,7 @@ function ShopHero({
                 ) : null}
 
                 {shop.description ? (
-                  <p className="mt-4 line-clamp-3 max-w-3xl whitespace-pre-line text-sm leading-6 text-muted">
-                    {shop.description}
-                  </p>
+                  <ShopDescription description={shop.description} />
                 ) : null}
 
                 {location ? (
