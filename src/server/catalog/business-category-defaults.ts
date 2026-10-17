@@ -3,6 +3,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 
 import { getDefaultCategoryPreset } from "@/lib/default-category-presets";
+import { EVENT_BUSINESS_SLUG, EVENT_CATEGORY_TREE } from "@/lib/event-category-tree";
 import { toSlug } from "@/server/catalog/slug";
 
 export type BusinessCategoryIdentity = {
@@ -48,6 +49,26 @@ export async function listBusinessCategoryDefaults(
         })),
         skipDuplicates: true,
       });
+
+      if (businessCategory.slug === EVENT_BUSINESS_SLUG) {
+        // All rows exist before we connect parents, so imports remain idempotent.
+        const seeded = await tx.businessCategoryDefault.findMany({
+          where: { businessCategoryId: businessCategory.id },
+          select: { id: true, slug: true, parentId: true },
+        });
+        const bySlug = new Map(seeded.map((item) => [item.slug, item]));
+        for (const definition of EVENT_CATEGORY_TREE) {
+          if (!definition.parentSlug) continue;
+          const child = bySlug.get(toSlug(definition.name));
+          const parent = bySlug.get(definition.parentSlug);
+          if (child && parent && child.parentId === null) {
+            await tx.businessCategoryDefault.update({
+              where: { id: child.id },
+              data: { parentId: parent.id },
+            });
+          }
+        }
+      }
     }
   }
 
