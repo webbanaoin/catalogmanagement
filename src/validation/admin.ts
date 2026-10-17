@@ -45,3 +45,16 @@ export const adminBusinessCategoryUpdateSchema =
     .refine((value) => Object.keys(value).length > 0, {
       message: "At least one field must be provided",
     });
+
+
+export const adminDefaultCategoryCreateSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  displayOrder: z.coerce.number().int().min(0).max(100000).default(0),
+  status: z.enum(["ACTIVE", "INACTIVE"]).default("ACTIVE"),
+});
+
+export const adminDefaultCategoryUpdateSchema = adminDefaultCategoryCreateSchema
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one field must be provided",
+  });

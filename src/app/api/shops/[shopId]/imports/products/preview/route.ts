@@ -101,7 +101,7 @@ export async function POST(
           where: { id: shopId },
           select: {
             businessCategory: {
-              select: { name: true, slug: true },
+              select: { id: true, name: true, slug: true },
             },
           },
         });

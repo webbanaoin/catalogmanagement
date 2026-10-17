@@ -100,6 +100,8 @@ export default async function StorefrontPage({
       label={data.shop.name}
       logoUrl={data.shop.logoUrl}
       shopSlug={shopSlug}
+      wishlistEnabled={data.shop.wishlistEnabled}
+      whatsapp={data.shop.whatsapp}
     >
       <StorefrontAnalytics shopSlug={shopSlug} eventType="CATALOG_VISIT" />
       <StorefrontView

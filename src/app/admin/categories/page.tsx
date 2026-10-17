@@ -10,7 +10,7 @@ export default async function AdminBusinessCategoriesPage() {
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="Business categories"
-        description="Manage platform branding, business-type covers and shared category images inherited by matching storefronts."
+        description="Manage business types, editable merchant subcategory defaults, shared category images and storefront covers."
       />
       <AdminStorefrontDefaults />
       <AdminBusinessCategoryManager />

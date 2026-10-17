@@ -2,6 +2,7 @@
 
 import { type ChangeEvent, useEffect, useState } from "react";
 
+import { AdminBulkCategoryZipUploader } from "@/components/admin/admin-bulk-category-zip-uploader";
 import { StorefrontMedia } from "@/components/storefront/storefront-media";
 import {
   Alert,
@@ -326,8 +327,7 @@ export function AdminCategoryMediaLibrary({
               Shared default category images
             </p>
             <p className="mt-1 max-w-3xl text-xs leading-5 text-muted">
-              Upload each image once for {businessCategoryName}. Ring, Earring,
-              Necklace and the other preset categories will automatically use the
+              Upload each image once for {businessCategoryName}. The active default subcategories of this business type will automatically use the
               same admin image across every existing and future matching shop.
               A shop-specific category image always takes priority.
             </p>
@@ -344,6 +344,26 @@ export function AdminCategoryMediaLibrary({
           ) : null}
         </div>
       </div>
+
+      {items.length > 0 ? (
+        <AdminBulkCategoryZipUploader
+          categoryId={businessCategoryId}
+          items={items}
+          onUploaded={(updated) => {
+            setItems((current) =>
+              current.map((item) =>
+                item.categorySlug === updated.categorySlug
+                  ? { ...item, ...updated }
+                  : item,
+              ),
+            );
+            const configuredCount = items.filter((item) =>
+              Boolean(item.imageStorageKey) || item.categorySlug === updated.categorySlug,
+            ).length;
+            onSetupChange?.({ sharedCategoryImageCount: configuredCount });
+          }}
+        />
+      ) : null}
 
       {!presetKey || items.length === 0 ? (
         <EmptyState

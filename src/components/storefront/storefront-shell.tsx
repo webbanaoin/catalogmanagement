@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { PwaInstallPrompt } from "@/components/pwa/pwa-install-prompt";
 import { StorefrontMedia } from "@/components/storefront/storefront-media";
+import { WishlistHeaderButton, WishlistProvider } from "@/components/storefront/storefront-wishlist";
 import { Container } from "@/components/ui";
 
 export function StorefrontShell({
@@ -11,14 +12,19 @@ export function StorefrontShell({
   label = "Digital Showroom",
   logoUrl,
   shopSlug,
+  wishlistEnabled = false,
+  whatsapp = null,
 }: {
   children: ReactNode;
   homeHref?: string;
   label?: string;
   logoUrl?: string | null;
   shopSlug?: string;
+  wishlistEnabled?: boolean;
+  whatsapp?: string | null;
 }) {
   return (
+    <WishlistProvider shopSlug={shopSlug ?? "platform"} shopName={label} whatsapp={whatsapp} enabled={wishlistEnabled}>
     <div className="storefront-theme min-h-screen bg-background">
       <a
         href="#storefront-main"
@@ -55,12 +61,15 @@ export function StorefrontShell({
             </span>
           </Link>
 
+          <div className="flex shrink-0 items-center gap-2">
+          <WishlistHeaderButton />
           <Link
             href={homeHref}
             className="shrink-0 rounded-full border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground shadow-sm transition hover:border-primary/30 hover:bg-primary-soft hover:text-primary sm:px-4 sm:text-sm"
           >
             Browse collection
           </Link>
+          </div>
         </Container>
       </header>
 
@@ -101,6 +110,7 @@ export function StorefrontShell({
         </Container>
       </footer>
     </div>
+    </WishlistProvider>
   );
 }
 

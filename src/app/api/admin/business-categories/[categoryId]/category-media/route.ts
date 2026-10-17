@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requirePlatformAdmin } from "@/server/auth/admin-access";
-import { getDefaultCategoryPreset } from "@/lib/default-category-presets";
+import { listBusinessCategoryDefaults } from "@/server/catalog/business-category-defaults";
 import { toSlug } from "@/server/catalog/slug";
 import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
@@ -29,21 +29,25 @@ async function businessCategory(categoryId: string) {
   return category;
 }
 
-function presetCategory(
-  category: { name: string; slug: string },
+async function presetCategory(
+  category: { id: string; name: string; slug: string },
   categorySlug: string,
 ) {
-  const preset = getDefaultCategoryPreset(category);
+  const definitions = await prisma.$transaction((tx) =>
+    listBusinessCategoryDefaults(tx, category),
+  );
   const normalized = toSlug(categorySlug);
-  const name = preset?.categories.find((item) => toSlug(item) === normalized);
-  if (!name) {
+  const match = definitions.find((item) =>
+    item.slug === normalized && item.status === "ACTIVE",
+  );
+  if (!match) {
     throw new AppError({
-      code: "CATEGORY_PRESET_NOT_FOUND",
-      message: "This category is not part of the configured preset for this business type",
+      code: "DEFAULT_CATEGORY_NOT_FOUND",
+      message: "This subcategory is not active for this business type",
       status: 404,
     });
   }
-  return { name, slug: normalized, preset };
+  return { name: match.name, slug: match.slug, displayOrder: match.displayOrder };
 }
 
 async function mediaUrl(storageKey: string | null) {
@@ -63,29 +67,22 @@ export async function GET(
     await requirePlatformAdmin();
     const { categoryId } = await context.params;
     const category = await businessCategory(categoryId);
-    const preset = getDefaultCategoryPreset(category);
-
-    if (!preset) {
-      return NextResponse.json({
-        businessCategory: category,
-        presetKey: null,
-        items: [],
-      });
-    }
-
+    const definitions = await prisma.$transaction((tx) =>
+      listBusinessCategoryDefaults(tx, category),
+    );
+    const active = definitions.filter((item) => item.status === "ACTIVE");
     const rows = await prisma.businessCategoryMedia.findMany({
       where: { businessCategoryId: category.id },
     });
     const bySlug = new Map(rows.map((row) => [row.categorySlug, row]));
 
     const items = await Promise.all(
-      preset.categories.map(async (name, index) => {
-        const slug = toSlug(name);
-        const row = bySlug.get(slug) ?? null;
+      active.map(async (definition) => {
+        const row = bySlug.get(definition.slug) ?? null;
         return {
-          categoryName: name,
-          categorySlug: slug,
-          displayOrder: (index + 1) * 10,
+          categoryName: definition.name,
+          categorySlug: definition.slug,
+          displayOrder: definition.displayOrder,
           imageStorageKey: row?.imageStorageKey ?? null,
           imageUrl: await mediaUrl(row?.imageStorageKey ?? null),
           updatedAt: row?.updatedAt ?? null,
@@ -95,7 +92,7 @@ export async function GET(
 
     return NextResponse.json({
       businessCategory: category,
-      presetKey: preset.key,
+      presetKey: active.length ? category.slug : null,
       items,
     });
   } catch (error) {
@@ -114,7 +111,7 @@ export async function POST(
     const input = globalCategoryMediaConfirmSchema.parse(
       await readJsonBody(request),
     );
-    const preset = presetCategory(category, input.categorySlug);
+    const preset = await presetCategory(category, input.categorySlug);
     const prefix = globalCategoryMediaStoragePrefix(
       category.id,
       preset.slug,
@@ -194,10 +191,7 @@ export async function POST(
       data: {
         categoryName: data.categoryName,
         categorySlug: data.categorySlug,
-        displayOrder:
-          ((preset.preset?.categories.findIndex(
-            (item) => toSlug(item) === preset.slug,
-          ) ?? -1) + 1) * 10,
+        displayOrder: preset.displayOrder,
         imageStorageKey: data.imageStorageKey,
         imageUrl: await mediaUrl(data.imageStorageKey),
         updatedAt: data.updatedAt,
@@ -219,7 +213,7 @@ export async function DELETE(
     const input = globalCategoryMediaRemoveSchema.parse(
       await readJsonBody(request),
     );
-    const preset = presetCategory(category, input.categorySlug);
+    const preset = await presetCategory(category, input.categorySlug);
 
     const existing = await prisma.businessCategoryMedia.findUnique({
       where: {

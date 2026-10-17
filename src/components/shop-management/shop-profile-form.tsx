@@ -215,6 +215,9 @@ export function ShopProfileForm() {
           instagramUrl: optional(rawValue(formData, "instagramUrl")),
           facebookUrl: optional(rawValue(formData, "facebookUrl")),
           showProductPrices: formData.get("showProductPrices") === "on",
+          ...(profile?.wishlistAllowedByAdmin
+            ? { wishlistEnabledByMerchant: formData.get("wishlistEnabledByMerchant") === "on" }
+            : {}),
         }),
       ]);
       setAccount((current) => ({ ...current, ...accountResponse.data } as CurrentUser));
@@ -398,6 +401,32 @@ export function ShopProfileForm() {
               <span className="block font-medium">Show product prices by default</span>
               <span className="mt-1 block leading-6 text-muted">
                 Turn this off for jewellery or enquiry-led catalogues. Products with an individual visibility override can still show or hide their price.
+              </span>
+            </span>
+          </label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>WhatsApp wishlist enquiries</CardTitle>
+          <CardDescription>
+            Allow customers to save products and send a combined enquiry on WhatsApp.
+            A platform administrator must enable this feature first.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <label className="flex items-start gap-3 rounded-lg border border-border bg-background p-4 text-sm">
+            <input name="wishlistEnabledByMerchant" type="checkbox"
+              className="mt-1"
+              defaultChecked={profile.wishlistEnabledByMerchant ?? false}
+              disabled={!profile.wishlistAllowedByAdmin} />
+            <span>
+              <span className="block font-medium">Enable My Wishlist on my showroom</span>
+              <span className="mt-1 block leading-6 text-muted">
+                {profile.wishlistAllowedByAdmin
+                  ? "Customers can collect up to 20 products and open a WhatsApp enquiry. A valid shop WhatsApp number is required."
+                  : "Currently unavailable: request your Webbanao platform admin to allow wishlist enquiries."}
               </span>
             </span>
           </label>
