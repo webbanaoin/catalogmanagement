@@ -30,6 +30,20 @@ const PRESETS: Array<{
   preset: CatalogPreset;
 }> = [
   {
+    matches: ["event-planners-decorators", "event planner", "event decorator", "event organiser", "event organizer"],
+    preset: {
+      key: "event-planners-decorators",
+      groupLabel: "Service Type",
+      groups: ["Decoration", "Special Entry"],
+      attributes: [
+        { name: "Event Type", label: "Event", placeholder: "Wedding, birthday, engagement, etc." },
+        { name: "Package Includes", label: "Includes", placeholder: "Backdrop, lighting, floral arrangements, etc." },
+        { name: "Venue", label: "Venue type", placeholder: "Indoor, outdoor, home, banquet hall, etc." },
+        { name: "Duration", label: "Duration", placeholder: "e.g. 4 hours" },
+      ],
+    },
+  },
+  {
     matches: ["jewellery", "jewelry", "jeweller", "jeweler"],
     preset: {
       key: "jewellery",
