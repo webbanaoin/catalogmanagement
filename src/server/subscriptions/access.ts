@@ -170,7 +170,7 @@ function assertImageCapacity(
   if (capacity.currentImages + additionalImages > capacity.limit) {
     throw new AppError({
       code: "IMAGE_LIMIT_REACHED",
-      message: `This plan allows up to ${capacity.limit} images per product.`,
+      message: `This shop allows up to ${capacity.limit} images per product.`,
       status: 409,
     });
   }
@@ -197,8 +197,14 @@ export async function getImageCapacity(shopId: string, productId: string) {
     });
   }
 
-  const counts = await countProductImages(prisma, shopId, productId);
-  const limit = access.subscription.plan.imageLimitPerProduct;
+  const [counts, shop] = await Promise.all([
+    countProductImages(prisma, shopId, productId),
+    prisma.shop.findUnique({
+      where: { id: shopId },
+      select: { imageLimitPerProductOverride: true },
+    }),
+  ]);
+  const limit = shop?.imageLimitPerProductOverride ?? access.subscription.plan.imageLimitPerProduct;
   const totalImageLimit = access.subscription.plan.totalImageLimit;
   return {
     access,
@@ -260,10 +266,16 @@ export async function requireImageCapacityInTransaction(
   if (!product) {
     throw new AppError({ code: "PRODUCT_NOT_FOUND", message: "Product was not found in this shop", status: 404 });
   }
-  const counts = await countProductImages(tx, shopId, productId);
+  const [counts, shop] = await Promise.all([
+    countProductImages(tx, shopId, productId),
+    tx.shop.findUnique({
+      where: { id: shopId },
+      select: { imageLimitPerProductOverride: true },
+    }),
+  ]);
   const capacity = {
     ...counts,
-    limit: subscription.plan.imageLimitPerProduct,
+    limit: shop?.imageLimitPerProductOverride ?? subscription.plan.imageLimitPerProduct,
     totalImageLimit: subscription.plan.totalImageLimit,
   };
   assertImageCapacity(capacity, additionalImages);

@@ -35,6 +35,7 @@ export async function GET(request: Request) {
           requestedBusinessType: true,
           wishlistAllowedByAdmin: true,
           wishlistEnabledByMerchant: true,
+          imageLimitPerProductOverride: true,
           referralAssignedAt: true,
           referralPartner: {
             select: {
@@ -73,6 +74,8 @@ export async function GET(request: Request) {
                   id: true,
                   name: true,
                   slug: true,
+                  imageLimitPerProduct: true,
+                  totalImageLimit: true,
                   monthlyPrice: true,
                   quarterlyPrice: true,
                   halfYearlyPrice: true,
@@ -102,6 +105,8 @@ export async function GET(request: Request) {
               planId: subscription.plan.id,
               planName: subscription.plan.name,
               planSlug: subscription.plan.slug,
+              imageLimitPerProduct: subscription.plan.imageLimitPerProduct,
+              totalImageLimit: subscription.plan.totalImageLimit,
               monthlyPrice: subscription.plan.monthlyPrice.toString(),
               quarterlyPrice: subscription.plan.quarterlyPrice.toString(),
               halfYearlyPrice: subscription.plan.halfYearlyPrice.toString(),

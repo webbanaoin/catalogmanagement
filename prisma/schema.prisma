@@ -181,6 +181,7 @@ model Shop {
   showProductPrices Boolean @default(true) @map("show_product_prices")
   wishlistAllowedByAdmin Boolean @default(false) @map("wishlist_allowed_by_admin")
   wishlistEnabledByMerchant Boolean @default(false) @map("wishlist_enabled_by_merchant")
+  imageLimitPerProductOverride Int? @map("image_limit_per_product_override")
   referralPartnerId String? @map("referral_partner_id")
   referralAssignedAt DateTime? @map("referral_assigned_at")
   status ShopStatus @default(PENDING)

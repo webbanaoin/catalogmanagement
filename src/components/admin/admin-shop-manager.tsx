@@ -1,6 +1,7 @@
 "use client";
 
 import { AdminWishlistGate } from "@/components/admin/admin-wishlist-gate";
+import { AdminShopImageLimit } from "@/components/admin/admin-shop-image-limit";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -469,6 +470,8 @@ function ShopCard({
             </div>
           </div>
         </div>
+
+        <AdminShopImageLimit key={`${shop.id}-${shop.imageLimitPerProductOverride ?? "default"}`} shop={shop} onChanged={onChanged} />
 
         <AdminWishlistGate shopId={shop.id} allowed={shop.wishlistAllowedByAdmin}
           merchantEnabled={shop.wishlistEnabledByMerchant} onChanged={onChanged} />
