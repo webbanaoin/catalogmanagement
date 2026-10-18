@@ -16,6 +16,8 @@ export interface AdminShopOwner {
 export interface AdminShopSubscriptionSummary {
   planId: string;
   planName: string;
+  imageLimitPerProduct: number;
+  totalImageLimit: number;
   planSlug: string;
   monthlyPrice: string;
   quarterlyPrice: string;
@@ -42,6 +44,7 @@ export interface AdminShop {
   status: AdminShopStatus;
   wishlistAllowedByAdmin: boolean;
   wishlistEnabledByMerchant: boolean;
+  imageLimitPerProductOverride: number | null;
   email?: string | null;
   phone?: string | null;
   city?: string | null;
@@ -593,6 +596,22 @@ export async function getAdminShops(
       totalPages: number;
     };
   }>("/api/admin/shops?" + params.toString());
+}
+
+export async function updateAdminShopImageLimit(
+  shopId: string,
+  imageLimitPerProductOverride: number | null,
+) {
+  return requestJson<{ data: {
+    id: string;
+    imageLimitPerProductOverride: number | null;
+    planImageLimitPerProduct: number | null;
+    effectiveImageLimitPerProduct: number | null;
+    totalImageLimit: number | null;
+  } }>(
+    "/api/admin/shops/" + encodeURIComponent(shopId) + "/image-limit",
+    { method: "PATCH", body: JSON.stringify({ imageLimitPerProductOverride }) },
+  );
 }
 
 export async function updateAdminWishlistPermission(shopId: string, allowed: boolean) {
