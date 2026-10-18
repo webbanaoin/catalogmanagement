@@ -61,7 +61,7 @@ export async function consumeRegistrationEmailGrant(
   if (updated.count !== 1) {
     throw new AppError({
       code: "EMAIL_VERIFICATION_REQUIRED", status: 400,
-      message: "Please verify your email with the latest 6-digit OTP before registering.",
+      message: "Email verification expired or is no longer valid. Please request a new 6-digit OTP to continue.",
     });
   }
 }
