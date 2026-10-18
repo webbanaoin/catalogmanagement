@@ -126,7 +126,7 @@ export function requestRegistrationEmailOtp(payload: {email:string;purpose:"MERC
 }
 
 export function verifyRegistrationEmailOtp(payload: {email:string;purpose:"MERCHANT"|"PARTNER";code:string}) {
-  return postJson<{data:{verificationToken:string;email:string}}>("/api/registration/email-otp/verify", payload);
+  return postJson<{data:{verificationToken:string;email:string;expiresAt:string}}>("/api/registration/email-otp/verify", payload);
 }
 
 export function registerMerchant(payload: RegisterPayload) {
