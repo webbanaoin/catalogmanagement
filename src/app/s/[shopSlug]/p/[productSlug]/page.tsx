@@ -9,6 +9,7 @@ import { StorefrontActions } from "@/components/storefront/storefront-actions";
 import { StorefrontShell } from "@/components/storefront/storefront-shell";
 import { Badge, Card, CardContent, Container } from "@/components/ui";
 import { availabilityLabel, formatInr } from "@/lib/storefront";
+import { safeProductReturnHref } from "@/lib/storefront-navigation";
 import { getAppEnvironment } from "@/server/env";
 import { getPublicProduct } from "@/server/storefront/storefront-data";
 
@@ -130,15 +131,19 @@ function availabilityTone(value: "IN_STOCK" | "OUT_OF_STOCK" | "ON_REQUEST") {
 
 export default async function ProductPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ shopSlug: string; productSlug: string }>;
+  searchParams: Promise<{ from?: string | string[] }>;
 }) {
-  const { shopSlug, productSlug } = await params;
+  const [{ shopSlug, productSlug }, query] = await Promise.all([params, searchParams]);
   const result = await getPublicProduct(shopSlug, productSlug);
 
   if (!result) notFound();
 
   const { shop, product } = result;
+  const rawFrom = Array.isArray(query.from) ? query.from[0] : query.from;
+  const returnHref = safeProductReturnHref(shopSlug, rawFrom, product.category?.slug);
   const productUrl = new URL(
     `/s/${shopSlug}/p/${productSlug}`,
     getAppEnvironment().APP_URL,
@@ -184,6 +189,12 @@ export default async function ProductPage({
       />
 
       <Container className="pb-10 pt-4 sm:pb-14 sm:pt-6">
+        <Link
+          href={returnHref}
+          className="mb-3 inline-flex min-h-10 items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2 text-sm font-semibold text-primary shadow-sm transition hover:border-primary/30 hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:mb-4"
+        >
+          <span aria-hidden="true">←</span> Back to products
+        </Link>
         <nav className="mb-4 flex min-w-0 items-center gap-2 text-xs font-semibold text-muted sm:mb-6 sm:text-sm">
           <Link
             href={`/s/${shopSlug}`}
