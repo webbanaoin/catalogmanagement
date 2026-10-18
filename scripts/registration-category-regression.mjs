@@ -101,8 +101,16 @@ async function main() {
   assert(theme.parentId === decoration.id && jungle.parentId === theme.id &&
     jhoomar.parentId === entries.id, "Event category parents incorrectly linked");
   const initialCount = categories.length;
+  const pendingLogin = await call("/api/auth/login", { email, password });
+  assert(pendingLogin.response.status === 403 &&
+    pendingLogin.json.error?.code === "SHOP_PENDING_APPROVAL",
+    "Existing admin approval gate must block pending merchant login");
+
+  // Advance *only* the disposable CI shop to an approved state; the route's
+  // normal approval workflow is covered by existing security/tenant suites.
+  await prisma.shop.update({ where: { id: shop.id }, data: { status: "APPROVED" } });
   const login = await call("/api/auth/login", { email, password });
-  assert(login.response.status === 200, "Merchant cannot sign in after registration");
+  assert(login.response.status === 200, "Approved merchant cannot sign in after registration");
   const cookie = login.response.headers.get("set-cookie")?.split(";")[0];
   const list = await fetch(`${baseUrl}/api/shops/${shop.id}/categories?pageSize=100`, {
     headers: { Cookie: cookie },
