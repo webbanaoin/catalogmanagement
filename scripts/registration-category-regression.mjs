@@ -10,8 +10,10 @@ const prisma = new PrismaClient();
 const stamp = randomUUID().slice(0, 9);
 const email = `reg-event-${stamp}@example.test`;
 const badEmail = `reg-invalid-${stamp}@example.test`;
+const expiredEmail = `reg-expired-${stamp}@example.test`;
+const partnerEmail = `reg-partner-${stamp}@example.test`;
 const password = `RegistrationAa9!${stamp}`;
-const fixtures = { shops: [], users: [], emails: [email, badEmail] };
+const fixtures = { shops: [], users: [], emails: [email, badEmail, expiredEmail, partnerEmail] };
 function assert(value, message) { if (!value) throw Error(message); }
 async function call(path, body) {
   const response = await fetch(baseUrl + path, {
@@ -21,6 +23,22 @@ async function call(path, body) {
   });
   const json = await response.json().catch(() => ({}));
   return { response, json };
+}
+function otpCodeHash(address, purpose, code) {
+  return createHmac("sha256", process.env.AUTH_SECRET)
+    .update(`registration-otp:${purpose}:${address.toLowerCase()}:${code}`)
+    .digest("hex");
+}
+async function challenge(address, purpose, code) {
+  await prisma.registrationEmailOtp.create({
+    data: {
+      email: address,
+      purpose,
+      codeHash: otpCodeHash(address, purpose, code),
+      expiresAt: new Date(Date.now() + 20_000),
+      lastSentAt: new Date(Date.now() - 9 * 60000),
+    },
+  });
 }
 function grantHash(address, token) {
   return createHmac("sha256", process.env.AUTH_SECRET)
@@ -68,8 +86,60 @@ async function main() {
     where: { email_purpose: { email: badEmail, purpose: "MERCHANT" } },
   })).consumedAt === null, "Invalid OTP must not consume the verification grant");
 
-  const token = randomBytes(32).toString("base64url");
-  await otp(email, token);
+  // A customer who verifies near the end of the OTP delivery window must
+  // receive a fresh 10-minute verified grant, instead of an almost-expired one.
+  await challenge(email, "MERCHANT", "619284");
+  const verified = await call("/api/registration/email-otp/verify", {
+    email, purpose: "MERCHANT", code: "619284",
+  });
+  assert(verified.response.status === 200, "Near-expiry merchant OTP must verify");
+  const token = verified.json.data.verificationToken;
+  const expiry = Date.parse(verified.json.data.expiresAt);
+  assert(typeof token === "string" && token.length >= 32, "Verification token missing");
+  assert(expiry > Date.now() + 9 * 60_000,
+    "Verified OTP must grant a fresh 10-minute window after verification");
+  const repeat = await call("/api/registration/email-otp/verify", {
+    email, purpose: "MERCHANT", code: "619284",
+  });
+  assert(repeat.response.status === 400 && repeat.json.error.code === "OTP_EXPIRED_OR_INVALID",
+    "Verified OTP must not be reused");
+
+  // Expired grants must be rejected safely and allow a *new* code to verify.
+  const expiredToken = randomBytes(32).toString("base64url");
+  await otp(expiredEmail, expiredToken);
+  await prisma.registrationEmailOtp.update({
+    where: { email_purpose: { email: expiredEmail, purpose: "MERCHANT" } },
+    data: { expiresAt: new Date(Date.now() - 1000) },
+  });
+  const expired = await call("/api/auth/register", data(expiredEmail, expiredToken, category.id));
+  assert(expired.response.status === 400 &&
+    expired.json.error.code === "EMAIL_VERIFICATION_REQUIRED",
+    "Expired verified grant must prompt fresh OTP, not an unexpected 500");
+  assert(!await prisma.user.findUnique({ where: { email: expiredEmail } }),
+    "Expired grant must not create a merchant");
+  await prisma.registrationEmailOtp.update({
+    where: { email_purpose: { email: expiredEmail, purpose: "MERCHANT" } },
+    data: {
+      codeHash: otpCodeHash(expiredEmail, "MERCHANT", "729415"),
+      expiresAt: new Date(Date.now() + 60_000),
+      verifiedAt: null, verificationTokenHash: null, consumedAt: null,
+    },
+  });
+  const recovered = await call("/api/registration/email-otp/verify", {
+    email: expiredEmail, purpose: "MERCHANT", code: "729415",
+  });
+  assert(recovered.response.status === 200 &&
+    Date.parse(recovered.json.data.expiresAt) > Date.now() + 9 * 60_000,
+    "User must be able to reverify after an expired grant");
+
+  await challenge(partnerEmail, "PARTNER", "187693");
+  const partnerVerified = await call("/api/registration/email-otp/verify", {
+    email: partnerEmail, purpose: "PARTNER", code: "187693",
+  });
+  assert(partnerVerified.response.status === 200 &&
+    Date.parse(partnerVerified.json.data.expiresAt) > Date.now() + 9 * 60_000,
+    "Marketing Partner must receive the same verified window");
+
   const success = await call("/api/auth/register", data(email, token, category.id));
   assert(success.response.status === 201,
     `Event signup expected 201, got ${success.response.status}: ${JSON.stringify(success.json).slice(0, 350)}`);
@@ -124,7 +194,7 @@ async function main() {
     "Duplicate registration should explain that account exists");
   assert((await prisma.user.count({ where: { email } })) === 1,
     "Duplicate registration must not create users");
-  console.log("PASS: merchant signup, OTP consumption, approval state, nested event defaults, login, idempotency and duplicate handling");
+  console.log("PASS: merchant/partner OTP grace, expired-grant recovery, merchant signup, approval, event defaults and duplicate protection");
 }
 try { await main(); }
 finally {
