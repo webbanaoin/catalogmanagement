@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ProductCard } from "@/components/storefront/product-card";
+import { storefrontListingHref } from "@/lib/storefront-navigation";
 import { ShopDescription } from "@/components/storefront/shop-description";
 import { StorefrontActions } from "@/components/storefront/storefront-actions";
 import { StorefrontFilters } from "@/components/storefront/storefront-filters";
@@ -375,11 +376,13 @@ function ProductGrid({
   products,
   emptyTitle,
   emptyDescription,
+  listingHref,
 }: {
   shopSlug: string;
   products: PublicProductSummary[];
   emptyTitle: string;
   emptyDescription: string;
+  listingHref?: string;
 }) {
   if (products.length === 0) {
     return <EmptyState title={emptyTitle} description={emptyDescription} />;
@@ -388,7 +391,7 @@ function ProductGrid({
   return (
     <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:gap-5">
       {products.map((product) => (
-        <ProductCard key={product.slug} shopSlug={shopSlug} product={product} />
+        <ProductCard key={product.slug} shopSlug={shopSlug} product={product} listingHref={listingHref} />
       ))}
     </div>
   );
@@ -490,6 +493,7 @@ function HighlightSection({
       <ProductGrid
         shopSlug={shopSlug}
         products={products}
+        listingHref={`/s/${encodeURIComponent(shopSlug)}#storefront-products`}
         emptyTitle="No products"
         emptyDescription="No products are available in this section yet."
       />
@@ -525,6 +529,20 @@ export function StorefrontView({
   const shownCategories = eventServices
     ? data.categories.filter((category) => category.parentSlug === (categorySlug ?? null))
     : data.categories;
+  const currentCategory = data.categories.find((category) => category.slug === categorySlug);
+  const parentCategory = currentCategory?.parentSlug
+    ? data.categories.find((category) => category.slug === currentCategory.parentSlug)
+    : null;
+  const backParams = new URLSearchParams();
+  if (parentCategory) backParams.set("category", parentCategory.slug);
+  if (catalogGroup) backParams.set("group", catalogGroup);
+  if (attributeValue) backParams.set("spec", attributeValue);
+  const backToParentHref = `/s/${encodeURIComponent(data.shop.slug)}` +
+    (backParams.size ? `?${backParams.toString()}` : "") + "#storefront-categories";
+  const listingHref = storefrontListingHref({
+    shopSlug: data.shop.slug, basePath, q, categorySlug, catalogGroup,
+    attributeValue, availability, page: data.pagination.page,
+  });
 
   return (
     <>
@@ -536,16 +554,30 @@ export function StorefrontView({
         offerCount={data.offers.length}
       />
 
-      {(!filtered || eventServices) && shownCategories.length > 0 ? (
+      {categorySlug || ((!filtered || eventServices) && shownCategories.length > 0) ? (
         <div id="storefront-categories" className="scroll-mt-24">
-          <CategoryShowcase
-            shopSlug={data.shop.slug}
-            categories={shownCategories}
-            allCategories={eventServices ? data.categories : undefined}
-            activeCategory={categorySlug}
-            catalogGroup={catalogGroup}
-            attributeValue={attributeValue}
-          />
+          {categorySlug ? (
+            <Container className="pb-3">
+              <nav aria-label="Category navigation">
+                <Link
+                  href={backToParentHref}
+                  className={buttonClassName("secondary", "sm", "inline-flex min-h-10 items-center gap-2 rounded-xl")}
+                >
+                  ← Back to {parentCategory?.name ?? "all categories"}
+                </Link>
+              </nav>
+            </Container>
+          ) : null}
+          {(!filtered || eventServices) && shownCategories.length > 0 ? (
+            <CategoryShowcase
+              shopSlug={data.shop.slug}
+              categories={shownCategories}
+              allCategories={eventServices ? data.categories : undefined}
+              activeCategory={categorySlug}
+              catalogGroup={catalogGroup}
+              attributeValue={attributeValue}
+            />
+          ) : null}
         </div>
       ) : null}
 
@@ -621,6 +653,7 @@ export function StorefrontView({
         <ProductGrid
           shopSlug={data.shop.slug}
           products={data.products}
+          listingHref={listingHref}
           emptyTitle="No products found"
           emptyDescription="Try another search, category or availability filter."
         />

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { StorefrontMedia } from "@/components/storefront/storefront-media";
 import { WishlistToggle } from "@/components/storefront/storefront-wishlist";
 import { availabilityLabel, formatInr } from "@/lib/storefront";
+import { productLinkHref } from "@/lib/storefront-navigation";
 import type { PublicProductSummary } from "@/server/storefront/storefront-data";
 
 function Price({ product }: { product: PublicProductSummary }) {
@@ -58,14 +59,16 @@ function availabilityTone(value: PublicProductSummary["availabilityStatus"]) {
 export function ProductCard({
   shopSlug,
   product,
+  listingHref,
 }: {
   shopSlug: string;
   product: PublicProductSummary;
+  listingHref?: string;
 }) {
   return (
     <article className="group relative min-w-0 overflow-hidden rounded-[1.35rem] border border-border/90 bg-surface shadow-[0_8px_28px_rgba(23,32,29,0.055)] transition duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-[0_18px_40px_rgba(23,32,29,0.1)]">
       <Link
-        href={`/s/${shopSlug}/p/${product.slug}`}
+        href={productLinkHref(shopSlug, product.slug, listingHref)}
         className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
       >
         <div className="relative overflow-hidden bg-surface-muted">
