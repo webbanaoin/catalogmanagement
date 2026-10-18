@@ -122,7 +122,7 @@ async function main() {
 
   // Preserve filtered collection context (including pagination) when going
   // into a product, and provide a safe category fallback for shared links.
-  const listResponse = await call(`/s/${shop.slug}?category=jungle-theme&page=2`);
+  const listResponse = await call(`/s/${shop.slug}?category=jungle-theme`);
   const listHtml = await listResponse.text();
   assert(listHtml.includes("from="), "Product cards must carry a return location");
 
