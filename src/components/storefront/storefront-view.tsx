@@ -100,7 +100,7 @@ function ShopHero({
                   </p>
                 ) : null}
 
-                <div className="mt-5">
+                <div className="mt-5 space-y-3">
                   <StorefrontActions
                     title={shop.name}
                     shopSlug={shop.slug}
@@ -108,6 +108,32 @@ function ShopHero({
                     whatsapp={shop.whatsapp}
                     directionsUrl={shop.googleMapsUrl}
                   />
+                  {shop.instagramUrl || shop.facebookUrl ? (
+                    <nav aria-label="Shop social media" className="flex flex-wrap items-center gap-2">
+                      {shop.instagramUrl ? (
+                        <a
+                          href={shop.instagramUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                          aria-label={`Visit ${shop.name} on Instagram (opens new tab)`}
+                        >
+                          Instagram <span aria-hidden="true">↗</span>
+                        </a>
+                      ) : null}
+                      {shop.facebookUrl ? (
+                        <a
+                          href={shop.facebookUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                          aria-label={`Visit ${shop.name} on Facebook (opens new tab)`}
+                        >
+                          Facebook <span aria-hidden="true">↗</span>
+                        </a>
+                      ) : null}
+                    </nav>
+                  ) : null}
                 </div>
               </div>
 
