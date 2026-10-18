@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AdminShopProductImport } from "@/components/admin/admin-shop-product-import";
+import { AdminProductRecovery } from "@/components/admin/admin-product-recovery";
 import {
   Alert,
   Badge,
@@ -91,7 +92,10 @@ export default async function AdminShopOnboardingPage({
           so the correct categories and product fields are used.
         </Alert>
       ) : (
-        <AdminShopProductImport shopId={shop.id} shopName={shop.name} />
+        <>
+          <AdminProductRecovery shopId={shop.id} />
+          <AdminShopProductImport shopId={shop.id} shopName={shop.name} />
+        </>
       )}
     </div>
   );
