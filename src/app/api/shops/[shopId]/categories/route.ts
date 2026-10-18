@@ -53,7 +53,7 @@ export async function GET(
           actorUserId: user.id,
         });
       }
-    });
+    }, { maxWait: 10_000, timeout: 30_000 });
 
     const url = new URL(request.url);
     const page = Math.max(1, Number(url.searchParams.get("page") || 1));

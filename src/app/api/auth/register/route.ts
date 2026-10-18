@@ -150,31 +150,65 @@ export async function POST(request: Request) {
         });
       }
 
-      diagnosticStage = "seed-default-categories";
-      if (businessCategory) {
-        await ensureDefaultShopCategories(tx, {
-          shopId: shop.id,
-          businessCategory,
-          actorUserId: user.id,
-          newlyCreatedShop: true,
-        });
-      }
-
       diagnosticStage = "commit-registration-transaction";
-      return { user, shop, membership };
+      return { user, shop, membership, businessCategory };
     }, {
-      // Keep shop creation, email grant and category preset atomic. The default
-      // Prisma 5-second interactive transaction limit is too low on Railway.
+      // Keep OTP consumption, merchant/shop creation and referral attribution
+      // atomic; expensive category template seeding is handled afterwards.
       maxWait: 10_000,
       timeout: 20_000,
     });
 
-    return NextResponse.json({ data: result }, { status: 201 });
+    // Category templates can contain many nested Event Planner nodes.
+    // Do not run this expensive optional setup inside the critical registration
+    // transaction: Prisma P2028 previously rolled back genuine registrations.
+    // This separate transaction is safe to retry from the merchant categories
+    // endpoint, as template markers prevent duplicate category creation.
+    if (result.businessCategory) {
+      try {
+        await prisma.$transaction(
+          (tx) => ensureDefaultShopCategories(tx, {
+            shopId: result.shop.id,
+            businessCategory: result.businessCategory,
+            actorUserId: result.user.id,
+            newlyCreatedShop: true,
+          }),
+          { maxWait: 10_000, timeout: 30_000 },
+        );
+      } catch (seedError) {
+        // Registration, verified email and referral are already committed.
+        // Never tell a merchant that registration failed and invite a duplicate
+        // attempt just because a category template timed out.
+        const detail = seedError && typeof seedError === "object"
+          ? (seedError as { code?: unknown })
+          : null;
+        console.error("[auth/register] Category setup deferred", {
+          shopId: result.shop.id,
+          errorCode: typeof detail?.code === "string" ? detail.code : "CATEGORY_SEED_FAILED",
+        });
+      }
+    }
+
+    return NextResponse.json({
+      data: { user: result.user, shop: result.shop, membership: result.membership },
+    }, { status: 201 });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      const target = Array.isArray(error.meta?.target) ? error.meta.target.join(",") : String(error.meta?.target ?? "");
-      if (target.includes("email")) return errorResponse(new AppError({ code: "EMAIL_IN_USE", message: "An account with this email already exists", status: 409 }));
-      return errorResponse(new AppError({ code: "REGISTRATION_CONFLICT", message: "Registration conflicted with an existing record. Please try again.", status: 409 }));
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2002") {
+        const target = Array.isArray(error.meta?.target) ? error.meta.target.join(",") : String(error.meta?.target ?? "");
+        if (target.includes("email")) return errorResponse(new AppError({ code: "EMAIL_IN_USE", message: "An account with this email already exists. Please sign in or check your pending approval.", status: 409 }));
+        return errorResponse(new AppError({ code: "REGISTRATION_CONFLICT", message: "Registration conflicted with an existing record. Please try again.", status: 409 }));
+      }
+      if (["P2028", "P2024", "P1017"].includes(error.code)) {
+        console.error("[auth/register] Database operation could not complete", {
+          stage: diagnosticStage, errorCode: error.code,
+        });
+        return errorResponse(new AppError({
+          code: "REGISTRATION_TEMPORARILY_UNAVAILABLE",
+          message: "Registration is temporarily busy. Please try again in a moment. If you already submitted successfully, sign in to check your application.",
+          status: 503,
+        }));
+      }
     }
     // Do not log email addresses, request bodies, verification tokens or passwords.
     if (!(error instanceof AppError) && !(error instanceof ZodError)) {

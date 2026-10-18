@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   createRegistrationVerificationGrant, hashRegistrationOtp,
-  REGISTRATION_OTP_MAX_ATTEMPTS, secureHashEqual,
+  REGISTRATION_OTP_MAX_ATTEMPTS, REGISTRATION_OTP_MINUTES, secureHashEqual,
 } from "@/server/auth/registration-email-otp";
 import { prisma } from "@/server/database/prisma";
 import { AppError } from "@/server/http/app-error";
@@ -29,17 +29,31 @@ export async function POST(request: Request) {
       throw new AppError({ code: "OTP_INCORRECT", status: 400, message: "Incorrect code. Please check your email and try again." });
     }
     const grant = createRegistrationVerificationGrant(email, purpose);
+    const verifiedAt = new Date();
+    // The OTP is valid for 10 minutes after sending, but the *verified grant*
+    // must give the customer its own full 10-minute registration window.
+    const grantExpiresAt = new Date(verifiedAt.getTime() + REGISTRATION_OTP_MINUTES * 60_000);
     const updated = await prisma.registrationEmailOtp.updateMany({
       where: {
         id: challenge.id, verifiedAt: null, consumedAt: null,
-        expiresAt: { gt: new Date() }, attempts: { lt: REGISTRATION_OTP_MAX_ATTEMPTS },
+        expiresAt: { gt: verifiedAt }, attempts: { lt: REGISTRATION_OTP_MAX_ATTEMPTS },
       },
-      data: { verifiedAt: new Date(), verificationTokenHash: grant.hash },
+      data: {
+        verifiedAt,
+        verificationTokenHash: grant.hash,
+        expiresAt: grantExpiresAt,
+      },
     });
     if (updated.count !== 1) {
       throw new AppError({ code: "OTP_ALREADY_USED", status: 409, message: "This code has already been verified. Request a new one." });
     }
-    return NextResponse.json({ data: { verificationToken: grant.token, email } });
+    return NextResponse.json({
+      data: {
+        verificationToken: grant.token,
+        email,
+        expiresAt: grantExpiresAt.toISOString(),
+      },
+    });
   } catch (error) {
     return errorResponse(error);
   }

@@ -121,7 +121,7 @@ export async function PATCH(
           actorUserId: user.id,
         });
       }
-    });
+    }, { maxWait: 10_000, timeout: 30_000 });
 
     return NextResponse.json({ data: await readShopProfile(shopId) });
   } catch (error) {

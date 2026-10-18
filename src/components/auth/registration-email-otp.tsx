@@ -1,24 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AuthApiError, requestRegistrationEmailOtp, verifyRegistrationEmailOtp } from "@/lib/auth-api";
 import { isValidEmail } from "@/lib/validation";
 
 type Purpose = "MERCHANT" | "PARTNER";
 
 export function RegistrationEmailOtp({
-  email, purpose, onVerified,
+  email, purpose, onVerified, onExpired,
 }: {
   email: string;
   purpose: Purpose;
-  onVerified: (token: string, email: string) => void;
+  onVerified: (token: string, email: string, expiresAt: string) => void;
+  onExpired: () => void;
 }) {
   const [codeSent, setCodeSent] = useState(false);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [verified, setVerified] = useState(false);
+  const [verifiedUntil, setVerifiedUntil] = useState<number | null>(null);
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!verified || verifiedUntil === null) return;
+    const expiryTimer = setTimeout(() => {
+      setVerified(false);
+      setVerifiedUntil(null);
+      setCodeSent(false);
+      setCode("");
+      setFeedback("Your email verification expired. Request a new OTP to continue.");
+      onExpired();
+    }, Math.max(0, verifiedUntil - Date.now()));
+    return () => clearTimeout(expiryTimer);
+  }, [verified, verifiedUntil, onExpired]);
 
   async function send() {
     if (!isValidEmail(email)) {
@@ -29,7 +44,7 @@ export function RegistrationEmailOtp({
     setError(""); setFeedback("");
     try {
       const result = await requestRegistrationEmailOtp({ email, purpose });
-      setCodeSent(true); setCode(""); setVerified(false);
+      setCodeSent(true); setCode(""); setVerified(false); setVerifiedUntil(null);
       setFeedback(result.data.message + " It expires in 10 minutes.");
     } catch (problem) {
       setError(problem instanceof AuthApiError ? problem.message : "Unable to send OTP. Please try again.");
@@ -46,9 +61,14 @@ export function RegistrationEmailOtp({
     setBusy(true); setError("");
     try {
       const result = await verifyRegistrationEmailOtp({ email, purpose, code });
+      const expiry = Date.parse(result.data.expiresAt);
+      if (!Number.isFinite(expiry) || expiry <= Date.now()) {
+        throw new Error("Verification window unavailable.");
+      }
+      setVerifiedUntil(expiry);
       setVerified(true);
-      onVerified(result.data.verificationToken, result.data.email);
-      setFeedback("Email verified. Complete and submit your registration within 10 minutes.");
+      onVerified(result.data.verificationToken, result.data.email, result.data.expiresAt);
+      setFeedback("Email verified. Submit your registration within 10 minutes of verification.");
     } catch (problem) {
       setError(problem instanceof AuthApiError ? problem.message : "Unable to verify OTP.");
     } finally {
@@ -85,7 +105,7 @@ export function RegistrationEmailOtp({
           ) : null}
         </>
       ) : (
-        <p className="text-sm font-semibold text-success">✓ Email verified successfully</p>
+        <p className="text-sm font-semibold text-success" role="status">✓ Email verified successfully — no further OTP needed while this verification remains valid.</p>
       )}
       {feedback ? <p className="text-xs text-muted" role="status">{feedback}</p> : null}
       {error ? <p role="alert" className="text-xs font-medium text-danger">{error}</p> : null}

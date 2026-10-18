@@ -40,6 +40,8 @@ export function PartnerRegisterForm() {
   const [otpEmail, setOtpEmail] = useState("");
   const [verifiedEmail, setVerifiedEmail] = useState("");
   const [emailVerificationToken, setEmailVerificationToken] = useState("");
+  const [verificationExpiresAt, setVerificationExpiresAt] = useState(0);
+  const [verificationReset, setVerificationReset] = useState(0);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -57,7 +59,17 @@ export function PartnerRegisterForm() {
     else if (!isValidEnglishPersonName(name)) errors.name = "Use English letters and spaces only (first name and surname).";
     if (!email) errors.email = "Email is required.";
     else if (!isValidEmail(email)) errors.email = "Enter a valid email address.";
-    if (!emailVerificationToken || verifiedEmail !== email.toLowerCase()) errors.email = "Verify your email with the 6-digit OTP before registering.";
+    const verificationExpired = Boolean(emailVerificationToken) &&
+      verificationExpiresAt <= Date.now();
+    if (verificationExpired) {
+      setEmailVerificationToken("");
+      setVerifiedEmail("");
+      setVerificationExpiresAt(0);
+      setVerificationReset((current) => current + 1);
+      errors.email = "Email verification expired. Request and verify a new OTP.";
+    } else if (!emailVerificationToken || verifiedEmail !== email.toLowerCase()) {
+      errors.email = "Verify your email with the 6-digit OTP before registering.";
+    }
     if (!mobile) errors.mobile = "Mobile number is required.";
     else if (!isValidIndianMobile(mobile)) {
       errors.mobile = "Enter a valid 10-digit Indian mobile number.";
@@ -99,9 +111,18 @@ export function PartnerRegisterForm() {
       router.push("/partner/pending");
     } catch (error) {
       if (error instanceof AuthApiError) {
-        setFieldErrors(error.fields);
-        setFormError(error.message);
-        focusFirstInvalid(form, error.fields);
+        if (error.code === "EMAIL_VERIFICATION_REQUIRED") {
+          setEmailVerificationToken("");
+          setVerifiedEmail("");
+          setVerificationExpiresAt(0);
+          setVerificationReset((current) => current + 1);
+          setFieldErrors({ ...error.fields, email: "Request and verify a fresh email OTP." });
+          setFormError(error.message);
+        } else {
+          setFieldErrors(error.fields);
+          setFormError(error.message);
+          focusFirstInvalid(form, error.fields);
+        }
       } else {
         setFormError("Unable to submit partner registration. Please try again.");
       }
@@ -133,11 +154,23 @@ export function PartnerRegisterForm() {
       </div>
 
       <Field label="Email" htmlFor="email" error={fieldErrors.email} required>
-        <Input id="email" name="email" type="email" autoComplete="email" onChange={event => { setOtpEmail(event.target.value); setVerifiedEmail(""); setEmailVerificationToken(""); }} required />
+        <Input id="email" name="email" type="email" autoComplete="email" onChange={event => { setOtpEmail(event.target.value); setVerifiedEmail(""); setEmailVerificationToken(""); setVerificationExpiresAt(0); }} required />
       </Field>
 
-      <RegistrationEmailOtp key={otpEmail.trim().toLowerCase()} email={otpEmail.trim()} purpose="PARTNER"
-        onVerified={(token, email) => { setEmailVerificationToken(token); setVerifiedEmail(email); setFieldErrors(current => ({ ...current, email: "" })); }} />
+      <RegistrationEmailOtp key={`${otpEmail.trim().toLowerCase()}-${verificationReset}`} email={otpEmail.trim()} purpose="PARTNER"
+        onVerified={(token, email, expiresAt) => {
+          setEmailVerificationToken(token);
+          setVerifiedEmail(email);
+          setVerificationExpiresAt(Date.parse(expiresAt));
+          setFormError("");
+          setFieldErrors(current => ({ ...current, email: "" }));
+        }}
+        onExpired={() => {
+          setEmailVerificationToken("");
+          setVerifiedEmail("");
+          setVerificationExpiresAt(0);
+          setFormError("Your email verification expired. Request a new OTP below; your other details remain in the form.");
+        }} />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field

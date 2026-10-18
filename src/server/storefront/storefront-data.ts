@@ -27,6 +27,8 @@ export interface PublicShop {
   city: string | null;
   state: string | null;
   googleMapsUrl: string | null;
+  instagramUrl: string | null;
+  facebookUrl: string | null;
   showProductPrices: boolean;
   wishlistEnabled: boolean;
   businessCategoryName: string | null;
@@ -152,6 +154,23 @@ const mediaUrl = cache(async (storageKey: string | null | undefined): Promise<st
   }
 });
 
+// Shop owners may provide social links, but public action labels should never
+// send visitors to unrelated or unsafe domains.
+function publicSocialUrl(value: string | null, domains: readonly string[]): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    const host = url.hostname.toLowerCase();
+    if (!domains.some((domain) => host === domain || host.endsWith("." + domain))) {
+      return null;
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 async function mapShop(shop: {
   name: string;
   slug: string;
@@ -163,6 +182,8 @@ async function mapShop(shop: {
   city: string | null;
   state: string | null;
   googleMapsUrl: string | null;
+  instagramUrl: string | null;
+  facebookUrl: string | null;
   showProductPrices: boolean;
   wishlistAllowedByAdmin: boolean;
   wishlistEnabledByMerchant: boolean;
@@ -196,6 +217,8 @@ async function mapShop(shop: {
     city: shop.city,
     state: shop.state,
     googleMapsUrl: shop.googleMapsUrl,
+    instagramUrl: publicSocialUrl(shop.instagramUrl, ["instagram.com"]),
+    facebookUrl: publicSocialUrl(shop.facebookUrl, ["facebook.com", "fb.com", "fb.me"]),
     showProductPrices: shop.showProductPrices,
     wishlistEnabled: shop.wishlistAllowedByAdmin && shop.wishlistEnabledByMerchant && Boolean(shop.whatsapp),
     businessCategoryName: shop.businessCategory?.name ?? null,
@@ -260,6 +283,8 @@ const getActiveShopRecord = cache(async (shopSlug: string) => {
       city: true,
       state: true,
       googleMapsUrl: true,
+      instagramUrl: true,
+      facebookUrl: true,
       showProductPrices: true,
       wishlistAllowedByAdmin: true,
       wishlistEnabledByMerchant: true,
