@@ -15,11 +15,18 @@ export async function GET() {
     await requirePlatformAdmin();
 
     // One-time import of legacy presets; later edits are fully database-driven.
-    const businessTypes = await prisma.businessCategory.findMany({
+    const pendingBusinessTypes = await prisma.businessCategory.findMany({
+      where: { defaultsInitialized: false },
       select: { id: true, name: true, slug: true },
     });
-    for (const businessType of businessTypes) {
-      await prisma.$transaction((tx) => listBusinessCategoryDefaults(tx, businessType));
+    for (const businessType of pendingBusinessTypes) {
+      // This runs only once per business type, and the event hierarchy may
+      // need a longer first-run window on remote MySQL than Prisma's default
+      // five-second interactive transaction timeout.
+      await prisma.$transaction(
+        (tx) => listBusinessCategoryDefaults(tx, businessType),
+        { maxWait: 10_000, timeout: 20_000 },
+      );
     }
 
     const items = await prisma.businessCategory.findMany({
