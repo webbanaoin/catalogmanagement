@@ -110,13 +110,13 @@ function ShopHero({
                     directionsUrl={shop.googleMapsUrl}
                   />
                   {shop.instagramUrl || shop.facebookUrl ? (
-                    <nav aria-label="Shop social media" className="flex flex-wrap items-center gap-2">
+                    <nav aria-label="Shop social media" className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2.5">
                       {shop.instagramUrl ? (
                         <a
                           href={shop.instagramUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                          className={buttonClassName("secondary", "md", "w-full rounded-xl bg-surface/95 sm:w-auto")}
                           aria-label={`Visit ${shop.name} on Instagram (opens new tab)`}
                         >
                           Instagram <span aria-hidden="true">↗</span>
@@ -127,7 +127,7 @@ function ShopHero({
                           href={shop.facebookUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                          className={buttonClassName("secondary", "md", "w-full rounded-xl bg-surface/95 sm:w-auto")}
                           aria-label={`Visit ${shop.name} on Facebook (opens new tab)`}
                         >
                           Facebook <span aria-hidden="true">↗</span>
