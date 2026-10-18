@@ -35,6 +35,7 @@ export async function GET(request: Request) {
           requestedBusinessType: true,
           wishlistAllowedByAdmin: true,
           wishlistEnabledByMerchant: true,
+          imageLimitPerProductOverride: true,
           referralAssignedAt: true,
           referralPartner: {
             select: {
