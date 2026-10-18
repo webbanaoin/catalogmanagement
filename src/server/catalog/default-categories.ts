@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 import { getDefaultCategoryPreset } from "@/lib/default-category-presets";
 import { listBusinessCategoryDefaults, type BusinessCategoryIdentity } from "@/server/catalog/business-category-defaults";
@@ -96,23 +96,34 @@ export async function ensureDefaultShopCategories(
   // ShopCategory already supports parentId. Connect only newly seeded child
   // categories; never overwrite an existing merchant's manually edited tree.
   if (toCreate.some((item) => item.parentId)) {
-    const merchantCategories = await tx.shopCategory.findMany({
-      where: { shopId: options.shopId },
-      select: { id: true, slug: true, parentId: true },
-    });
-    const merchantBySlug = new Map(merchantCategories.map((item) => [item.slug, item]));
+    // One query instead of one sequential UPDATE per event theme.
+    // Only newly inserted slugs may be linked and existing merchant-defined
+    // parent choices are protected by child.parent_id IS NULL.
     const parentSlugById = new Map(defaults.map((item) => [item.id, item.slug]));
-    for (const child of toCreate) {
-      if (!child.parentId) continue;
-      const parentSlug = parentSlugById.get(child.parentId);
-      const parent = parentSlug ? merchantBySlug.get(parentSlug) : undefined;
-      const inserted = merchantBySlug.get(child.slug);
-      if (inserted && parent && inserted.id !== parent.id && !inserted.parentId) {
-        await tx.shopCategory.update({
-          where: { id: inserted.id },
-          data: { parentId: parent.id },
-        });
-      }
+    const pairs = toCreate.flatMap((child) => {
+      const parentSlug = child.parentId ? parentSlugById.get(child.parentId) : null;
+      return parentSlug && parentSlug !== child.slug
+        ? [{ slug: child.slug, parentSlug }]
+        : [];
+    });
+    if (pairs.length) {
+      const cases = pairs.map(({ slug, parentSlug }) =>
+        Prisma.sql`WHEN ${slug} THEN ${parentSlug}`);
+      await tx.$executeRaw(Prisma.sql`
+        UPDATE shop_categories AS child
+        JOIN shop_categories AS parent
+          ON parent.shop_id = child.shop_id
+          AND parent.slug = (
+            CASE child.slug
+              ${Prisma.join(cases, " ")}
+              ELSE NULL
+            END
+          )
+        SET child.parent_id = parent.id
+        WHERE child.shop_id = ${options.shopId}
+          AND child.slug IN (${Prisma.join(pairs.map((item) => item.slug))})
+          AND child.parent_id IS NULL
+      `);
     }
   }
 

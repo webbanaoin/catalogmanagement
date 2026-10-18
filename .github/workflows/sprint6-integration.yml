@@ -131,6 +131,9 @@ jobs:
       - name: Shop image quota override regression
         run: npm run test:shop:image-limit
 
+      - name: Registration and category timeout regression
+        run: npm run test:registration:categories
+
       - name: Application log on failure
         if: failure()
         run: cat /tmp/sprint6-app.log || true
