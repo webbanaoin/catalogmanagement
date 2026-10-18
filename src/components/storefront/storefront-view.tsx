@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ProductCard } from "@/components/storefront/product-card";
+import { ShopDescription } from "@/components/storefront/shop-description";
 import { StorefrontActions } from "@/components/storefront/storefront-actions";
 import { StorefrontFilters } from "@/components/storefront/storefront-filters";
 import { StorefrontMedia } from "@/components/storefront/storefront-media";
@@ -87,9 +88,7 @@ function ShopHero({
                 ) : null}
 
                 {shop.description ? (
-                  <p className="mt-4 line-clamp-3 max-w-3xl whitespace-pre-line text-sm leading-6 text-muted">
-                    {shop.description}
-                  </p>
+                  <ShopDescription description={shop.description} />
                 ) : null}
 
                 {location ? (
@@ -281,9 +280,11 @@ function CategoryShowcase({
   activeCategory,
   catalogGroup,
   attributeValue,
+  allCategories,
 }: {
   shopSlug: string;
   categories: PublicStorefrontResult["categories"];
+  allCategories?: PublicStorefrontResult["categories"];
   activeCategory?: string;
   catalogGroup?: string;
   attributeValue?: string;
@@ -295,7 +296,8 @@ function CategoryShowcase({
     if (catalogGroup) params.set("group", catalogGroup);
     if (attributeValue) params.set("spec", attributeValue);
     params.set("category", category);
-    return `/s/${shopSlug}?${params.toString()}#storefront-products`;
+    const hasChildren = allCategories?.some((item) => item.parentSlug === category) ?? false;
+    return `/s/${shopSlug}?${params.toString()}#${hasChildren ? "storefront-categories" : "storefront-products"}`;
   }
 
   return (
@@ -493,6 +495,10 @@ export function StorefrontView({
   const filtered = Boolean(
     q || categorySlug || catalogGroup || attributeValue || availability,
   );
+  const eventServices = data.shop.businessCategorySlug === "event-planners-decorators";
+  const shownCategories = eventServices
+    ? data.categories.filter((category) => category.parentSlug === (categorySlug ?? null))
+    : data.categories;
 
   return (
     <>
@@ -504,11 +510,12 @@ export function StorefrontView({
         offerCount={data.offers.length}
       />
 
-      {!filtered ? (
+      {(!filtered || eventServices) && shownCategories.length > 0 ? (
         <div id="storefront-categories" className="scroll-mt-24">
           <CategoryShowcase
             shopSlug={data.shop.slug}
-            categories={data.categories}
+            categories={shownCategories}
+            allCategories={eventServices ? data.categories : undefined}
             activeCategory={categorySlug}
             catalogGroup={catalogGroup}
             attributeValue={attributeValue}
@@ -518,8 +525,10 @@ export function StorefrontView({
 
       <StorefrontSection
         eyebrow="Discover"
-        title="Find your perfect pick"
-        description="Search the catalogue or refine by collection, category and availability."
+        title={eventServices ? "Explore our event services" : "Find your perfect pick"}
+        description={eventServices
+          ? "Browse decoration packages, themed setups and special event entries."
+          : "Search the catalogue or refine by collection, category and availability."}
         tone={filtered ? "default" : "soft"}
       >
         <div className="space-y-5">
@@ -573,13 +582,13 @@ export function StorefrontView({
 
       <div id="storefront-products" className="scroll-mt-24">
         <StorefrontSection
-          eyebrow={filtered ? "Filtered catalogue" : "Complete collection"}
+          eyebrow={filtered ? (eventServices ? "Filtered services" : "Filtered catalogue") : (eventServices ? "Event service gallery" : "Complete collection")}
         title={collectionTitle}
         description={
           collectionDescription ??
           (filtered
             ? `${data.pagination.total} matching product${data.pagination.total === 1 ? "" : "s"}`
-            : `${data.pagination.total} product${data.pagination.total === 1 ? "" : "s"} available to browse`)
+            : `${data.pagination.total} ${eventServices ? "service" : "product"}${data.pagination.total === 1 ? "" : "s"} available to browse`)
         }
         tone={!filtered ? "soft" : "default"}
       >

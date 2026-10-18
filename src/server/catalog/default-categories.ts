@@ -93,6 +93,29 @@ export async function ensureDefaultShopCategories(
     });
   }
 
+  // ShopCategory already supports parentId. Connect only newly seeded child
+  // categories; never overwrite an existing merchant's manually edited tree.
+  if (toCreate.some((item) => item.parentId)) {
+    const merchantCategories = await tx.shopCategory.findMany({
+      where: { shopId: options.shopId },
+      select: { id: true, slug: true, parentId: true },
+    });
+    const merchantBySlug = new Map(merchantCategories.map((item) => [item.slug, item]));
+    const parentSlugById = new Map(defaults.map((item) => [item.id, item.slug]));
+    for (const child of toCreate) {
+      if (!child.parentId) continue;
+      const parentSlug = parentSlugById.get(child.parentId);
+      const parent = parentSlug ? merchantBySlug.get(parentSlug) : undefined;
+      const inserted = merchantBySlug.get(child.slug);
+      if (inserted && parent && inserted.id !== parent.id && !inserted.parentId) {
+        await tx.shopCategory.update({
+          where: { id: inserted.id },
+          data: { parentId: parent.id },
+        });
+      }
+    }
+  }
+
   // A category is considered handled even when the merchant already has one,
   // or it is an initial preset deliberately removed from a legacy shop.
   // This prevents future GETs from recreating a merchant's deleted categories.

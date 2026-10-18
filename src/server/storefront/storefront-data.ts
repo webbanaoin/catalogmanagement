@@ -41,6 +41,7 @@ export interface PublicShop {
 export interface PublicCategory {
   slug: string;
   name: string;
+  parentSlug: string | null;
   imageUrl: string | null;
 }
 
@@ -289,6 +290,7 @@ function publicProductWhere(
   shopId: string,
   query: StorefrontQuery,
   primaryAttributeName?: string,
+  descendantSlugs?: string[],
 ): Prisma.ProductWhereInput {
   const q = query.q?.trim().slice(0, 120);
   const categorySlug = query.categorySlug?.trim().slice(0, 160);
@@ -315,7 +317,7 @@ function publicProductWhere(
 
   if (categorySlug) {
     where.category = {
-      slug: categorySlug,
+      slug: descendantSlugs ? { in: descendantSlugs } : categorySlug,
       status: "ACTIVE",
     };
   } else {
@@ -358,7 +360,27 @@ export async function getPublicStorefront(
   const page = Math.max(1, query.page ?? 1);
   const preset = getCatalogPreset(shopRecord.businessCategory);
   const primaryAttributeName = preset.primaryFilterAttribute;
-  const where = publicProductWhere(shopRecord.id, query, primaryAttributeName);
+  const isEventServices = preset.key === "event-planners-decorators";
+  // Only event services use a three-level category hierarchy. Other
+  // existing verticals retain their original single-category filters.
+  const eventCategories = isEventServices
+    ? await prisma.shopCategory.findMany({
+        where: { shopId: shopRecord.id, status: "ACTIVE" },
+        select: { id: true, slug: true, parentId: true },
+      })
+    : [];
+  const descendantSlugs = query.categorySlug && isEventServices
+    ? (() => {
+        const selected = eventCategories.find((item) => item.slug === query.categorySlug);
+        if (!selected) return [];
+        const ids = new Set([selected.id]);
+        for (let index = 0; index < 3; index++) {
+          for (const item of eventCategories) if (item.parentId && ids.has(item.parentId)) ids.add(item.id);
+        }
+        return eventCategories.filter((item) => ids.has(item.id)).map((item) => item.slug);
+      })()
+    : undefined;
+  const where = publicProductWhere(shopRecord.id, query, primaryAttributeName, descendantSlugs);
 
   const [
     categories,
@@ -372,18 +394,20 @@ export async function getPublicStorefront(
       where: {
         shopId: shopRecord.id,
         status: "ACTIVE",
-        products: {
-          some: {
-            deletedAt: null,
-            isVisible: true,
-            ...(query.catalogGroup?.trim()
-              ? { catalogGroup: query.catalogGroup.trim().slice(0, 120) }
-              : {}),
+        ...(isEventServices ? {} : {
+          products: {
+            some: {
+              deletedAt: null,
+              isVisible: true,
+              ...(query.catalogGroup?.trim()
+                ? { catalogGroup: query.catalogGroup.trim().slice(0, 120) }
+                : {}),
+            },
           },
-        },
+        }),
       },
       orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
-      select: { name: true, slug: true, imageStorageKey: true },
+      select: { id: true, name: true, slug: true, parentId: true, imageStorageKey: true },
     }),
     prisma.product.findMany({
       where: {
@@ -443,6 +467,7 @@ export async function getPublicStorefront(
       : Promise.resolve([]),
   ]);
 
+  const slugByCategoryId = new Map(categories.map((category) => [category.id, category.slug]));
   const globalCategoryImageBySlug = new Map(
     globalCategoryMedia.map((item) => [
       item.categorySlug,
@@ -493,6 +518,7 @@ export async function getPublicStorefront(
         categories.map(async (category) => ({
           slug: category.slug,
           name: category.name,
+          parentSlug: category.parentId ? (slugByCategoryId.get(category.parentId) ?? null) : null,
           imageUrl: await mediaUrl(
             category.imageStorageKey ??
               globalCategoryImageBySlug.get(category.slug) ??
