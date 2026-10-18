@@ -13,6 +13,7 @@ function createPrismaClient() {
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+// A single Prisma pool per Node.js process is important in production too.
+// Next.js route bundles may load this module independently; otherwise each
+// route can create another pool and exhaust Railway MySQL connections.
+globalForPrisma.prisma = prisma;

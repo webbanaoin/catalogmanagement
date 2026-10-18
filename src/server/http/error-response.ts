@@ -43,6 +43,20 @@ export function errorResponse(error: unknown): NextResponse {
     );
   }
 
+  // Do not return database details to visitors. Surface the Prisma error
+  // *code* and model in private Railway server logs so runtime incidents
+  // can be diagnosed without blindly changing schema or credentials.
+  const detail = error && typeof error === "object"
+    ? (error as { code?: unknown; meta?: { modelName?: unknown } })
+    : null;
+  console.error("[api-error] Unhandled server error", {
+    name: error instanceof Error ? error.name : typeof error,
+    code: typeof detail?.code === "string" ? detail.code : "UNEXPECTED_ERROR",
+    model: typeof detail?.meta?.modelName === "string"
+      ? detail.meta.modelName
+      : undefined,
+  });
+
   return NextResponse.json(
     {
       error: {
