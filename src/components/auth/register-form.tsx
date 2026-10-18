@@ -149,6 +149,9 @@ export function RegisterForm({
   const [otpEmail, setOtpEmail] = useState("");
   const [verifiedEmail, setVerifiedEmail] = useState("");
   const [emailVerificationToken, setEmailVerificationToken] = useState("");
+  const [verificationExpiresAt, setVerificationExpiresAt] = useState(0);
+  const [verificationReset, setVerificationReset] = useState(0);
+
   const [businessCategories, setBusinessCategories] = useState<BusinessCategory[]>([]);
   const [businessTypeChoice, setBusinessTypeChoice] = useState("");
   const [referralCode, setReferralCode] = useState(initialReferralCode);
@@ -173,7 +176,15 @@ export function RegisterForm({
     const form = event.currentTarget;
     const formData = new FormData(form);
     const clientErrors = validateRegistration(formData);
-    if (!emailVerificationToken || verifiedEmail !== rawValue(formData, "email").trim().toLowerCase()) {
+    const verificationExpired = Boolean(emailVerificationToken) &&
+      verificationExpiresAt <= Date.now();
+    if (verificationExpired) {
+      setVerifiedEmail("");
+      setEmailVerificationToken("");
+      setVerificationExpiresAt(0);
+      setVerificationReset((current) => current + 1);
+      clientErrors.email = "Email verification expired. Request a new OTP and verify again.";
+    } else if (!emailVerificationToken || verifiedEmail !== rawValue(formData, "email").trim().toLowerCase()) {
       clientErrors.email = "Verify your email address with the 6-digit OTP first.";
     }
 
@@ -216,9 +227,20 @@ export function RegisterForm({
       router.push("/pending-approval");
     } catch (error) {
       if (error instanceof AuthApiError) {
-        setFieldErrors(error.fields);
-        setFormError(error.message);
-        focusFirstInvalid(form, error.fields);
+        if (error.code === "EMAIL_VERIFICATION_REQUIRED") {
+          // An expired or invalid grant must not leave the verified UI locked.
+          // Keep all other entered registration fields untouched.
+          setVerifiedEmail("");
+          setEmailVerificationToken("");
+          setVerificationExpiresAt(0);
+          setVerificationReset((current) => current + 1);
+          setFieldErrors({ ...error.fields, email: "Please request and verify a fresh email OTP." });
+          setFormError(error.message);
+        } else {
+          setFieldErrors(error.fields);
+          setFormError(error.message);
+          focusFirstInvalid(form, error.fields);
+        }
       } else {
         setFormError("Unable to submit registration. Please try again.");
       }
@@ -252,7 +274,7 @@ export function RegisterForm({
             name="email"
             type="email"
             autoComplete="email"
-            onChange={event => { setOtpEmail(event.target.value); setVerifiedEmail(""); setEmailVerificationToken(""); }}
+            onChange={event => { setOtpEmail(event.target.value); setVerifiedEmail(""); setEmailVerificationToken(""); setVerificationExpiresAt(0); }}
             required
             aria-invalid={Boolean(fieldErrors.email)}
             aria-describedby={describedBy("email", fieldErrors.email)}
@@ -260,8 +282,20 @@ export function RegisterForm({
         </Field>
       </div>
 
-      <RegistrationEmailOtp key={otpEmail.trim().toLowerCase()} email={otpEmail.trim()} purpose="MERCHANT"
-        onVerified={(token, email) => { setEmailVerificationToken(token); setVerifiedEmail(email); setFieldErrors(current => ({ ...current, email: "" })); }} />
+      <RegistrationEmailOtp key={`${otpEmail.trim().toLowerCase()}-${verificationReset}`} email={otpEmail.trim()} purpose="MERCHANT"
+        onVerified={(token, email, expiresAt) => {
+          setEmailVerificationToken(token);
+          setVerifiedEmail(email);
+          setVerificationExpiresAt(Date.parse(expiresAt));
+          setFormError("");
+          setFieldErrors(current => ({ ...current, email: "" }));
+        }}
+        onExpired={() => {
+          setEmailVerificationToken("");
+          setVerifiedEmail("");
+          setVerificationExpiresAt(0);
+          setFormError("Your email verification expired. Request a new OTP below; your other details are saved in this form.");
+        }} />
 
       <Field
         label="Password"
