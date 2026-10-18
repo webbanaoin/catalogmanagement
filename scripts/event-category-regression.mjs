@@ -116,7 +116,10 @@ async function main() {
   for (const [slug, expectedLabel] of breadcrumbCases) {
     const res = await call(`/s/${shop.slug}?category=${slug}#storefront-categories`);
     const categoryHtml = await res.text();
-    assert(categoryHtml.includes(expectedLabel),
+    const categoryNav = categoryHtml.match(/<nav aria-label="Category navigation">([\s\S]*?)<\/nav>/)?.[1] ?? "";
+    // React may insert HTML comment boundaries between static and dynamic text.
+    assert(categoryNav.includes("Back to") &&
+      categoryNav.includes(expectedLabel.replace("Back to ", "")),
       `Missing navigation ${expectedLabel} on category ${slug}`);
   }
 
