@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 import { getDefaultCategoryPreset } from "@/lib/default-category-presets";
 import { EVENT_BUSINESS_SLUG, EVENT_CATEGORY_TREE } from "@/lib/event-category-tree";
@@ -51,22 +51,28 @@ export async function listBusinessCategoryDefaults(
       });
 
       if (businessCategory.slug === EVENT_BUSINESS_SLUG) {
-        // All rows exist before we connect parents, so imports remain idempotent.
-        const seeded = await tx.businessCategoryDefault.findMany({
-          where: { businessCategoryId: businessCategory.id },
-          select: { id: true, slug: true, parentId: true },
-        });
-        const bySlug = new Map(seeded.map((item) => [item.slug, item]));
-        for (const definition of EVENT_CATEGORY_TREE) {
-          if (!definition.parentSlug) continue;
-          const child = bySlug.get(toSlug(definition.name));
-          const parent = bySlug.get(definition.parentSlug);
-          if (child && parent && child.parentId === null) {
-            await tx.businessCategoryDefault.update({
-              where: { id: child.id },
-              data: { parentId: parent.id },
-            });
-          }
+        // Link seeded nodes in ONE parameterized statement. Doing a
+        // separate update per theme can exceed Prisma's default transaction
+        // timeout on hosted MySQL, leaving the entire initialization rolled
+        // back and the admin page returning HTTP 500 on every request.
+        const parentCases = EVENT_CATEGORY_TREE
+          .filter((entry) => entry.parentSlug)
+          .map((entry) => Prisma.sql`WHEN ${toSlug(entry.name)} THEN ${entry.parentSlug}`);
+        if (parentCases.length > 0) {
+          await tx.$executeRaw(Prisma.sql`
+            UPDATE business_category_defaults AS child
+            JOIN business_category_defaults AS parent
+              ON parent.business_category_id = child.business_category_id
+              AND parent.slug = (
+                CASE child.slug
+                  ${Prisma.join(parentCases, " ")}
+                  ELSE NULL
+                END
+              )
+            SET child.parent_id = parent.id
+            WHERE child.business_category_id = ${businessCategory.id}
+              AND child.parent_id IS NULL
+          `);
         }
       }
     }
