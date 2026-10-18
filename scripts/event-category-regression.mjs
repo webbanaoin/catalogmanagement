@@ -107,6 +107,36 @@ async function main() {
     const html = await response.text();
     assert(html.includes("Jungle Event Service Package"), `Descendant product not shown for ${filter}`);
   }
+  // Parent navigation must work across the full 3-level hierarchy.
+  const breadcrumbCases = [
+    ["decoration", "Back to all categories"],
+    ["theme-based-decoration", "Back to Decoration"],
+    ["jungle-theme", "Back to Theme-Based Decoration"],
+  ];
+  for (const [slug, expectedLabel] of breadcrumbCases) {
+    const res = await call(`/s/${shop.slug}?category=${slug}#storefront-categories`);
+    const categoryHtml = await res.text();
+    assert(categoryHtml.includes(expectedLabel),
+      `Missing navigation ${expectedLabel} on category ${slug}`);
+  }
+
+  // Preserve filtered collection context (including pagination) when going
+  // into a product, and provide a safe category fallback for shared links.
+  const listResponse = await call(`/s/${shop.slug}?category=jungle-theme&page=2`);
+  const listHtml = await listResponse.text();
+  assert(listHtml.includes("from="), "Product cards must carry a return location");
+
+  const context = `/s/${shop.slug}?category=jungle-theme&page=2#storefront-products`;
+  const productPath = `/s/${shop.slug}/p/jungle-event-${seed}`;
+  const detailed = await call(productPath + "?from=" + encodeURIComponent(context));
+  assert(detailed.status === 200, "Product page failed with saved return context");
+  const detailedHtml = await detailed.text();
+  assert(detailedHtml.includes("Back to products"), "Product must show visible Back to products");
+  assert(detailedHtml.includes("page=2"), "Product return link must preserve filtered page");
+  const sharedLink = await call(productPath);
+  assert((await sharedLink.text()).includes("Back to products"),
+    "Directly shared product must have fallback navigation");
+
   const home = await call(`/s/${shop.slug}`);
   const html = await home.text();
   assert(html.includes("Decoration") && html.includes("Event Entries"), "Root categories not displayed");
