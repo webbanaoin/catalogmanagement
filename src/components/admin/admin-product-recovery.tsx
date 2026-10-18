@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type Product = {
   id: string;
@@ -17,7 +17,7 @@ export function AdminProductRecovery({ shopId }: { shopId: string }) {
   const [notice, setNotice] = useState("");
   const endpoint = `/api/admin/shops/${encodeURIComponent(shopId)}/products/recovery`;
 
-  async function load() {
+  const load = useCallback(async () => {
     setBusy(true);
     try {
       const response = await fetch(endpoint, { credentials: "same-origin", cache: "no-store" });
@@ -31,9 +31,17 @@ export function AdminProductRecovery({ shopId }: { shopId: string }) {
     } finally {
       setBusy(false);
     }
-  }
+  }, [endpoint]);
 
-  useEffect(() => { void load(); }, [shopId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    let active = true;
+    // Hydrate asynchronously so the hook does not synchronously update
+    // component state during effect setup.
+    queueMicrotask(() => {
+      if (active) void load();
+    });
+    return () => { active = false; };
+  }, [load]);
 
   async function restore() {
     if (!selection.length || busy) return;
