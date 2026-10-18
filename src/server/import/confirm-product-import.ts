@@ -115,7 +115,7 @@ export async function confirmStoredProductImport(options: {
     }),
     prisma.product.findMany({
       where: { shopId },
-      select: { slug: true },
+      select: { slug: true, sku: true },
     }),
   ]);
 
@@ -128,7 +128,7 @@ export async function confirmStoredProductImport(options: {
   );
   const usedSlugs = new Set(slugRows.map((row) => row.slug));
   const usedSkus = new Set(
-    existingProducts
+    slugRows
       .map((product) => product.sku?.trim().toLowerCase())
       .filter((sku): sku is string => Boolean(sku)),
   );
