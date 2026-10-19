@@ -66,7 +66,7 @@ export interface PublicProductSummary {
 }
 
 export interface PublicProductDetail extends PublicProductSummary {
-  images: Array<{ id: string; url: string; isPrimary: boolean; displayOrder: number }>;
+  images: Array<{ id: string; url: string; thumbnailUrl: string | null; isPrimary: boolean; displayOrder: number }>;
   attributes: Array<{ name: string; value: string; displayOrder: number }>;
 }
 
@@ -660,6 +660,7 @@ export const getPublicProduct = cache(async (
         select: {
           id: true,
           storageKey: true,
+          thumbnailKey: true,
           isPrimary: true,
           displayOrder: true,
         },
@@ -680,17 +681,24 @@ export const getPublicProduct = cache(async (
   const [shop, images] = await Promise.all([
     mapShop(shopRecord),
     Promise.all(
-      product.images.map(async (image) => ({
-        id: image.id,
-        url: await mediaUrl(image.storageKey),
-        isPrimary: image.isPrimary,
-        displayOrder: image.displayOrder,
-      })),
+      product.images.map(async (image) => {
+        const [url, thumbnailUrl] = await Promise.all([
+          mediaUrl(image.storageKey),
+          mediaUrl(image.thumbnailKey ?? image.storageKey),
+        ]);
+        return {
+          id: image.id,
+          url,
+          thumbnailUrl,
+          isPrimary: image.isPrimary,
+          displayOrder: image.displayOrder,
+        };
+      }),
     ),
   ]);
 
   const visibleImages = images.filter(
-    (image): image is { id: string; url: string; isPrimary: boolean; displayOrder: number } =>
+    (image): image is { id: string; url: string; thumbnailUrl: string | null; isPrimary: boolean; displayOrder: number } =>
       Boolean(image.url),
   );
 

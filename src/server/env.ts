@@ -50,6 +50,7 @@ const storageEnvironmentSchema = z.object({
   AWS_ACCESS_KEY_ID: z.string().trim().min(1),
   AWS_SECRET_ACCESS_KEY: z.string().trim().min(1),
   MEDIA_BASE_URL: optionalUrlEnvironmentValue,
+  MEDIA_IMMUTABLE_CACHE: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
 });
 
 const optionalNonBlankEnvironmentValue = z.preprocess(
