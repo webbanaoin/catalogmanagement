@@ -33,6 +33,7 @@ interface CategoryDraft {
   parentId: string;
   displayOrder: string;
   status: "ACTIVE" | "INACTIVE";
+  visibleAsProductDefault: boolean;
 }
 
 const emptyDraft: CategoryDraft = {
@@ -40,6 +41,7 @@ const emptyDraft: CategoryDraft = {
   parentId: "",
   displayOrder: "0",
   status: "ACTIVE",
+  visibleAsProductDefault: false,
 };
 
 export default function CategoriesPage() {
@@ -96,6 +98,7 @@ export default function CategoriesPage() {
       parentId: category.parentId ?? "",
       displayOrder: String(category.displayOrder),
       status: category.status,
+      visibleAsProductDefault: category.visibleAsProductDefault ?? false,
     });
     setFieldError("");
     setFeedback(null);
@@ -128,6 +131,7 @@ export default function CategoriesPage() {
       parentId: draft.parentId || null,
       displayOrder: Number(draft.displayOrder) || 0,
       status: draft.status,
+      visibleAsProductDefault: draft.visibleAsProductDefault,
     };
 
     try {
@@ -239,6 +243,21 @@ export default function CategoriesPage() {
               </Select>
             </Field>
 
+            <label className="flex items-start gap-3 rounded-xl border border-border bg-surface-muted/40 p-4 text-sm md:col-span-2">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 accent-primary"
+                checked={draft.visibleAsProductDefault}
+                onChange={(event) => setDraft((current) => ({ ...current, visibleAsProductDefault: event.target.checked }))}
+              />
+              <span>
+                <span className="block font-semibold">Visible as Default</span>
+                <span className="mt-1 block text-xs leading-5 text-muted">
+                  Use this category's image for products without real photos. If a shop-specific image is absent, the admin's shared category artwork can be used. Customers will see “Designs available on enquiry”. Actual product photos always take priority.
+                </span>
+              </span>
+            </label>
+
             <div className="flex flex-wrap gap-3 md:col-span-2">
               <Button type="submit" disabled={saving}>{saving ? "Saving…" : editingId ? "Update category" : "Add category"}</Button>
               {editingId ? <Button type="button" variant="secondary" onClick={cancelEdit}>Cancel</Button> : null}
@@ -262,6 +281,9 @@ export default function CategoriesPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium text-foreground">{category.name}</p>
                     <Badge variant={category.status === "ACTIVE" ? "success" : "neutral"}>{category.status}</Badge>
+                    {category.visibleAsProductDefault ? (
+                      <Badge variant="info">Visible as Default</Badge>
+                    ) : null}
                   </div>
                   <p className="mt-1 text-sm text-muted">
                     {category.parentId ? `Parent: ${categoryNames.get(category.parentId) ?? "Unknown"} · ` : ""}
