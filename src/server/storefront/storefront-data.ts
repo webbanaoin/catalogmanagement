@@ -6,6 +6,7 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/server/database/prisma";
 import { getCatalogPreset } from "@/lib/catalog-presets";
+import { buildCategoryProductFallbacks } from "@/server/storefront/category-product-fallback";
 import { resolveShopBranding } from "@/server/media/shop-branding-resolver";
 import { S3StorageService } from "@/services/storage/s3-storage";
 
@@ -63,6 +64,7 @@ export interface PublicProductSummary {
   catalogGroup: string | null;
   category: { slug: string; name: string } | null;
   imageUrl: string | null;
+  imageSource: "actual" | "category-default" | "none";
 }
 
 export interface PublicProductDetail extends PublicProductSummary {
@@ -234,7 +236,13 @@ async function mapShop(shop: {
 async function mapProduct(
   row: ProductSummaryRow,
   shopShowProductPrices: boolean,
+  fallbackByCategorySlug?: Map<string, string>,
 ): Promise<PublicProductSummary> {
+  const actualUrl = await mediaUrl(row.images[0]?.thumbnailKey ?? row.images[0]?.storageKey);
+  const fallbackKey = row.category?.status === "ACTIVE"
+    ? fallbackByCategorySlug?.get(row.category.slug)
+    : undefined;
+  const representativeUrl = !actualUrl ? await mediaUrl(fallbackKey) : null;
   const priceVisible =
     row.price != null &&
     row.priceType !== "ASK_PRICE" &&
@@ -259,7 +267,8 @@ async function mapProduct(
       row.category?.status === "ACTIVE"
         ? { slug: row.category.slug, name: row.category.name }
         : null,
-    imageUrl: await mediaUrl(row.images[0]?.thumbnailKey ?? row.images[0]?.storageKey),
+    imageUrl: actualUrl ?? representativeUrl,
+    imageSource: actualUrl ? "actual" : representativeUrl ? "category-default" : "none",
   };
 }
 
@@ -414,6 +423,7 @@ export async function getPublicStorefront(
     products,
     total,
     globalCategoryMedia,
+    fallbackCategories,
   ] = await Promise.all([
     prisma.shopCategory.findMany({
       where: {
@@ -487,17 +497,25 @@ export async function getPublicStorefront(
           select: {
             categorySlug: true,
             imageStorageKey: true,
+            visibleAsProductDefault: true,
           },
         })
       : Promise.resolve([]),
+    prisma.shopCategory.findMany({
+      where: { shopId: shopRecord.id, status: "ACTIVE" },
+      select: {
+        id: true, slug: true, parentId: true,
+        imageStorageKey: true, visibleAsProductDefault: true,
+      },
+    }),
   ]);
 
   const slugByCategoryId = new Map(categories.map((category) => [category.id, category.slug]));
   const globalCategoryImageBySlug = new Map(
-    globalCategoryMedia.map((item) => [
-      item.categorySlug,
-      item.imageStorageKey,
-    ]),
+    globalCategoryMedia.map((item) => [item.categorySlug, item.imageStorageKey]),
+  );
+  const fallbackByCategorySlug = buildCategoryProductFallbacks(
+    fallbackCategories, globalCategoryMedia,
   );
 
   let featured: ProductSummaryRow[] = [];
@@ -551,10 +569,10 @@ export async function getPublicStorefront(
           ),
         })),
       ),
-      Promise.all(products.map((product) => mapProduct(product, shopRecord.showProductPrices))),
-      Promise.all((featured as ProductSummaryRow[]).map((product) => mapProduct(product, shopRecord.showProductPrices))),
-      Promise.all((newArrivals as ProductSummaryRow[]).map((product) => mapProduct(product, shopRecord.showProductPrices))),
-      Promise.all((offers as ProductSummaryRow[]).map((product) => mapProduct(product, shopRecord.showProductPrices))),
+      Promise.all(products.map((product) => mapProduct(product, shopRecord.showProductPrices, fallbackByCategorySlug))),
+      Promise.all((featured as ProductSummaryRow[]).map((product) => mapProduct(product, shopRecord.showProductPrices, fallbackByCategorySlug))),
+      Promise.all((newArrivals as ProductSummaryRow[]).map((product) => mapProduct(product, shopRecord.showProductPrices, fallbackByCategorySlug))),
+      Promise.all((offers as ProductSummaryRow[]).map((product) => mapProduct(product, shopRecord.showProductPrices, fallbackByCategorySlug))),
     ]);
 
   const groupOrder = new Map(
@@ -677,7 +695,7 @@ export const getPublicProduct = cache(async (
 
   if (!product) return null;
 
-  const [shop, images] = await Promise.all([
+  const [shop, images, fallbackCategories, globalCategoryMedia] = await Promise.all([
     mapShop(shopRecord),
     Promise.all(
       product.images.map(async (image) => ({
@@ -687,6 +705,23 @@ export const getPublicProduct = cache(async (
         displayOrder: image.displayOrder,
       })),
     ),
+    prisma.shopCategory.findMany({
+      where: { shopId: shopRecord.id, status: "ACTIVE" },
+      select: {
+        id: true, slug: true, parentId: true,
+        imageStorageKey: true, visibleAsProductDefault: true,
+      },
+    }),
+    shopRecord.businessCategory?.id
+      ? prisma.businessCategoryMedia.findMany({
+          where: { businessCategoryId: shopRecord.businessCategory.id },
+          select: {
+            categorySlug: true,
+            imageStorageKey: true,
+            visibleAsProductDefault: true,
+          },
+        })
+      : Promise.resolve([]),
   ]);
 
   const visibleImages = images.filter(
@@ -694,6 +729,9 @@ export const getPublicProduct = cache(async (
       Boolean(image.url),
   );
 
+  const fallbackByCategorySlug = buildCategoryProductFallbacks(
+    fallbackCategories, globalCategoryMedia,
+  );
   const summary: ProductSummaryRow = {
     ...product,
     images: product.images.slice(0, 1).map((image) => ({ storageKey: image.storageKey, thumbnailKey: null })),
@@ -702,8 +740,10 @@ export const getPublicProduct = cache(async (
   return {
     shop,
     product: {
-      ...(await mapProduct(summary, shopRecord.showProductPrices)),
-      imageUrl: visibleImages[0]?.url ?? null,
+      ...(await mapProduct(summary, shopRecord.showProductPrices, fallbackByCategorySlug)),
+      ...(visibleImages.length > 0
+        ? { imageUrl: visibleImages[0]!.url, imageSource: "actual" as const }
+        : {}),
       images: visibleImages,
       attributes: product.attributes.map((attribute) => ({
         name: attribute.attributeName,
