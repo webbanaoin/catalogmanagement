@@ -240,9 +240,11 @@ function ZoomToolbar({
 export function ProductGallery({
   productName,
   images,
+  fallbackImageUrl,
 }: {
   productName: string;
   images: GalleryImage[];
+  fallbackImageUrl?: string | null;
 }) {
   const [selectedId, setSelectedId] = useState(images[0]?.id ?? null);
   const [zoom, setZoom] = useState(MIN_ZOOM);
@@ -338,12 +340,21 @@ export function ProductGallery({
               onPanChange={setPan}
             />
           ) : (
-            <StorefrontMedia
-              src={null}
-              alt={`${productName} product image`}
-              className="h-full w-full bg-surface"
-              eager
-            />
+            <>
+              <StorefrontMedia
+                src={fallbackImageUrl ?? null}
+                alt={fallbackImageUrl
+                  ? `Representative category design for ${productName}`
+                  : `${productName} product image`}
+                className="h-full w-full bg-surface"
+                eager
+              />
+              {fallbackImageUrl ? (
+                <span className="absolute bottom-4 left-4 right-4 rounded-xl bg-black/75 px-4 py-3 text-center text-xs font-semibold tracking-wide text-white shadow-lg sm:text-sm">
+                  Designs available on enquiry
+                </span>
+              ) : null}
+            </>
           )}
 
           {selected ? (

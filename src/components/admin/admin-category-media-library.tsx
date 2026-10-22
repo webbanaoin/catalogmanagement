@@ -18,6 +18,7 @@ import {
   getAdminCategoryMediaLibrary,
   removeAdminBusinessCategoryCover,
   removeAdminCategoryMedia,
+  setAdminCategoryProductDefault,
   uploadAdminBusinessCategoryCover,
   uploadAdminCategoryMedia,
   type AdminCategoryMediaItem,
@@ -206,6 +207,29 @@ export function AdminCategoryMediaLibrary({
     }
   }
 
+  async function toggleProductDefault(item: AdminCategoryMediaItem, checked: boolean) {
+    if (!item.imageStorageKey) {
+      setError("Upload a category image before enabling Visible as Default.");
+      return;
+    }
+    setBusySlug(item.categorySlug);
+    setError(null);
+    setFeedback(null);
+    try {
+      const response = await setAdminCategoryProductDefault(
+        businessCategoryId, item.categorySlug, checked,
+      );
+      setItems((current) => current.map((row) =>
+        row.categorySlug === item.categorySlug ? { ...row, ...response.data } : row,
+      ));
+      setFeedback(`${item.categoryName}: ${checked ? "products without photos now show this representative image" : "representative product default disabled"}.`);
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : "Unable to change default image setting.");
+    } finally {
+      setBusySlug(null);
+    }
+  }
+
   async function remove(item: AdminCategoryMediaItem) {
     if (
       !window.confirm(
@@ -236,6 +260,7 @@ export function AdminCategoryMediaLibrary({
                 ...currentItem,
                 imageStorageKey: null,
                 imageUrl: null,
+                visibleAsProductDefault: false,
                 updatedAt: null,
               }
             : currentItem,
@@ -401,6 +426,21 @@ export function AdminCategoryMediaLibrary({
                   Shared by all {businessCategoryName} shops unless a merchant
                   uploads an override for this category.
                 </p>
+                <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-lg border border-border bg-surface-muted/40 p-3 text-xs text-foreground">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 size-4 accent-primary"
+                    checked={item.visibleAsProductDefault ?? false}
+                    disabled={!item.imageStorageKey || busySlug !== null || coverBusy}
+                    onChange={(event) => void toggleProductDefault(item, event.target.checked)}
+                  />
+                  <span>
+                    <span className="block font-semibold">Visible as Default</span>
+                    <span className="mt-1 block text-muted">
+                      For products without actual photos, use this category image with “Designs available on enquiry”. Applies to matching shop categories and subcategories.
+                    </span>
+                  </span>
+                </label>
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary-hover">

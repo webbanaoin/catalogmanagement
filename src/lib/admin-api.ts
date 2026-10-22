@@ -504,6 +504,7 @@ export interface AdminCategoryMediaItem {
   displayOrder: number;
   imageStorageKey?: string | null;
   imageUrl?: string | null;
+  visibleAsProductDefault: boolean;
   updatedAt?: string | null;
 }
 
@@ -882,6 +883,21 @@ export async function uploadAdminCategoryMedia(
         categorySlug,
         storageKey: upload.data.key,
       }),
+    },
+  );
+}
+
+export async function setAdminCategoryProductDefault(
+  categoryId: string,
+  categorySlug: string,
+  visibleAsProductDefault: boolean,
+) {
+  return requestJson<{ data: AdminCategoryMediaItem }>(
+    "/api/admin/business-categories/" +
+      encodeURIComponent(categoryId) + "/category-media",
+    {
+      method: "PATCH",
+      body: JSON.stringify({ categorySlug, visibleAsProductDefault }),
     },
   );
 }

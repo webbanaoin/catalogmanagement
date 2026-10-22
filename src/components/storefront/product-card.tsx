@@ -77,6 +77,11 @@ export function ProductCard({
             alt={product.name}
             className="aspect-square w-full transition-transform duration-500 ease-out group-hover:scale-[1.045]"
           />
+          {product.imageSource === "category-default" ? (
+            <span className="absolute bottom-3 left-2 right-2 rounded-lg bg-black/75 px-2 py-2 text-center text-[10px] font-semibold tracking-wide text-white shadow-md sm:left-3 sm:right-3 sm:text-xs">
+              Designs available on enquiry
+            </span>
+          ) : null}
 
           <div className="absolute left-2 top-2 flex max-w-[calc(100%-1rem)] flex-wrap gap-1.5 sm:left-3 sm:top-3">
             {product.isOffer ? (

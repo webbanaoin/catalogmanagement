@@ -823,7 +823,7 @@ export default function ProductsPage() {
                           }
                         >
                           {(product.imageCount ?? product.images?.length ?? 0) === 0
-                            ? "No image uploaded"
+                            ? "Actual image needed"
                             : (product.imageCount ?? product.images?.length ?? 0) === 1
                               ? "1 image uploaded"
                               : `${product.imageCount ?? product.images?.length ?? 0} images uploaded`}
@@ -849,6 +849,11 @@ export default function ProductsPage() {
                       <p className="text-xs text-muted">
                         Slug: {product.slug} · Primary image: {primaryImage ? "Uploaded" : "Not set"}
                       </p>
+                      {!primaryImage && (product.imageCount ?? product.images?.length ?? 0) === 0 ? (
+                        <p className="text-xs font-medium text-primary">
+                          Replace default image with actual product photo. Until then your showroom uses any enabled category artwork or its placeholder.
+                        </p>
+                      ) : null}
                       {primaryImage?.url ? (
                         <a
                           href={primaryImage.url}
@@ -892,7 +897,7 @@ export default function ProductsPage() {
                         </Link>
                       ) : null}
                       <label className={buttonClassName("secondary", "sm", busyId === product.id ? "pointer-events-none opacity-50" : "cursor-pointer")}>
-                        {busyId === product.id ? "Uploading…" : "Upload images"}
+                        {busyId === product.id ? "Uploading…" : (product.imageCount ?? product.images?.length ?? 0) === 0 ? "Replace default image with actual" : "Upload images"}
                         <input
                           type="file"
                           accept="image/jpeg,image/png,image/webp"

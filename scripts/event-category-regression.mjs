@@ -140,6 +140,79 @@ async function main() {
   assert((await sharedLink.text()).includes("Back to products"),
     "Directly shared product must have fallback navigation");
 
+  // Shared category artwork remains opt-in. Category and subcategory default
+  // toggles must be scoped to the correct business type and never create
+  // product_images records or alter image quotas.
+  const media = await prisma.businessCategoryMedia.create({
+    data: {
+      businessCategoryId: vertical.id,
+      categorySlug: "theme-based-decoration",
+      categoryName: "Theme-Based Decoration",
+      imageStorageKey: `business-categories/${vertical.id}/categories/theme-based-decoration/example-${seed}.webp`,
+    },
+  });
+  created.media = media.id;
+  const mediaApi = `/api/admin/business-categories/${vertical.id}/category-media`;
+  const prohibited = await call(mediaApi, "PATCH", {
+    categorySlug: "theme-based-decoration", visibleAsProductDefault: true,
+  }, ownerCookie);
+  assert(prohibited.status === 403, "Only platform admin may enable shared default image");
+
+  await check("enable shared default image", await call(mediaApi, "PATCH", {
+    categorySlug: "theme-based-decoration", visibleAsProductDefault: true,
+  }, adminCookie), 200);
+  const sharedRow = await prisma.businessCategoryMedia.findUnique({ where: { id: media.id } });
+  assert(sharedRow?.visibleAsProductDefault, "Admin's default image flag not saved");
+  const representative = await call(`/s/${shop.slug}?category=jungle-theme`);
+  const representativeHtml = await representative.text();
+  assert(representativeHtml.includes("Designs available on enquiry"),
+    "Products without photos must inherit enabled parent category artwork");
+  assert((await prisma.productImage.count({
+    where: { product: { shopId: shop.id } },
+  })) === 0, "Representative image may not count as uploaded product image");
+
+  await check("disable shared default image", await call(mediaApi, "PATCH", {
+    categorySlug: "theme-based-decoration", visibleAsProductDefault: false,
+  }, adminCookie), 200);
+  const disabled = await call(`/s/${shop.slug}?category=jungle-theme`);
+  assert(!(await disabled.text()).includes("Designs available on enquiry"),
+    "Disabling default image must restore normal placeholder behavior");
+
+  // Merchant can use the existing shop category image as a default without
+  // affecting other shops, and actual uploaded product images override it.
+  await check("merchant opts in local default", await call(
+    `/api/shops/${shop.id}/categories/${own.get("Jungle Theme").id}`,
+    "PATCH", { visibleAsProductDefault: true },
+    ownerCookie,
+  ), 200);
+  await prisma.shopCategory.update({
+    where: { id: own.get("Jungle Theme").id },
+    data: { imageStorageKey: `shops/${shop.id}/categories/jungle-${seed}.webp` },
+  });
+  const local = await call(`/s/${shop.slug}?category=jungle-theme`);
+  assert((await local.text()).includes("Designs available on enquiry"),
+    "Opted-in merchant category image must show as representative artwork");
+
+  const eventProduct = await prisma.product.findFirst({
+    where: { shopId: shop.id, slug: `jungle-event-${seed}` },
+    select: { id: true },
+  });
+  assert(eventProduct, "Seeded Event product missing");
+  const uploaded = await prisma.productImage.create({
+    data: {
+      productId: eventProduct.id,
+      storageKey: `shops/${shop.id}/products/${eventProduct.id}/actual-${seed}.webp`,
+      isPrimary: true,
+    },
+  });
+  const actual = await call(`/s/${shop.slug}?category=jungle-theme`);
+  assert(!(await actual.text()).includes("Designs available on enquiry"),
+    "Actual product photo must replace category default automatically");
+  await prisma.productImage.delete({ where: { id: uploaded.id } });
+  const restored = await call(`/s/${shop.slug}?category=jungle-theme`);
+  assert((await restored.text()).includes("Designs available on enquiry"),
+    "Deleting all actual photos must restore opted-in category artwork");
+
   const home = await call(`/s/${shop.slug}`);
   const html = await home.text();
   assert(html.includes("Decoration") && html.includes("Event Entries"), "Root categories not displayed");
@@ -158,6 +231,7 @@ finally {
           ],
         },
       });
+      if (created.media) await prisma.businessCategoryMedia.delete({ where: { id: created.media } });
       if (created.shops.length) await prisma.shop.deleteMany({ where: { id: { in: created.shops } } });
       if (created.defaults.length) await prisma.businessCategoryDefault.deleteMany({ where: { id: { in: created.defaults } } });
       if (created.users.length) await prisma.user.deleteMany({ where: { id: { in: created.users } } });

@@ -218,7 +218,11 @@ export default async function ProductPage({
         </nav>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.08fr)_minmax(22rem,0.92fr)] lg:gap-9 xl:gap-12">
-          <ProductGallery productName={product.name} images={product.images} />
+          <ProductGallery
+            productName={product.name}
+            images={product.images}
+            fallbackImageUrl={product.imageSource === "category-default" ? product.imageUrl : null}
+          />
 
           <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
             <div className="rounded-[1.6rem] border border-border bg-surface p-5 shadow-[0_18px_50px_rgba(23,32,29,0.08)] sm:p-6 lg:p-7">

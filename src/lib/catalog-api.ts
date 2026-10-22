@@ -169,6 +169,7 @@ export interface ShopCategory {
   name: string;
   slug: string;
   imageStorageKey?: string | null;
+  visibleAsProductDefault: boolean;
   displayOrder: number;
   status: "ACTIVE" | "INACTIVE";
   createdAt: string;
@@ -180,6 +181,7 @@ export interface ShopCategoryPayload {
   parentId?: string | null;
   displayOrder?: number;
   status?: "ACTIVE" | "INACTIVE";
+  visibleAsProductDefault?: boolean;
 }
 
 export async function getCurrentUser() {

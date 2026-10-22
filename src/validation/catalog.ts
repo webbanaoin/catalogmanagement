@@ -36,6 +36,7 @@ export const categoryCreateSchema = z.object({
   name: z.string().trim().min(1).max(120), parentId: z.string().min(1).optional().nullable(),
   imageStorageKey: optionalTrimmed(512), displayOrder: z.number().int().min(0).max(100000).default(0),
   status: z.enum(["ACTIVE","INACTIVE"]).default("ACTIVE"),
+  visibleAsProductDefault: z.boolean().default(false),
 });
 export const categoryUpdateSchema = categoryCreateSchema.partial();
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { requirePlatformAdmin } from "@/server/auth/admin-access";
 import { listBusinessCategoryDefaults } from "@/server/catalog/business-category-defaults";
@@ -84,6 +85,7 @@ export async function GET(
           categorySlug: definition.slug,
           displayOrder: definition.displayOrder,
           imageStorageKey: row?.imageStorageKey ?? null,
+          visibleAsProductDefault: row?.visibleAsProductDefault ?? false,
           imageUrl: await mediaUrl(row?.imageStorageKey ?? null),
           updatedAt: row?.updatedAt ?? null,
         };
@@ -193,6 +195,73 @@ export async function POST(
         categorySlug: data.categorySlug,
         displayOrder: preset.displayOrder,
         imageStorageKey: data.imageStorageKey,
+        visibleAsProductDefault: data.visibleAsProductDefault,
+        imageUrl: await mediaUrl(data.imageStorageKey),
+        updatedAt: data.updatedAt,
+      },
+    });
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
+// Enable only after an image is uploaded. This is independent of the
+// category cover shown in the category gallery; actual product photos win.
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ categoryId: string }> },
+) {
+  try {
+    const admin = await requirePlatformAdmin();
+    const { categoryId } = await context.params;
+    const category = await businessCategory(categoryId);
+    const input = z.object({
+      categorySlug: z.string().trim().min(1).max(160),
+      visibleAsProductDefault: z.boolean(),
+    }).parse(await readJsonBody(request));
+    const preset = await presetCategory(category, input.categorySlug);
+    const row = await prisma.businessCategoryMedia.findUnique({
+      where: {
+        businessCategoryId_categorySlug: {
+          businessCategoryId: category.id,
+          categorySlug: preset.slug,
+        },
+      },
+    });
+    if (!row) {
+      throw new AppError({
+        code: "CATEGORY_IMAGE_REQUIRED",
+        message: "Upload a category image before enabling Visible as Default.",
+        status: 409,
+      });
+    }
+    const data = await prisma.$transaction(async (tx) => {
+      const updated = await tx.businessCategoryMedia.update({
+        where: { id: row.id },
+        data: { visibleAsProductDefault: input.visibleAsProductDefault },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorUserId: admin.id,
+          action: "CATEGORY_PRODUCT_DEFAULT_VISIBILITY_CHANGED",
+          entityType: "BusinessCategoryMedia",
+          entityId: row.id,
+          metadata: {
+            businessCategoryId: category.id,
+            categorySlug: preset.slug,
+            visibleAsProductDefault: input.visibleAsProductDefault,
+          },
+        },
+      });
+      return updated;
+    });
+    return NextResponse.json({
+      data: {
+        categoryName: data.categoryName,
+        categorySlug: data.categorySlug,
+        displayOrder: preset.displayOrder,
+        imageStorageKey: data.imageStorageKey,
+        visibleAsProductDefault: data.visibleAsProductDefault,
         imageUrl: await mediaUrl(data.imageStorageKey),
         updatedAt: data.updatedAt,
       },
