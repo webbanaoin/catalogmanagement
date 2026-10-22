@@ -253,7 +253,7 @@ export default function CategoriesPage() {
               <span>
                 <span className="block font-semibold">Visible as Default</span>
                 <span className="mt-1 block text-xs leading-5 text-muted">
-                  Use this category's image for products without real photos. If a shop-specific image is absent, the admin's shared category artwork can be used. Customers will see “Designs available on enquiry”. Actual product photos always take priority.
+                  Use this category image for products without real photos. If a shop-specific image is absent, the shared admin category artwork can be used. Customers will see “Designs available on enquiry”. Actual product photos always take priority.
                 </span>
               </span>
             </label>
