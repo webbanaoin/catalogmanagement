@@ -51,7 +51,12 @@ export default function RootLayout({
           <nav className="flex flex-wrap items-center justify-center gap-4">
             <Link href="/privacy">Privacy Policy</Link><Link href="/terms">Terms of Service</Link><Link href="/refund-policy">Refund & Cancellation</Link><Link href="/support">Support</Link>
           </nav>
-          <p className="mt-2">© Webbanao Digital Showroom</p>
+          <p className="mt-2">
+            © Webbanao Digital Showroom · Powered by{" "}
+            <a href="https://webbanao.in" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary underline-offset-2 hover:underline">
+              webbanao.in
+            </a>
+          </p>
         </footer>
       </body>
     </html>

@@ -28,6 +28,9 @@ export const metadata: Metadata = {
 const whatsappUrl =
   "https://wa.me/919168720245?text=Hi%20Webbanao%2C%20I%20want%20to%20know%20more%20about%20the%20Digital%20Showroom.";
 
+const demoWhatsappUrl =
+  "https://wa.me/919168720245?text=Hi%20Webbanao%2C%20I%20would%20like%20to%20book%20a%20Digital%20Showroom%20demo.";
+
 const shopTypes = [
   { icon: "💍", label: "Jewellery" },
   { icon: "👕", label: "Garments" },
@@ -355,6 +358,9 @@ export default async function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_8%_20%,rgba(56,189,248,.18),transparent_25%),radial-gradient(circle_at_90%_10%,rgba(99,102,241,.18),transparent_24%),linear-gradient(to_bottom,#ffffff,#f3f7ff)]" />
         <Container className="relative grid items-center gap-5 py-6 sm:gap-7 sm:py-10 lg:grid-cols-[.9fr_1.1fr] lg:gap-x-8 lg:gap-y-0 lg:py-14 xl:gap-x-10 xl:py-16">
           <div className="lg:col-start-1 lg:row-start-1 lg:self-end">
+            <div className="mb-4">
+              <WebbanaoLogo />
+            </div>
             <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.1em] sm:text-[11px] sm:tracking-[0.14em] text-sky-800">
               For local shops, boutiques and retailers
             </span>
@@ -397,9 +403,9 @@ export default async function Home() {
                   : "Register your shop"}{" "}
                 <ArrowIcon />
               </Link>
-              <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-sm font-extrabold text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:text-emerald-700">
+              <a href={demoWhatsappUrl} target="_blank" rel="noopener noreferrer" aria-label="Book a Digital Showroom demo via WhatsApp" className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-sm font-extrabold text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:text-emerald-700">
                 <WhatsAppIcon />
-                Chat on WhatsApp
+                Book Demo
               </a>
             </div>
 
