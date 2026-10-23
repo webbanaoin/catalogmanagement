@@ -10,7 +10,7 @@ CREATE TABLE `storefront_growth_events` (
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   UNIQUE INDEX `storefront_growth_events_event_type_converted_entity_id_key` (`event_type`, `converted_entity_id`),
   INDEX `storefront_growth_events_source_shop_id_created_at_idx` (`source_shop_id`, `created_at`),
-  INDEX `storefront_growth_events_source_shop_id_event_type_created_at_idx` (`source_shop_id`, `event_type`, `created_at`),
+  INDEX `growth_src_event_created_idx` (`source_shop_id`, `event_type`, `created_at`),
   PRIMARY KEY (`id`),
   CONSTRAINT `storefront_growth_events_source_shop_id_fkey`
     FOREIGN KEY (`source_shop_id`) REFERENCES `shops`(`id`)

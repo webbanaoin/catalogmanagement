@@ -34,4 +34,13 @@ needs("src/app/admin/growth/page.tsx", "PARTNER_REGISTERED");
 needs("src/validation/auth.ts", "growthSourceShopSlug");
 needs("src/validation/referrals.ts", "growthSourceShopSlug");
 
+const growthSql = read("prisma/migrations/20261024004500_storefront_growth_analytics/migration.sql");
+const identifiers = [...growthSql.matchAll(/(?:UNIQUE INDEX|INDEX|CONSTRAINT) \`([^\`]+)\`/g)].map((entry) => entry[1]);
+assert(identifiers.length >= 4, "expected growth indexes and foreign key");
+for (const name of identifiers) {
+  assert(name.length <= 64, `MySQL identifier too long: ${name} (${name.length} chars)`);
+}
+assert(schema.includes('@@index([sourceShopId, eventType, createdAt], map: "growth_src_event_created_idx")'),
+  "Prisma index name must match the SQL migration");
+
 console.log("Growth promotion cross-module source contracts OK");

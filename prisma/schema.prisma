@@ -695,7 +695,7 @@ model StorefrontGrowthEvent {
 
   @@unique([eventType, convertedEntityId])
   @@index([sourceShopId, createdAt])
-  @@index([sourceShopId, eventType, createdAt])
+  @@index([sourceShopId, eventType, createdAt], map: "growth_src_event_created_idx")
   @@map("storefront_growth_events")
 }
 
