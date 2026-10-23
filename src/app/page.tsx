@@ -358,9 +358,6 @@ export default async function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_8%_20%,rgba(56,189,248,.18),transparent_25%),radial-gradient(circle_at_90%_10%,rgba(99,102,241,.18),transparent_24%),linear-gradient(to_bottom,#ffffff,#f3f7ff)]" />
         <Container className="relative grid items-center gap-5 py-6 sm:gap-7 sm:py-10 lg:grid-cols-[.9fr_1.1fr] lg:gap-x-8 lg:gap-y-0 lg:py-14 xl:gap-x-10 xl:py-16">
           <div className="lg:col-start-1 lg:row-start-1 lg:self-end">
-            <div className="mb-4">
-              <WebbanaoLogo />
-            </div>
             <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.1em] sm:text-[11px] sm:tracking-[0.14em] text-sky-800">
               For local shops, boutiques and retailers
             </span>
@@ -403,7 +400,7 @@ export default async function Home() {
                   : "Register your shop"}{" "}
                 <ArrowIcon />
               </Link>
-              <a href={demoWhatsappUrl} target="_blank" rel="noopener noreferrer" aria-label="Book a Digital Showroom demo via WhatsApp" className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-sm font-extrabold text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:text-emerald-700">
+              <a href={demoWhatsappUrl} target="_blank" rel="noopener noreferrer" aria-label="Book a Digital Showroom demo via WhatsApp" className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-indigo-600 bg-gradient-to-r from-blue-700 via-indigo-700 to-violet-700 px-7 text-base font-black tracking-wide text-white shadow-[0_12px_28px_rgba(67,56,202,.32)] ring-2 ring-indigo-200/80 transition duration-200 hover:-translate-y-0.5 hover:from-blue-800 hover:via-indigo-800 hover:to-violet-800 hover:shadow-[0_16px_34px_rgba(67,56,202,.42)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
                 <WhatsAppIcon />
                 Book Demo
               </a>

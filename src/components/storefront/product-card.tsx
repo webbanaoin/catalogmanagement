@@ -78,7 +78,7 @@ export function ProductCard({
             className="aspect-square w-full transition-transform duration-500 ease-out group-hover:scale-[1.045]"
           />
           {product.imageSource === "category-default" ? (
-            <span className="absolute bottom-3 left-2 right-2 rounded-lg bg-black/75 px-2 py-2 text-center text-[10px] font-semibold tracking-wide text-white shadow-md sm:left-3 sm:right-3 sm:text-xs">
+            <span className="pointer-events-none absolute bottom-12 left-2 right-2 rounded-lg bg-black/80 px-2 py-2 text-center text-[10px] font-semibold leading-snug tracking-wide text-white shadow-md sm:bottom-12 sm:left-3 sm:right-3 sm:text-xs">
               Designs available on enquiry
             </span>
           ) : null}
