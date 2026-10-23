@@ -13,6 +13,7 @@ const items = [
   { label: "Referrals", href: "/admin/referrals" },
   { label: "Business categories", href: "/admin/categories" },
   { label: "Platform analytics", href: "/admin/analytics" },
+  { label: "Growth analytics", href: "/admin/growth" },
 ];
 
 export function AdminShell({

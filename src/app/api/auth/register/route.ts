@@ -11,6 +11,7 @@ import { errorResponse } from "@/server/http/error-response";
 import { readJsonBody } from "@/server/http/json-body";
 import { enforceRateLimit, getClientIp } from "@/server/security/rate-limit";
 import { normalizeReferralCode } from "@/server/referrals/referral-code";
+import { recordGrowthConversion } from "@/server/marketing/growth-conversion";
 import { registerSchema } from "@/validation/auth";
 
 function slugBase(name: string): string {
@@ -188,6 +189,9 @@ export async function POST(request: Request) {
         });
       }
     }
+
+    // Registration is already committed; attribution must never modify referral ownership.
+    await recordGrowthConversion(input.growthSourceShopSlug, "MERCHANT_REGISTERED", result.shop.id);
 
     return NextResponse.json({
       data: { user: result.user, shop: result.shop, membership: result.membership },

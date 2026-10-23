@@ -93,6 +93,7 @@ export interface RegisterPayload {
   state?: string;
   pincode?: string;
   referralCode?: string;
+  growthSourceShopSlug?: string;
 }
 
 export interface LoginPayload {
@@ -119,6 +120,7 @@ export interface PartnerRegisterPayload {
   city?: string;
   state?: string;
   marketingArea?: string;
+  growthSourceShopSlug?: string;
 }
 
 export function requestRegistrationEmailOtp(payload: {email:string;purpose:"MERCHANT"|"PARTNER"}) {

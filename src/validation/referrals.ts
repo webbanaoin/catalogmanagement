@@ -29,6 +29,7 @@ export const partnerRegisterSchema = z
     city: z.string().trim().max(120).optional(),
     state: z.string().trim().max(120).optional(),
     marketingArea: z.string().trim().max(255).optional(),
+    growthSourceShopSlug: z.string().trim().min(1).max(191).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
   })
   .refine((value) => value.password === value.confirmPassword, {
     message: "Passwords do not match",

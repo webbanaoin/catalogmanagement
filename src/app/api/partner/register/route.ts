@@ -8,6 +8,7 @@ import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
 import { readJsonBody } from "@/server/http/json-body";
 import { enforceRateLimit, getClientIp } from "@/server/security/rate-limit";
+import { recordGrowthConversion } from "@/server/marketing/growth-conversion";
 import { partnerRegisterSchema } from "@/validation/referrals";
 
 export async function POST(request: Request) {
@@ -89,6 +90,9 @@ export async function POST(request: Request) {
           "Registration submitted. Your referral code will be generated after admin approval.",
       };
     });
+
+    // Do not conflate Webbanao source attribution with referral commission eligibility.
+    await recordGrowthConversion(input.growthSourceShopSlug, "PARTNER_REGISTERED", data.id);
 
     return NextResponse.json({ data }, { status: 201 });
   } catch (error) {

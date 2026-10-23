@@ -110,9 +110,7 @@ export function StorefrontShell({
                 A curated digital showroom designed for effortless product discovery.
               </p>
             </div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-              Powered by <a href="https://webbanao.in" target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-4 hover:underline">webbanao.in</a> · <Link href="/" className="text-primary underline-offset-4 hover:underline">Webbanao Digital Showroom</Link>
-            </p>
+
           </div>
         </Container>
       </footer>

@@ -201,6 +201,7 @@ model Shop {
   payments PaymentRecord[]
   paymentSubmissions PaymentSubmission[]
   auditLogs AuditLog[]
+  growthSourceEvents StorefrontGrowthEvent[] @relation("GrowthSourceShop")
   referralPartner ReferralPartner? @relation(fields: [referralPartnerId], references: [id], onDelete: SetNull)
   referralCommissions ReferralCommission[]
   subscriptionReminders SubscriptionReminder[]
@@ -681,6 +682,22 @@ model CustomerAction {
   @@map("customer_actions")
 }
 
+
+model StorefrontGrowthEvent {
+  id String @id @default(cuid())
+  sourceShopId String @map("source_shop_id")
+  eventType String @map("event_type") @db.VarChar(40)
+  sourcePage String? @map("source_page") @db.VarChar(24)
+  sessionId String? @map("session_id") @db.VarChar(128)
+  convertedEntityId String? @map("converted_entity_id") @db.VarChar(191)
+  createdAt DateTime @default(now()) @map("created_at")
+  sourceShop Shop @relation("GrowthSourceShop", fields: [sourceShopId], references: [id], onDelete: Cascade)
+
+  @@unique([eventType, convertedEntityId])
+  @@index([sourceShopId, createdAt])
+  @@index([sourceShopId, eventType, createdAt])
+  @@map("storefront_growth_events")
+}
 
 model AuditLog {
   id String @id @default(cuid())

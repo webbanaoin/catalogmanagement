@@ -245,7 +245,17 @@ function formatMoney(value: number) {
   }).format(value);
 }
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const query = await searchParams;
+  const sourceValue = Array.isArray(query.source_shop) ? query.source_shop[0] : query.source_shop;
+  const growthSource = sourceValue && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(sourceValue) && sourceValue.length <= 191
+    ? sourceValue : null;
+  const growthQuery = growthSource ? `?source_shop=${encodeURIComponent(growthSource)}` : "";
+
   const { referralSettings, plan: commercialPlan } =
     await loadLandingCommerce();
 
@@ -347,7 +357,7 @@ export default async function Home() {
             <Link href="/login" className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-2.5 text-center text-xs font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700 sm:px-4 sm:text-sm">
               Merchant login
             </Link>
-            <Link href="/register" className="inline-flex min-h-10 items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-2.5 text-center text-xs font-extrabold text-white shadow-lg shadow-emerald-950/10 transition hover:-translate-y-0.5 sm:px-4 sm:text-sm">
+            <Link href={`/register${growthQuery}`} className="inline-flex min-h-10 items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-2.5 text-center text-xs font-extrabold text-white shadow-lg shadow-emerald-950/10 transition hover:-translate-y-0.5 sm:px-4 sm:text-sm">
               Register shop
             </Link>
           </div>
@@ -394,7 +404,7 @@ export default async function Home() {
             </p>
 
             <div className="mt-5 flex flex-col gap-2.5 sm:mt-8 sm:flex-row sm:gap-3">
-              <Link href="/register" className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 text-sm font-extrabold text-white shadow-[0_16px_35px_rgba(5,150,105,.20)] transition hover:-translate-y-0.5">
+              <Link href={`/register${growthQuery}`} className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 text-sm font-extrabold text-white shadow-[0_16px_35px_rgba(5,150,105,.20)] transition hover:-translate-y-0.5">
                 {commercialPlan?.trialDays
                   ? `Start your free ${commercialPlan.trialDays} days`
                   : "Register your shop"}{" "}
@@ -622,7 +632,7 @@ export default async function Home() {
                 </div>
 
                 <Link
-                  href="/register"
+                  href={`/register${growthQuery}`}
                   className={
                     plan.featured
                       ? "mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-white bg-white px-4 text-sm font-black !text-[#07152f] shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-100"
@@ -708,7 +718,7 @@ export default async function Home() {
 
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  href="/partner/register"
+                  href={`/partner/register${growthQuery}`}
                   className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 text-sm font-black text-white shadow-[0_16px_35px_rgba(5,150,105,.18)] transition hover:-translate-y-0.5"
                 >
                   Register as Marketing Partner <ArrowIcon />
@@ -892,7 +902,7 @@ export default async function Home() {
                 </a>
 
                 <div className="mt-5 grid gap-3">
-                  <Link href="/register" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white bg-white px-5 text-sm font-black !text-[#07152f] shadow-lg transition hover:bg-slate-100">
+                  <Link href={`/register${growthQuery}`} className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white bg-white px-5 text-sm font-black !text-[#07152f] shadow-lg transition hover:bg-slate-100">
                     Register your shop <ArrowIcon />
                   </Link>
                   <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-emerald-300/40 bg-emerald-400/10 px-5 text-sm font-black text-emerald-200 transition hover:bg-emerald-400/20">
@@ -913,7 +923,7 @@ export default async function Home() {
             <a href="#features" className="hover:text-indigo-700">Features</a>
             <a href="#pricing" className="hover:text-indigo-700">Pricing</a>
             <a href="#earn-with-us" className="hover:text-indigo-700">Earn with us</a>
-            <Link href="/partner/register" className="hover:text-indigo-700">Partner register</Link>
+            <Link href={`/partner/register${growthQuery}`} className="hover:text-indigo-700">Partner register</Link>
             <Link href="/partner/login" className="hover:text-indigo-700">Partner login</Link>
             <a href="#faq" className="hover:text-indigo-700">FAQs</a>
             <a href="#contact" className="hover:text-indigo-700">Contact</a>

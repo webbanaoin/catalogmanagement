@@ -71,6 +71,7 @@ export const registerSchema = z
     state: optionalNonBlankText("State", 120),
     pincode: optionalIndianPincode,
     referralCode: z.string().trim().max(80).optional(),
+    growthSourceShopSlug: z.string().trim().min(1).max(191).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
   })
   .refine(
     (value) => !(value.businessCategoryId && value.requestedBusinessType),

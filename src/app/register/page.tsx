@@ -14,6 +14,8 @@ export default async function RegisterPage({
 }) {
   const query = await searchParams;
   const referralCode = first(query.ref)?.trim().toUpperCase() ?? "";
+  const source = first(query.source_shop) ?? "";
+  const growthSourceShopSlug = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(source) && source.length <= 191 ? source : "";
   return (
     <AuthShell
       title="Create your merchant account"
@@ -30,7 +32,7 @@ export default async function RegisterPage({
         </>
       }
     >
-      <RegisterForm initialReferralCode={referralCode} />
+      <RegisterForm initialReferralCode={referralCode} growthSourceShopSlug={growthSourceShopSlug} />
     </AuthShell>
   );
 }

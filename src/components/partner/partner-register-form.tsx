@@ -32,7 +32,7 @@ function focusFirstInvalid(form: HTMLFormElement, errors: FieldErrors) {
   if (control instanceof HTMLElement) control.focus();
 }
 
-export function PartnerRegisterForm() {
+export function PartnerRegisterForm({ growthSourceShopSlug = "" }: { growthSourceShopSlug?: string }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
@@ -107,6 +107,7 @@ export function PartnerRegisterForm() {
         city: optional(data, "city"),
         state: optional(data, "state"),
         marketingArea: optional(data, "marketingArea"),
+        growthSourceShopSlug: growthSourceShopSlug || undefined,
       });
       router.push("/partner/pending");
     } catch (error) {

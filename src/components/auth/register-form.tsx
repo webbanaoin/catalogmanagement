@@ -139,8 +139,10 @@ function describedBy(id: string, error: string | undefined, hasHint = false): st
 
 export function RegisterForm({
   initialReferralCode = "",
+  growthSourceShopSlug = "",
 }: {
   initialReferralCode?: string;
+  growthSourceShopSlug?: string;
 }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -222,6 +224,7 @@ export function RegisterForm({
         state: optionalValue(formData, "state"),
         pincode: optionalValue(formData, "pincode"),
         referralCode: optionalValue(formData, "referralCode"),
+        growthSourceShopSlug: growthSourceShopSlug || undefined,
       });
 
       router.push("/pending-approval");
