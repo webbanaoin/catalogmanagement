@@ -24,3 +24,12 @@ This non-runtime release record is a GitHub commit to request a new build from t
 - Desired application source: `63fc1873e8d2aeb6aa665d16e2667dae690e63e4` (official Webbanao Digital Showroom logo, Hero Book Demo CTA, and Powered by webbanao.in footer link).
 - Next steps: inspect the fresh Railway Build Logs; record whether the image-build initialization, npm build, migration, and deployment stages succeed before considering production verified.
 - The git push requests a build only if the Railway service is still configured to auto-deploy from main. It is not evidence of a successful deployment.
+
+
+## Growth analytics migration retry — 2026-10-24
+
+- Documentation-only trigger to request a fresh Railway production build from main at the corrected migration index commit 86d545377ebc0856ef376107670487365f758356.
+- No application logic, Prisma migration, or database table is changed by this trigger.
+- The previous deployment failed with Prisma P3018 / MySQL error 1059 (identifier too long).
+- If the new deployment fails with Prisma P3009, its recorded failed migration must be resolved before the corrected migration can apply, even if `storefront_growth_events` was never created.
+- A GitHub push requests Railway auto-deployment only when auto-deploy from main is configured and does not confirm deployment success.
