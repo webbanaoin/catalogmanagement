@@ -1,6 +1,7 @@
 "use client";
 
 import { AdminWishlistGate } from "@/components/admin/admin-wishlist-gate";
+import { AdminStorefrontPromotionGate } from "@/components/admin/admin-storefront-promotion-gate";
 import { AdminShopImageLimit } from "@/components/admin/admin-shop-image-limit";
 
 import Link from "next/link";
@@ -475,6 +476,12 @@ function ShopCard({
 
         <AdminWishlistGate shopId={shop.id} allowed={shop.wishlistAllowedByAdmin}
           merchantEnabled={shop.wishlistEnabledByMerchant} onChanged={onChanged} />
+
+        <AdminStorefrontPromotionGate
+          shopId={shop.id}
+          enabled={shop.storefrontGrowthPromoEnabled}
+          onChanged={onChanged}
+        />
 
         <div className="rounded-xl border border-border bg-surface-muted/40 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

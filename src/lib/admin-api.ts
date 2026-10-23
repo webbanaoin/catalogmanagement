@@ -44,6 +44,7 @@ export interface AdminShop {
   status: AdminShopStatus;
   wishlistAllowedByAdmin: boolean;
   wishlistEnabledByMerchant: boolean;
+  storefrontGrowthPromoEnabled: boolean;
   imageLimitPerProductOverride: number | null;
   email?: string | null;
   phone?: string | null;
@@ -612,6 +613,13 @@ export async function updateAdminShopImageLimit(
   } }>(
     "/api/admin/shops/" + encodeURIComponent(shopId) + "/image-limit",
     { method: "PATCH", body: JSON.stringify({ imageLimitPerProductOverride }) },
+  );
+}
+
+export async function updateAdminStorefrontPromotion(shopId: string, enabled: boolean) {
+  return requestJson<{ data: { id: string; storefrontGrowthPromoEnabled: boolean } }>(
+    "/api/admin/shops/" + encodeURIComponent(shopId) + "/storefront-promotion",
+    { method: "PATCH", body: JSON.stringify({ enabled }) },
   );
 }
 

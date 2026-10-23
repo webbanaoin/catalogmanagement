@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { PwaInstallPrompt } from "@/components/pwa/pwa-install-prompt";
 import { StorefrontMedia } from "@/components/storefront/storefront-media";
+import { StorefrontGrowthCTA } from "@/components/storefront/storefront-growth-cta";
 import { WishlistHeaderButton, WishlistProvider } from "@/components/storefront/storefront-wishlist";
 import { Container } from "@/components/ui";
 
@@ -13,6 +14,7 @@ export function StorefrontShell({
   logoUrl,
   shopSlug,
   wishlistEnabled = false,
+  storefrontGrowthPromoEnabled = false,
   whatsapp = null,
 }: {
   children: ReactNode;
@@ -21,6 +23,7 @@ export function StorefrontShell({
   logoUrl?: string | null;
   shopSlug?: string;
   wishlistEnabled?: boolean;
+  storefrontGrowthPromoEnabled?: boolean;
   whatsapp?: string | null;
 }) {
   return (
@@ -75,6 +78,10 @@ export function StorefrontShell({
 
       <main id="storefront-main">{children}</main>
 
+      {shopSlug && storefrontGrowthPromoEnabled ? (
+        <StorefrontGrowthCTA shopSlug={shopSlug} />
+      ) : null}
+
       <footer className="mt-8 border-t border-border bg-surface/90 py-8 sm:mt-12 sm:py-10">
         <Container>
           {shopSlug ? (
@@ -104,7 +111,7 @@ export function StorefrontShell({
               </p>
             </div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-              Powered by Webbanao Digital Showroom
+              Powered by <a href="https://webbanao.in" target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-4 hover:underline">webbanao.in</a> · <Link href="/" className="text-primary underline-offset-4 hover:underline">Webbanao Digital Showroom</Link>
             </p>
           </div>
         </Container>

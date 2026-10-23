@@ -98,6 +98,7 @@ export default async function CategoryPage({
       logoUrl={data.shop.logoUrl}
       shopSlug={shopSlug}
       wishlistEnabled={data.shop.wishlistEnabled}
+      storefrontGrowthPromoEnabled={data.shop.storefrontGrowthPromoEnabled}
       whatsapp={data.shop.whatsapp}
     >
       <StorefrontView

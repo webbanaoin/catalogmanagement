@@ -32,6 +32,7 @@ export interface PublicShop {
   facebookUrl: string | null;
   showProductPrices: boolean;
   wishlistEnabled: boolean;
+  storefrontGrowthPromoEnabled: boolean;
   businessCategoryName: string | null;
   businessCategorySlug: string | null;
   catalogGroupLabel: string;
@@ -189,6 +190,7 @@ async function mapShop(shop: {
   showProductPrices: boolean;
   wishlistAllowedByAdmin: boolean;
   wishlistEnabledByMerchant: boolean;
+  storefrontGrowthPromoEnabled: boolean;
   logoStorageKey: string | null;
   coverStorageKey: string | null;
   businessCategory:
@@ -223,6 +225,7 @@ async function mapShop(shop: {
     facebookUrl: publicSocialUrl(shop.facebookUrl, ["facebook.com", "fb.com", "fb.me"]),
     showProductPrices: shop.showProductPrices,
     wishlistEnabled: shop.wishlistAllowedByAdmin && shop.wishlistEnabledByMerchant && Boolean(shop.whatsapp),
+    storefrontGrowthPromoEnabled: shop.storefrontGrowthPromoEnabled,
     businessCategoryName: shop.businessCategory?.name ?? null,
     businessCategorySlug: shop.businessCategory?.slug ?? null,
     catalogGroupLabel: preset.groupLabel,
@@ -297,6 +300,7 @@ const getActiveShopRecord = cache(async (shopSlug: string) => {
       showProductPrices: true,
       wishlistAllowedByAdmin: true,
       wishlistEnabledByMerchant: true,
+      storefrontGrowthPromoEnabled: true,
       logoStorageKey: true,
       coverStorageKey: true,
       businessCategory: {

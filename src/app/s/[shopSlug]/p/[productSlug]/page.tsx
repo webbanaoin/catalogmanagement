@@ -180,6 +180,7 @@ export default async function ProductPage({
       logoUrl={shop.logoUrl}
       shopSlug={shopSlug}
       wishlistEnabled={shop.wishlistEnabled}
+      storefrontGrowthPromoEnabled={shop.storefrontGrowthPromoEnabled}
       whatsapp={shop.whatsapp}
     >
       <StorefrontAnalytics
