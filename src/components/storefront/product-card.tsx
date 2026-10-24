@@ -75,8 +75,7 @@ export function ProductCard({
           <StorefrontMedia
             src={product.imageUrl}
             alt={product.name}
-            fit={product.imageSource === "actual" ? "contain" : "cover"}
-            className={`aspect-square w-full transition-transform duration-500 ease-out ${product.imageSource === "actual" ? "" : "group-hover:scale-[1.045]"}`}
+            className="aspect-square w-full transition-transform duration-500 ease-out group-hover:scale-[1.045]"
           />
           {product.imageSource === "category-default" ? (
             <span className="pointer-events-none absolute bottom-12 left-2 right-2 rounded-lg bg-black/80 px-2 py-2 text-center text-[10px] font-semibold leading-snug tracking-wide text-white shadow-md sm:bottom-12 sm:left-3 sm:right-3 sm:text-xs">

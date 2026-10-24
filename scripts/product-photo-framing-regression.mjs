@@ -67,6 +67,8 @@ assert(products.includes("setPendingPhotoUpload({ product, files, index: 0 })"),
 assert(modal.includes("Fit entire photo") && modal.includes("Fill & crop"), "two preview modes");
 assert(modal.includes("Horizontal position") && modal.includes("Vertical position"), "position controls");
 assert(modal.includes("frameProductPhoto(file, frame)"), "framed image must upload");
-assert(cards.includes('fit={product.imageSource === "actual" ? "contain" : "cover"}'),
-  "existing product images should not crop in catalog cards");
+assert(!cards.includes('fit={product.imageSource === "actual" ? "contain" : "cover"}'),
+  "existing catalog layout must retain original cover-style photos");
+assert(cards.includes('className="aspect-square w-full transition-transform duration-500 ease-out group-hover:scale-[1.045]"'),
+  "original square card and hover style must stay unchanged");
 console.log("Product photo fitting, cropping, and upload contracts OK");
