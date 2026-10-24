@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { prisma } from "@/server/database/prisma";
+import { getAppEnvironment } from "@/server/env";
+import { isTrustedGrowthOrigin } from "@/lib/growth-origin";
 import { AppError } from "@/server/http/app-error";
 import { errorResponse } from "@/server/http/error-response";
 import { readJsonBody } from "@/server/http/json-body";
@@ -25,9 +27,15 @@ export async function POST(
       60_000,
     );
 
-    // Reject cross-origin browser posts; this endpoint does not accept credentials.
-    const origin = request.headers.get("origin");
-    if (origin && new URL(origin).origin !== new URL(request.url).origin) {
+    // Railway and similar reverse proxies can expose an internal request.url
+    // (e.g. http://localhost:8080) while browsers send the public HTTPS Origin.
+    // Trust our validated APP_URL as the public origin; do not trust an
+    // arbitrary client-supplied X-Forwarded-Host header.
+    if (!isTrustedGrowthOrigin(
+      request.headers.get("origin"),
+      getAppEnvironment().APP_URL,
+      request.url,
+    )) {
       throw new AppError({
         code: "INVALID_ORIGIN",
         message: "Cross-origin growth events are not allowed",

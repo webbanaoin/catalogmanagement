@@ -28,25 +28,37 @@ function sessionId(shopSlug: string): string | undefined {
   }
 }
 
-function sendGrowthEvent(shopSlug: string, eventType: GrowthEventType) {
+async function sendGrowthEvent(
+  shopSlug: string,
+  eventType: GrowthEventType,
+): Promise<boolean> {
   const url = `/api/public/shops/${encodeURIComponent(shopSlug)}/growth/events`;
-  const data = JSON.stringify({
+  const currentSessionId = sessionId(shopSlug);
+  const body = JSON.stringify({
     eventType,
     sourcePage: pageType(window.location.pathname),
-    ...(sessionId(shopSlug) ? { sessionId: sessionId(shopSlug) } : {}),
+    ...(currentSessionId ? { sessionId: currentSessionId } : {}),
   });
+
   try {
-    // Fire-and-forget, even for links that navigate away immediately.
-    if (navigator.sendBeacon?.(url, new Blob([data], { type: "application/json" }))) return;
-    void fetch(url, {
+    // Keep the request alive when Next.js navigates after a CTA click.
+    // Unlike sendBeacon, fetch lets us observe rejected API responses.
+    const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: data,
+      body,
       credentials: "same-origin",
       keepalive: true,
-    }).catch(() => {});
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      // Safe diagnostic: no visitor data or request payload in the console.
+      console.warn("[growth-tracking] Event not recorded", eventType, response.status);
+    }
+    return response.ok;
   } catch {
-    // Analytics must never interfere with the visitor's navigation.
+    // Never block customer navigation or reveal backend error details.
+    return false;
   }
 }
 
@@ -63,29 +75,59 @@ export function StorefrontGrowthCTA({ shopSlug }: { shopSlug: string }) {
   useEffect(() => {
     const element = bannerRef.current;
     if (!element) return;
-    // One impression per shopper session, per originating shop page.
-    const key = `webbanao-growth-impression:${shopSlug}:${window.location.pathname}`;
-    const recordView = () => {
-      try {
-        if (sessionStorage.getItem(key)) return;
-        sessionStorage.setItem(key, "1");
-      } catch {
-        // Browsers that restrict storage can still record this view.
-      }
-      sendGrowthEvent(shopSlug, "IMPRESSION");
-    };
-    if (!("IntersectionObserver" in window)) {
-      recordView();
-      return;
+
+    // v2 key deliberately ignores the old version's premature success marker.
+    const key = `webbanao-growth-impression:v2:${shopSlug}:${window.location.pathname}`;
+    try {
+      if (sessionStorage.getItem(key) === "1") return;
+    } catch {
+      // Private browsing restrictions must not suppress analytics.
     }
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        recordView();
-        observer.disconnect();
+
+    let disposed = false;
+    let pending = false;
+    let attempts = 0;
+    let observer: IntersectionObserver | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const recordView = async () => {
+      if (pending || disposed || attempts >= 3) return;
+      pending = true;
+      attempts += 1;
+      const saved = await sendGrowthEvent(shopSlug, "IMPRESSION");
+      pending = false;
+      if (disposed) return;
+
+      if (saved) {
+        // Only mark a session impression after the API has accepted it.
+        try {
+          sessionStorage.setItem(key, "1");
+        } catch {
+          // A successful event still counts if storage is unavailable.
+        }
+        observer?.disconnect();
+      } else if (attempts < 3) {
+        // Retry a transient 403/5xx/network error without a page refresh.
+        retryTimer = setTimeout(() => void recordView(), 2000 * attempts);
       }
-    }, { threshold: 0.25 });
-    observer.observe(element);
-    return () => observer.disconnect();
+    };
+
+    if (!("IntersectionObserver" in window)) {
+      void recordView();
+    } else {
+      observer = new IntersectionObserver((entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void recordView();
+        }
+      }, { threshold: 0.25 });
+      observer.observe(element);
+    }
+
+    return () => {
+      disposed = true;
+      observer?.disconnect();
+      if (retryTimer) clearTimeout(retryTimer);
+    };
   }, [shopSlug]);
 
   return (

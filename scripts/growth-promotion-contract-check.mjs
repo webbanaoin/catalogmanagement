@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import "./growth-origin-regression.mjs";
 import { readFileSync } from "node:fs";
 
 const read = (name) => readFileSync(new URL("../" + name, import.meta.url), "utf8");
@@ -25,6 +26,11 @@ for (const route of [
 needs("src/components/storefront/storefront-shell.tsx", "shopSlug && storefrontGrowthPromoEnabled");
 needs("src/app/api/public/shops/[shopSlug]/growth/events/route.ts", "enforceRateLimit");
 needs("src/app/api/public/shops/[shopSlug]/growth/events/route.ts", "storefrontGrowthPromoEnabled: true");
+needs("src/app/api/public/shops/[shopSlug]/growth/events/route.ts", "getAppEnvironment().APP_URL");
+needs("src/app/api/public/shops/[shopSlug]/growth/events/route.ts", "isTrustedGrowthOrigin");
+needs("src/components/storefront/storefront-growth-cta.tsx", "if (!response.ok)");
+needs("src/components/storefront/storefront-growth-cta.tsx", "if (saved)");
+needs("src/components/storefront/storefront-growth-cta.tsx", "webbanao-growth-impression:v2");
 needs("src/app/api/admin/shops/[shopId]/storefront-promotion/route.ts", "requirePlatformAdmin");
 needs("src/app/api/auth/register/route.ts", '"MERCHANT_REGISTERED"');
 needs("src/app/api/partner/register/route.ts", '"PARTNER_REGISTERED"');
