@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import { ProductImageAdjuster } from "@/components/shop-management/product-image-adjuster";
 
 import {
   Alert,
@@ -139,6 +140,11 @@ export default function ProductsPage() {
   const [managedImages, setManagedImages] = useState<ProductImage[]>([]);
   const [loadingImages, setLoadingImages] = useState(false);
   const [imageBusyId, setImageBusyId] = useState<string | null>(null);
+  const [pendingPhotoUpload, setPendingPhotoUpload] = useState<{
+    product: ShopProduct;
+    files: File[];
+    index: number;
+  } | null>(null);
   const [feedback, setFeedback] = useState<{
     variant: "success" | "error" | "warning" | "info";
     message: string;
@@ -451,10 +457,10 @@ export default function ProductsPage() {
     }
   }
 
-  async function uploadImages(product: ShopProduct, event: ChangeEvent<HTMLInputElement>) {
+  function uploadImages(product: ShopProduct, event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
     event.target.value = "";
-    if (!shop || files.length === 0) return;
+    if (!shop || files.length === 0 || busyId) return;
 
     const invalidType = files.find(
       (file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type),
@@ -467,44 +473,47 @@ export default function ProductsPage() {
       return;
     }
 
+    // Images remain local until the merchant confirms the square preview.
+    setFeedback(null);
+    setPendingPhotoUpload({ product, files, index: 0 });
+  }
+
+  async function uploadAdjustedPhoto(adjusted: File) {
+    const pending = pendingPhotoUpload;
+    if (!shop || !pending) return;
+    const product = pending.product;
     setBusyId(product.id);
-    setFeedback({
-      variant: "info",
-      message: `Uploading ${files.length} image${files.length === 1 ? "" : "s"} for ${product.name}…`,
-    });
-
-    let uploaded = 0;
     try {
-      for (const [index, file] of files.entries()) {
-        await uploadProductImage(shop.id, product.id, file, {
-          isPrimary: false,
-          displayOrder: (product.imageCount ?? product.images?.length ?? 0) + index,
-        });
-        uploaded += 1;
-      }
+      await uploadProductImage(shop.id, product.id, adjusted, {
+        isPrimary: false,
+        displayOrder: (product.imageCount ?? product.images?.length ?? 0) + pending.index,
+      });
 
+      const finished = pending.index + 1;
+      // A confirmed upload must not repeat if refreshing the product list fails.
+      setPendingPhotoUpload(
+        finished < pending.files.length
+          ? { ...pending, index: finished }
+          : null,
+      );
       setFeedback({
         variant: "success",
-        message: `${uploaded} image${uploaded === 1 ? "" : "s"} uploaded for ${product.name}. The existing primary image is preserved; the first image becomes primary automatically when the product had no images.`,
+        message: finished < pending.files.length
+          ? `Uploaded ${finished} of ${pending.files.length} photos for ${product.name}. Adjust the next photo.`
+          : `Uploaded ${finished} adjusted photo${finished === 1 ? "" : "s"} for ${product.name}. Full image and thumbnail are ready for the showroom.`,
       });
-      await refreshProducts(shop.id);
-      if (managingImagesFor === product.id) {
-        const detail = await getShopProduct(shop.id, product.id);
-        setManagedImages(detail.data.images);
+      try {
+        await refreshProducts(shop.id);
+        if (managingImagesFor === product.id) {
+          const detail = await getShopProduct(shop.id, product.id);
+          setManagedImages(detail.data.images);
+        }
+      } catch {
+        setFeedback({
+          variant: "warning",
+          message: "Photo uploaded successfully. Refresh the page to see the updated gallery.",
+        });
       }
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Unable to upload product images.";
-      setFeedback({
-        variant: uploaded > 0 ? "warning" : "error",
-        message:
-          uploaded > 0
-            ? `${uploaded} image${uploaded === 1 ? "" : "s"} uploaded before the next upload stopped: ${message}`
-            : message,
-      });
-      await refreshProducts(shop.id);
     } finally {
       setBusyId(null);
     }
@@ -523,7 +532,7 @@ export default function ProductsPage() {
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="Products"
-        description="Manage products and select original JPG, PNG or WebP photos. Uploads are automatically compressed, resized and given lightweight catalogue thumbnails before reaching cloud storage."
+        description="Manage products and upload JPG, PNG or WebP photos. Adjust Fit or Crop, zoom and position before uploading. Images are automatically optimized into full-size photos and thumbnails for the showroom."
       />
 
       {feedback ? <Alert variant={feedback.variant}>{feedback.message}</Alert> : null}
@@ -896,15 +905,15 @@ export default function ProductsPage() {
                           View public
                         </Link>
                       ) : null}
-                      <label className={buttonClassName("secondary", "sm", busyId === product.id ? "pointer-events-none opacity-50" : "cursor-pointer")}>
+                      <label className={buttonClassName("secondary", "sm", busyId !== null || pendingPhotoUpload ? "pointer-events-none opacity-50" : "cursor-pointer")}>
                         {busyId === product.id ? "Uploading…" : (product.imageCount ?? product.images?.length ?? 0) === 0 ? "Replace default image with actual" : "Upload images"}
                         <input
                           type="file"
                           accept="image/jpeg,image/png,image/webp"
                           multiple
                           className="sr-only"
-                          disabled={busyId === product.id}
-                          onChange={(event) => void uploadImages(product, event)}
+                          disabled={busyId !== null || pendingPhotoUpload !== null}
+                          onChange={(event) => uploadImages(product, event)}
                         />
                       </label>
                       <Button
@@ -982,6 +991,20 @@ export default function ProductsPage() {
           </CardContent>
         </Card>
       )}
+
+      {pendingPhotoUpload ? (
+        <ProductImageAdjuster
+          key={`${pendingPhotoUpload.product.id}:${pendingPhotoUpload.index}`}
+          file={pendingPhotoUpload.files[pendingPhotoUpload.index]!}
+          productName={pendingPhotoUpload.product.name}
+          index={pendingPhotoUpload.index}
+          total={pendingPhotoUpload.files.length}
+          onConfirm={uploadAdjustedPhoto}
+          onCancel={() => {
+            if (!busyId) setPendingPhotoUpload(null);
+          }}
+        />
+      ) : null}
 
       <Alert title="Catalogue limits">
         Product creation and image uploads are enforced against the shop&apos;s current subscription plan. Bulk product creation remains available through Excel Import when the plan includes it.
