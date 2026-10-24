@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 
+// Keep Hostinger staging builds within the available process/thread limits.
+const isStagingBuild = process.env.STAGING_BUILD === "true";
+
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
@@ -20,6 +23,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  ...(isStagingBuild ? { experimental: { cpus: 2 } } : {}),
   async headers() {
     return [
       {
