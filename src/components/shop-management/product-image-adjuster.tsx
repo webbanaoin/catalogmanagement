@@ -15,6 +15,11 @@ import {
   type ProductImageFraming,
 } from "@/lib/product-image-framing";
 import { Button } from "@/components/ui";
+import {
+  generateSinglePhotoVariants,
+  type PhotoVariant,
+  type PhotoVariantKind,
+} from "@/lib/single-photo-variants";
 
 type Dimensions = { width: number; height: number };
 type DragStart = {
@@ -36,6 +41,7 @@ export function ProductImageAdjuster({
   index,
   total,
   onConfirm,
+  onConfirmVariants,
   onCancel,
 }: {
   file: File;
@@ -43,6 +49,7 @@ export function ProductImageAdjuster({
   index: number;
   total: number;
   onConfirm: (adjusted: File) => Promise<void>;
+  onConfirmVariants?: (files: File[]) => Promise<void>;
   onCancel: () => void;
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -50,6 +57,13 @@ export function ProductImageAdjuster({
   const [frame, setFrame] = useState<ProductImageFraming>(DEFAULT_PRODUCT_IMAGE_FRAMING);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [cleanupStrength, setCleanupStrength] = useState(46);
+  const [generated, setGenerated] = useState<PhotoVariant[]>([]);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [generatedUrls, setGeneratedUrls] = useState<Record<string, string>>({});
+  const [selectedKinds, setSelectedKinds] = useState<PhotoVariantKind[]>([]);
+  const [generationWarning, setGenerationWarning] = useState<string | null>(null);
   const drag = useRef<DragStart | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -62,6 +76,10 @@ export function ProductImageAdjuster({
     dialogRef.current?.focus();
     return () => URL.revokeObjectURL(url);
   }, [file]);
+
+  useEffect(() => {
+    return () => Object.values(generatedUrls).forEach((url) => URL.revokeObjectURL(url));
+  }, [generatedUrls]);
 
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -122,13 +140,48 @@ export function ProductImageAdjuster({
     }));
   }
 
+  const framingKey = JSON.stringify(frame);
+  const previewsCurrent = generatedAt === framingKey;
+  const canSelectVariants = total === 1 && onConfirmVariants !== undefined;
+
+  async function generatePreviews() {
+    if (!dimensions || !canSelectVariants || generating || saving) return;
+    setGenerating(true);
+    setError(null);
+    setGenerationWarning(null);
+    try {
+      const result = await generateSinglePhotoVariants(file, frame, cleanupStrength);
+      setGenerated(result.variants);
+      setGeneratedAt(framingKey);
+      setSelectedKinds(["standard"]);
+      setGeneratedUrls(Object.fromEntries(
+        result.variants.map((variant) => [variant.kind, URL.createObjectURL(variant.file)]),
+      ));
+      setGenerationWarning(result.warning ?? null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not generate previews.");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   async function confirm() {
-    if (!dimensions || saving) return;
+    if (!dimensions || saving || generating) return;
     setSaving(true);
     setError(null);
     try {
-      const processed = await frameProductPhoto(file, frame);
-      await onConfirm(processed);
+      if (canSelectVariants && onConfirmVariants && generated.length > 0) {
+        if (!previewsCurrent) {
+          throw new Error("Photo adjustments changed. Generate the previews again before uploading.");
+        }
+        const files = generated.filter((variant) => selectedKinds.includes(variant.kind))
+          .map((variant) => variant.file);
+        if (!files.length) throw new Error("Select at least one variant to upload.");
+        await onConfirmVariants(files);
+      } else {
+        const processed = await frameProductPhoto(file, frame);
+        await onConfirm(processed);
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to upload the adjusted photo.");
     } finally {
@@ -279,6 +332,92 @@ export function ProductImageAdjuster({
             <Button type="button" size="sm" variant="secondary" disabled={saving} onClick={() => setFrame({ ...DEFAULT_PRODUCT_IMAGE_FRAMING })}>
               Reset adjustments
             </Button>
+            {canSelectVariants ? (
+              <section className="space-y-3 rounded-xl border border-primary/20 bg-primary-soft/30 p-3" aria-label="Single photo enhancement">
+                <div>
+                  <p className="text-sm font-bold text-foreground">Smart Photo Options · Single photo only</p>
+                  <p className="mt-1 text-xs leading-5 text-muted">
+                    Optional: make a clean white background and a close-up from this ONE photo.
+                    No extra processing unless you request previews.
+                  </p>
+                </div>
+                <label htmlFor="photo-cleanup-strength" className="flex justify-between text-xs font-semibold text-foreground">
+                  <span>Background cleanup strength</span>
+                  <span>{cleanupStrength}</span>
+                </label>
+                <input
+                  id="photo-cleanup-strength"
+                  aria-label="Background cleanup strength"
+                  type="range"
+                  min="20"
+                  max="75"
+                  step="5"
+                  value={cleanupStrength}
+                  disabled={saving || generating}
+                  onChange={(event) => {
+                    setCleanupStrength(Number(event.target.value));
+                    setGeneratedAt(null);
+                  }}
+                  className="w-full accent-emerald-700"
+                />
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={saving || generating || !dimensions}
+                  onClick={() => void generatePreviews()}
+                >
+                  {generating ? "Creating previews…" : generated.length ? "Regenerate 2–3 previews" : "Preview white background & variants"}
+                </Button>
+                <p className="text-[11px] leading-4 text-muted">
+                  White-background cleanup works best on plain or solid backdrops.
+                  It may not perfectly remove complex backgrounds or fine edges; review before selecting.
+                </p>
+                {generationWarning ? (
+                  <p role="status" className="rounded-lg bg-warning-soft p-2 text-xs text-warning-strong">
+                    {generationWarning}
+                  </p>
+                ) : null}
+                {generated.length > 0 ? (
+                  <div className="space-y-2">
+                    {previewsCurrent ? (
+                      <p className="text-xs font-semibold text-foreground">Select the images to upload · each counts toward product image limits</p>
+                    ) : (
+                      <p role="status" className="text-xs font-semibold text-warning-strong">
+                        Your adjustments changed. Regenerate previews to upload these variants.
+                      </p>
+                    )}
+                    <div className="grid grid-cols-3 gap-2">
+                      {generated.map((variant) => (
+                        <label key={variant.kind} className="min-w-0 cursor-pointer rounded-lg border border-border bg-surface p-1.5">
+                          <img
+                            src={generatedUrls[variant.kind]}
+                            alt={`${variant.label} version of ${file.name}`}
+                            className="aspect-square w-full rounded bg-white object-cover"
+                          />
+                          <span className="mt-1.5 flex items-start gap-1 text-[10px] font-semibold leading-tight text-foreground">
+                            <input
+                              type="checkbox"
+                              checked={selectedKinds.includes(variant.kind)}
+                              disabled={saving || generating || !previewsCurrent}
+                              onChange={(event) => {
+                                setSelectedKinds((current) =>
+                                  event.target.checked
+                                    ? [...current, variant.kind]
+                                    : current.filter((kind) => kind !== variant.kind),
+                                );
+                              }}
+                              className="mt-0.5 shrink-0 accent-emerald-700"
+                            />
+                            {variant.label}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted">{selectedKinds.length} final image(s) selected. Existing photo quota rules still apply.</p>
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
             <p className="rounded-lg bg-background p-3 text-xs leading-5 text-muted">
               Fit entire photo keeps tall and wide products complete. Blank edges are filled with white.
               Fill & crop is suitable for close-up designs. You can adjust each selected photo individually.
@@ -289,8 +428,12 @@ export function ProductImageAdjuster({
         {error ? <p role="alert" className="px-4 pb-2 text-sm font-medium text-danger sm:px-6">{error}</p> : null}
         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border bg-background px-4 py-3 sm:px-6">
           <Button type="button" variant="secondary" disabled={saving} onClick={onCancel}>Cancel</Button>
-          <Button type="button" disabled={!dimensions || saving} onClick={() => void confirm()}>
-            {saving ? "Preparing & uploading…" : total > index + 1 ? "Upload & adjust next →" : "Upload adjusted photo"}
+          <Button type="button" disabled={!dimensions || saving || generating || (generated.length > 0 && (!previewsCurrent || selectedKinds.length === 0))} onClick={() => void confirm()}>
+            {saving
+              ? "Preparing & uploading…"
+              : generated.length > 0 && previewsCurrent
+                ? `Upload ${selectedKinds.length} selected image${selectedKinds.length === 1 ? "" : "s"}`
+                : total > index + 1 ? "Upload & adjust next →" : "Upload adjusted photo"}
           </Button>
         </div>
       </div>

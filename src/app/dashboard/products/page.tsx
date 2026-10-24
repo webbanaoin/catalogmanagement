@@ -519,6 +519,54 @@ export default function ProductsPage() {
     }
   }
 
+  async function uploadEnhancedVariants(files: File[]) {
+    const pending = pendingPhotoUpload;
+    if (!shop || !pending || pending.files.length !== 1 || files.length === 0) {
+      throw new Error("Select one photo and at least one preview before uploading.");
+    }
+    const product = pending.product;
+    let uploaded = 0;
+    let failure: string | null = null;
+    setBusyId(product.id);
+    try {
+      // Each chosen image uses the existing verified per-product and shop-wide
+      // quota checks, presigned R2 uploads and thumbnail optimizations.
+      for (const [index, file] of files.entries()) {
+        await uploadProductImage(shop.id, product.id, file, {
+          isPrimary: false,
+          displayOrder: (product.imageCount ?? product.images?.length ?? 0) + index,
+        });
+        uploaded += 1;
+      }
+    } catch (cause) {
+      failure = cause instanceof Error ? cause.message : "Upload failed.";
+    } finally {
+      setBusyId(null);
+    }
+
+    if (uploaded > 0) {
+      // On partial success dismiss the picker so retrying cannot create
+      // duplicate versions of those already accepted by R2 and MySQL.
+      setPendingPhotoUpload(null);
+      setFeedback({
+        variant: failure ? "warning" : "success",
+        message: failure
+          ? `${uploaded} selected image(s) uploaded before the upload stopped: ${failure}. Refresh and retry only the missing variants.`
+          : `${uploaded} selected image(s) uploaded for ${product.name}. Product image quota and primary-image rules are unchanged.`,
+      });
+      try {
+        await refreshProducts(shop.id);
+        if (managingImagesFor === product.id) {
+          const detail = await getShopProduct(shop.id, product.id);
+          setManagedImages(detail.data.images);
+        }
+      } catch {
+        // Upload succeeded; avoid reporting it as a failed upload.
+      }
+    }
+    if (failure && uploaded === 0) throw new Error(failure);
+  }
+
   if (loading) {
     return (
       <LoadingState
@@ -1000,6 +1048,7 @@ export default function ProductsPage() {
           index={pendingPhotoUpload.index}
           total={pendingPhotoUpload.files.length}
           onConfirm={uploadAdjustedPhoto}
+          onConfirmVariants={pendingPhotoUpload.files.length === 1 ? uploadEnhancedVariants : undefined}
           onCancel={() => {
             if (!busyId) setPendingPhotoUpload(null);
           }}

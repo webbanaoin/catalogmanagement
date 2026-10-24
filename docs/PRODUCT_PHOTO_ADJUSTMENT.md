@@ -17,10 +17,22 @@ Display policy:
 - Detail gallery retains full-size viewer and existing zoom behavior.
 - Adjustment affects new uploaded images only. To replace a previously uploaded photo permanently, upload the corrected image, set it primary, confirm appearance, then delete the old image if desired.
 
+Single-file-only smart enhancement:
+- Selecting **exactly one source photo** additionally offers an optional **Preview white background & variants** action. This is not run by default.
+- It generates **Standard**, a **White Background** clean version when the original backdrop is sufficiently plain, and a **Close-up** crop from the same source photo.
+- A lightweight browser-only, edge-connected pixel cleanup removes solid/near-uniform backgrounds. This is **not a general AI background remover**. Complex scenery, shadows, transparent jewelry and product colors similar to the backdrop may not cleanly separate. The UI warns and lets the merchant choose the original instead.
+- User previews final results, checks one or more variants, then uploads only the selected images. Each selected file counts against the same image quota.
+- The 4–5 photo selection flow retains the existing one-at-a-time Fit/Crop, Zoom and Position adjuster and never generates extra variants.
+- No Railway server-side image processing, remote paid AI service, new image tables or category/storefront layout changes.
+
 Release checklist:
 - Run `npm run test:photos:framing`, `npm run lint`, `npm run typecheck`, `npm run build` before deployment.
 - Test tall/landscape/square JPG, PNG and WebP on mobile and desktop.
 - Confirm default Fit shows whole product; Fill & crop adjusts top/bottom correctly.
 - Confirm uploaded thumbnails match preview, existing primary remains primary, and new images respect per-product quota.
 - Try multi-select, cancellation, upload failure/retry, and oversized/invalid photos.
+- Verify single photo generates preview-only Standard/White BG/Close-up, and only selected versions upload.
+- Test solid-color backgrounds, busy/complex photos, and a subject matching background color; fallback must preserve source.
+- Ensure selecting five files never triggers the variant generator.
+- Verify existing product cards retain their previous object-cover display sizing.
 - No Prisma migration or storage configuration changes required.

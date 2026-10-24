@@ -71,4 +71,60 @@ assert(!cards.includes('fit={product.imageSource === "actual" ? "contain" : "cov
   "existing catalog layout must retain original cover-style photos");
 assert(cards.includes('className="aspect-square w-full transition-transform duration-500 ease-out group-hover:scale-[1.045]"'),
   "original square card and hover style must stay unchanged");
-console.log("Product photo fitting, cropping, and upload contracts OK");
+// Verify the optional, single-photo-only background cleanup on synthetic rasters.
+const smartSource = read("src/lib/single-photo-variants.ts");
+const smartCode = ts.transpileModule(smartSource, {
+  compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS },
+}).outputText;
+const smartModule = { exports: {} };
+runInNewContext(smartCode, {
+  module: smartModule, exports: smartModule.exports,
+  require(specifier) {
+    if (specifier === "@/lib/client-image-optimizer") return clientOptimizer;
+    if (specifier === "@/lib/product-image-framing") {
+      return { frameProductPhoto: async () => { throw Error("not called by raster test"); } };
+    }
+    throw Error(`Unexpected imported module: ${specifier}`);
+  },
+  Uint8ClampedArray, Uint8Array, Uint32Array, ImageData: undefined,
+});
+const { removeConnectedPlainBackground } = smartModule.exports;
+const w = 8, h = 8;
+const sourcePixels = new Uint8ClampedArray(w * h * 4);
+for (let y = 0; y < h; y++) {
+  for (let x = 0; x < w; x++) {
+    const idx = (y * w + x) * 4;
+    const subject = x >= 2 && x <= 5 && y >= 2 && y <= 5;
+    sourcePixels.set(subject ? [200, 20, 20, 255] : [30, 90, 210, 255], idx);
+  }
+}
+const cleaned = removeConnectedPlainBackground(sourcePixels, w, h);
+assert.equal(cleaned.confident, true, "flat blue background should be removable");
+assert.equal(cleaned.pixels[3], 0, "outer blue background should become transparent");
+assert.equal(cleaned.pixels[(3 * w + 3) * 4 + 3], 255, "red subject must remain");
+assert.equal(sourcePixels[3], 255, "original image must not be mutated");
+const busyPixels = new Uint8ClampedArray(sourcePixels);
+for (const [idx, rgb] of [
+  [0, [250, 0, 0]], [w - 1, [0, 250, 0]],
+  [(h - 1) * w, [0, 0, 250]], [w * h - 1, [250, 250, 0]],
+]) {
+  busyPixels.set([...rgb, 255], idx * 4);
+}
+assert.equal(removeConnectedPlainBackground(busyPixels, w, h).confident, false,
+  "mixed corner colors must not be removed blindly");
+
+const smartUI = read("src/components/shop-management/product-image-adjuster.tsx");
+assert(smartUI.includes("total === 1 && onConfirmVariants !== undefined"),
+  "automatic variants must be limited to a single selected photo");
+assert(smartUI.includes("Preview white background & variants") &&
+  smartUI.includes("selectedKinds.includes(variant.kind)"),
+  "explicit preview and selection must precede upload");
+assert(smartUI.includes("onConfirmVariants(files)"),
+  "upload only the selected final variants");
+
+assert(products.includes("onConfirmVariants={pendingPhotoUpload.files.length === 1 ? uploadEnhancedVariants : undefined}"),
+  "multiple-photo uploads must keep the original adjuster flow");
+assert(products.includes("for (const [index, file] of files.entries())"),
+  "variants must each pass the existing upload and quota flow");
+
+console.log("Product photo fitting, background cleaning, and upload contracts OK");
