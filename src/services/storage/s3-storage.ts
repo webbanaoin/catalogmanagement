@@ -26,18 +26,28 @@ export class S3StorageService implements StorageService {
 
   async createUploadUrl(input: CreateUploadUrlInput): Promise<CreateUploadUrlResult> {
     const expiresInSeconds = input.expiresInSeconds ?? DEFAULT_UPLOAD_EXPIRY_SECONDS;
+    // Only opt in after configuring a public CDN domain and allowing the
+    // Cache-Control request header in R2 CORS. Every media key is unique.
+    const cacheControl =
+      this.config.MEDIA_IMMUTABLE_CACHE && this.config.MEDIA_BASE_URL
+        ? "public, max-age=31536000, immutable"
+        : null;
     const command = new PutObjectCommand({
       Bucket: this.config.AWS_S3_BUCKET,
       Key: input.key,
       ContentType: input.contentType,
       ContentLength: input.contentLength,
+      ...(cacheControl ? { CacheControl: cacheControl } : {}),
     });
 
     return {
       url: await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds }),
       key: input.key,
       expiresInSeconds,
-      headers: { "Content-Type": input.contentType },
+      headers: {
+        "Content-Type": input.contentType,
+        ...(cacheControl ? { "Cache-Control": cacheControl } : {}),
+      },
     };
   }
 

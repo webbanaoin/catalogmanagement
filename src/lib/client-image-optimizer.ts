@@ -7,16 +7,17 @@ export type ImageUse = "product" | "thumbnail" | "logo" | "cover" | "category";
 
 export const MAX_SOURCE_IMAGE_BYTES = 100 * 1024 * 1024;
 export const MAX_OUTPUT_IMAGE_BYTES = 8 * 1024 * 1024;
-const MAX_DECODED_PIXELS = 45_000_000;
+const MAX_DECODED_PIXELS = 55_000_000; // Includes common 48 MP camera photos.
 const MAX_SOURCE_EDGE = 20_000;
 export const SUPPORTED_SOURCE_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
-const imageSizes: Record<ImageUse, { maxEdge: number; quality: number }> = {
-  product: { maxEdge: 1400, quality: 0.83 },
-  thumbnail: { maxEdge: 480, quality: 0.75 },
-  logo: { maxEdge: 600, quality: 0.86 },
-  cover: { maxEdge: 1600, quality: 0.8 },
-  category: { maxEdge: 720, quality: 0.78 },
+// Sizes are upper bounds, not crops. Targets are best-effort, with 8 MiB hard cap.
+const imageSizes: Record<ImageUse, { maxEdge: number; quality: number; targetBytes: number }> = {
+  product: { maxEdge: 1600, quality: 0.85, targetBytes: 1_500_000 },
+  thumbnail: { maxEdge: 480, quality: 0.76, targetBytes: 140_000 },
+  logo: { maxEdge: 600, quality: 0.86, targetBytes: 300_000 },
+  cover: { maxEdge: 1800, quality: 0.82, targetBytes: 1_600_000 },
+  category: { maxEdge: 720, quality: 0.78, targetBytes: 350_000 },
 };
 
 export class ImageOptimizationError extends Error {
@@ -105,9 +106,9 @@ export async function optimizeImageForUpload(
     }
     const results = {} as Record<ImageUse, File>;
     for (const kind of types) {
-      const { maxEdge, quality } = imageSizes[kind];
+      const { maxEdge, quality, targetBytes } = imageSizes[kind];
       const scale = Math.min(1, maxEdge / Math.max(width, height));
-      const canvas = document.createElement("canvas");
+      let canvas = document.createElement("canvas");
       canvas.width = Math.max(1, Math.round(width * scale));
       canvas.height = Math.max(1, Math.round(height * scale));
       try {
@@ -116,9 +117,28 @@ export async function optimizeImageForUpload(
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "high";
         ctx.drawImage(source.draw, 0, 0, canvas.width, canvas.height);
-        const blob = await exportImage(canvas, quality);
+
+        // Try quality reduction first, then smaller dimensions if necessary.
+        // WebP-unavailable browsers fall back to PNG and benefit from resizing.
+        let blob = await exportImage(canvas, quality);
+        for (let pass = 1; blob.size > targetBytes && pass <= 6; pass++) {
+          if (pass % 2 === 0 && canvas.width > 1 && canvas.height > 1) {
+            const smaller = document.createElement("canvas");
+            smaller.width = Math.max(1, Math.round(canvas.width * 0.8));
+            smaller.height = Math.max(1, Math.round(canvas.height * 0.8));
+            const smallerContext = smaller.getContext("2d", { alpha: true });
+            if (!smallerContext) throw new ImageOptimizationError("Unable to resize this image.");
+            smallerContext.imageSmoothingEnabled = true;
+            smallerContext.imageSmoothingQuality = "high";
+            smallerContext.drawImage(canvas, 0, 0, smaller.width, smaller.height);
+            canvas.width = 0;
+            canvas.height = 0;
+            canvas = smaller;
+          }
+          blob = await exportImage(canvas, Math.max(0.58, quality - pass * 0.07));
+        }
         if (blob.size > MAX_OUTPUT_IMAGE_BYTES) {
-          throw new ImageOptimizationError("Converted image is too large. Try a different photo.");
+          throw new ImageOptimizationError("This image could not be compressed under the 8 MB upload limit.");
         }
         results[kind] = new File([blob], outputName(original.name, kind, blob.type), {
           type: blob.type,

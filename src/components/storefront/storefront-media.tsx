@@ -7,12 +7,14 @@ export function StorefrontMedia({
   alt,
   className,
   eager = false,
+  highPriority = false,
   fit = "cover",
 }: {
   src: string | null;
   alt: string;
   className?: string;
   eager?: boolean;
+  highPriority?: boolean;
   fit?: "cover" | "contain";
 }) {
   if (!src) {
@@ -45,6 +47,7 @@ export function StorefrontMedia({
       alt={alt}
       className={cn(fit === "contain" ? "object-contain" : "object-cover", className)}
       loading={eager ? "eager" : "lazy"}
+      fetchPriority={highPriority ? "high" : "auto"}
       decoding="async"
       referrerPolicy="no-referrer"
     />
