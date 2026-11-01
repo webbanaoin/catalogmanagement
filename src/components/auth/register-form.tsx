@@ -31,6 +31,7 @@ function validateRegistration(formData: FormData): FieldErrors {
   const name = rawValue(formData, "name").trim();
   const email = rawValue(formData, "email").trim();
   const password = rawValue(formData, "password");
+  const confirmPassword = rawValue(formData, "confirmPassword");
   const shopName = rawValue(formData, "shopName").trim();
   const businessCategoryId = rawValue(formData, "businessCategoryId").trim();
   const requestedBusinessType = rawValue(formData, "requestedBusinessType").trim();
@@ -53,6 +54,12 @@ function validateRegistration(formData: FormData): FieldErrors {
     errors.password = "Password must contain at least 10 characters.";
   } else if (password.length > 128) {
     errors.password = "Password must contain at most 128 characters.";
+  }
+
+  if (!confirmPassword) {
+    errors.confirmPassword = "Please confirm your password.";
+  } else if (confirmPassword !== password) {
+    errors.confirmPassword = "Passwords do not match.";
   }
 
   if (shopName.length < 2) {
@@ -137,6 +144,35 @@ function describedBy(id: string, error: string | undefined, hasHint = false): st
   return hasHint ? `${id}-hint` : undefined;
 }
 
+function PasswordVisibilityIcon({ visible }: { visible: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {visible ? (
+        <>
+          <path d="M2 2l20 20" />
+          <path d="M10.6 5.1A10.6 10.6 0 0 1 12 5c7 0 10 7 10 7a15.7 15.7 0 0 1-3.1 4.2" />
+          <path d="M6.5 6.5C3.5 8.3 2 12 2 12s3 7 10 7c1.5 0 2.8-.3 4-.8" />
+          <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+        </>
+      ) : (
+        <>
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+          <circle cx="12" cy="12" r="3" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 export function RegisterForm({
   initialReferralCode = "",
   growthSourceShopSlug = "",
@@ -146,6 +182,8 @@ export function RegisterForm({
 }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formError, setFormError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [otpEmail, setOtpEmail] = useState("");
@@ -307,17 +345,62 @@ export function RegisterForm({
         error={fieldErrors.password}
         required
       >
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          minLength={10}
-          maxLength={128}
-          required
-          aria-invalid={Boolean(fieldErrors.password)}
-          aria-describedby={describedBy("password", fieldErrors.password, true)}
-        />
+        <div className="relative">
+          <Input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="new-password"
+            minLength={10}
+            maxLength={128}
+            className="pr-12"
+            required
+            aria-invalid={Boolean(fieldErrors.password)}
+            aria-describedby={describedBy("password", fieldErrors.password, true)}
+          />
+          <button
+            type="button"
+            className="absolute inset-y-0 right-2 flex w-9 items-center justify-center rounded-md text-muted transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+            title={showPassword ? "Hide password" : "Show password"}
+            onClick={() => setShowPassword((current) => !current)}
+          >
+            <PasswordVisibilityIcon visible={showPassword} />
+          </button>
+        </div>
+      </Field>
+
+      <Field
+        label="Confirm password"
+        htmlFor="confirmPassword"
+        error={fieldErrors.confirmPassword}
+        required
+      >
+        <div className="relative">
+          <Input
+            id="confirmPassword"
+            name="confirmPassword"
+            type={showConfirmPassword ? "text" : "password"}
+            autoComplete="new-password"
+            minLength={10}
+            maxLength={128}
+            className="pr-12"
+            required
+            aria-invalid={Boolean(fieldErrors.confirmPassword)}
+            aria-describedby={describedBy("confirmPassword", fieldErrors.confirmPassword)}
+          />
+          <button
+            type="button"
+            className="absolute inset-y-0 right-2 flex w-9 items-center justify-center rounded-md text-muted transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+            aria-pressed={showConfirmPassword}
+            title={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+            onClick={() => setShowConfirmPassword((current) => !current)}
+          >
+            <PasswordVisibilityIcon visible={showConfirmPassword} />
+          </button>
+        </div>
       </Field>
 
       <Field label="Shop name" htmlFor="shopName" error={fieldErrors.shopName} required>

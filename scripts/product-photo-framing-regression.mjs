@@ -8,21 +8,21 @@ const source = read("src/lib/product-image-framing.ts");
 const compiled = ts.transpileModule(source, {
   compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS },
 }).outputText;
-const module = { exports: {} };
+const sandboxModule = { exports: {} };
 const clientOptimizer = {
   ImageOptimizationError: class ImageOptimizationError extends Error {},
   MAX_OUTPUT_IMAGE_BYTES: 8 * 1024 * 1024,
   validateSourceImage() {},
 };
 runInNewContext(compiled, {
-  module,
-  exports: module.exports,
+  module: sandboxModule,
+  exports: sandboxModule.exports,
   require(specifier) {
     assert.equal(specifier, "@/lib/client-image-optimizer");
     return clientOptimizer;
   },
 });
-const { imageFrameGeometry, DEFAULT_PRODUCT_IMAGE_FRAMING } = module.exports;
+const { imageFrameGeometry, DEFAULT_PRODUCT_IMAGE_FRAMING } = sandboxModule.exports;
 assert.equal(typeof imageFrameGeometry, "function");
 
 function approx(actual, expected, label) {
