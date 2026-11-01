@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import Link from "next/link";
+import { GoogleAdsTag } from "@/components/marketing/google-ads-tag";
 import type { ReactNode } from "react";
 
 import "./globals.css";
@@ -30,6 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <GoogleAdsTag />
         <Script id="digital-showroom-install-prompt" strategy="beforeInteractive">
           {`
             window.__digitalShowroomInstallPrompt = null;
