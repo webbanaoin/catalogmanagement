@@ -16,16 +16,22 @@ export function reportMerchantSignupConversion() {
     return;
   }
 
-  const google = window as GoogleAdsWindow;
-  // Queue the conversion if gtag.js is still loading. Google consumes the
-  // existing dataLayer after the script loads.
-  if (typeof google.gtag !== "function") {
-    google.dataLayer ??= [];
-    google.gtag = (...args: unknown[]) => {
-      google.dataLayer?.push(args);
-    };
+  // Ad blockers, browser restrictions or third-party scripts must never
+  // interfere with an already-successful merchant registration.
+  try {
+    const google = window as GoogleAdsWindow;
+    // Queue the conversion if gtag.js is still loading. Google consumes the
+    // existing dataLayer after the script loads.
+    if (typeof google.gtag !== "function") {
+      google.dataLayer ??= [];
+      google.gtag = (...args: unknown[]) => {
+        google.dataLayer?.push(args);
+      };
+    }
+    google.gtag("event", "conversion", {
+      send_to: GOOGLE_ADS_MERCHANT_SIGNUP_SEND_TO,
+    });
+  } catch {
+    // Registration and redirect must succeed even when analytics cannot run.
   }
-  google.gtag("event", "conversion", {
-    send_to: GOOGLE_ADS_MERCHANT_SIGNUP_SEND_TO,
-  });
 }
