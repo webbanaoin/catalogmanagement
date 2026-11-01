@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import Script from "next/script";
 
 import { GOOGLE_ADS_TAG_ID } from "@/lib/google-ads";
@@ -10,12 +10,14 @@ import { GOOGLE_ADS_TAG_ID } from "@/lib/google-ads";
  * The same Next.js code also runs on staging and local development; test
  * registrations must never pollute paid campaign measurement.
  */
-export function GoogleAdsTag() {
-  const [enabled, setEnabled] = useState(false);
+// Render no tag during SSR/hydration; enable it on the production host
+// immediately after hydration without setting React state in an effect.
+const subscribe = () => () => {};
+const productionSnapshot = () => window.location.hostname === "digishowroom.webbanao.in";
+const serverSnapshot = () => false;
 
-  useEffect(() => {
-    setEnabled(window.location.hostname === "digishowroom.webbanao.in");
-  }, []);
+export function GoogleAdsTag() {
+  const enabled = useSyncExternalStore(subscribe, productionSnapshot, serverSnapshot);
 
   if (!enabled) return null;
 
