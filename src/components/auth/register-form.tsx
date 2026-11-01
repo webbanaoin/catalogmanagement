@@ -6,6 +6,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Alert, Button, Field, Input, Select } from "@/components/ui";
 import { RegistrationEmailOtp } from "@/components/auth/registration-email-otp";
 import { AuthApiError, registerMerchant } from "@/lib/auth-api";
+import { reportMerchantSignupConversion } from "@/lib/google-ads";
 import { getBusinessCategories, type BusinessCategory } from "@/lib/catalog-api";
 import {
   isValidEmail,
@@ -265,6 +266,8 @@ export function RegisterForm({
         growthSourceShopSlug: growthSourceShopSlug || undefined,
       });
 
+      // The API returned success only after creating the merchant and shop.
+      reportMerchantSignupConversion();
       router.push("/pending-approval");
     } catch (error) {
       if (error instanceof AuthApiError) {
