@@ -8,9 +8,9 @@ const code = readFileSync(new URL("../src/lib/growth-origin.ts", import.meta.url
 const compiled = ts.transpileModule(code, {
   compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS },
 }).outputText;
-const module = { exports: {} };
-runInNewContext(compiled, { module, exports: module.exports, URL });
-const { isTrustedGrowthOrigin } = module.exports;
+const sandboxModule = { exports: {} };
+runInNewContext(compiled, { module: sandboxModule, exports: sandboxModule.exports, URL });
+const { isTrustedGrowthOrigin } = sandboxModule.exports;
 assert.equal(typeof isTrustedGrowthOrigin, "function");
 
 const publicUrl = "https://digishowroom.webbanao.in";

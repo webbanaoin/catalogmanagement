@@ -32,6 +32,11 @@ function number(value: number) {
   return new Intl.NumberFormat("en-IN").format(value);
 }
 
+// Query-relative time belongs to a server-side data helper, not React render logic.
+function analyticsWindowStart(days: number): Date {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+}
+
 export default async function GrowthAnalyticsPage({
   searchParams,
 }: {
@@ -41,7 +46,7 @@ export default async function GrowthAnalyticsPage({
   const query = await searchParams;
   const daysParam = Array.isArray(query.days) ? query.days[0] : query.days;
   const days = daysParam === "7" ? 7 : daysParam === "90" ? 90 : 30;
-  const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const from = analyticsWindowStart(days);
 
   const groups = await prisma.storefrontGrowthEvent.groupBy({
     by: ["sourceShopId", "eventType"],

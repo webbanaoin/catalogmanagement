@@ -69,12 +69,33 @@ export function ProductImageAdjuster({
 
   useEffect(() => {
     const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    setDimensions(null);
-    setError(null);
-    setFrame({ ...DEFAULT_PRODUCT_IMAGE_FRAMING });
+    const preloader = new Image();
+    let active = true;
+
+    // Image loading is an external browser event. Update the preview after
+    // that event, rather than triggering cascading state updates in an effect.
+    preloader.onload = () => {
+      if (!active) return;
+      setPreviewUrl(url);
+      setDimensions(null);
+      setError(null);
+      setFrame({ ...DEFAULT_PRODUCT_IMAGE_FRAMING });
+    };
+    preloader.onerror = () => {
+      if (!active) return;
+      setPreviewUrl(null);
+      setDimensions(null);
+      setError("Photo preview could not load. Select another image.");
+    };
+    preloader.src = url;
     dialogRef.current?.focus();
-    return () => URL.revokeObjectURL(url);
+
+    return () => {
+      active = false;
+      preloader.onload = null;
+      preloader.onerror = null;
+      URL.revokeObjectURL(url);
+    };
   }, [file]);
 
   useEffect(() => {
